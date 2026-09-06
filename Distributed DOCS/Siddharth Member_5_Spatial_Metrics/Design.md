@@ -25,11 +25,26 @@ Interface:
 
 ```python
 spatially_balance(
-    matches,
-    image_shape,
-    grid=(4,4)
+    points_ref,
+    points_mov=None,
+    image_shape=None,
+    grid=(4,4),
+    max_per_cell=10,
+    scores=None,
+    score_order="ascending",
+    method="grid",
+    target_count=None,
 )
 ```
+
+The function returns selected indices/mask, aligned reference and moving point
+arrays, before/after coverage, grid occupancy and reduction statistics. The
+default `grid` method is the stable integration baseline. `anms` is an optional
+advanced selection method and supports both ascending-distance and
+descending-response quality scores.
+
+Coordinates outside the image are clamped to edge grid cells for coverage
+calculation. Upstream geometry should normally filter such correspondences.
 
 ## Metrics
 

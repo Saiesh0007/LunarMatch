@@ -126,36 +126,31 @@ def compute_reprojection_errors(
             "point_errors": np.empty((0,), dtype=np.float64),
         }
 
-    try:
-        pts_mov_projected = transform_points(pts_mov, transform_matrix, model_type=model_type)
-        # Difference vectors
-        diffs = pts_ref - pts_mov_projected
-        squared_errors = np.sum(diffs**2, axis=1)  # (N,)
-        point_errors = np.sqrt(squared_errors)     # (N,)
+    if not np.all(np.isfinite(pts_ref)) or not np.all(np.isfinite(pts_mov)):
+        raise ValueError("points_ref and points_mov must contain only finite values")
 
-        rmse = float(np.sqrt(np.mean(squared_errors)))
-        mae = float(np.mean(point_errors))
-        median_error = float(np.median(point_errors))
-        max_error = float(np.max(point_errors))
-        std_error = float(np.std(point_errors))
+    pts_mov_projected = transform_points(pts_mov, transform_matrix, model_type=model_type)
+    if not np.all(np.isfinite(pts_mov_projected)):
+        raise ValueError("transform produced non-finite projected points")
 
-        return {
-            "rmse": round(rmse, 4),
-            "mae": round(mae, 4),
-            "median_error": round(median_error, 4),
-            "max_error": round(max_error, 4),
-            "std_error": round(std_error, 4),
-            "point_errors": point_errors,
-        }
-    except Exception:
-        return {
-            "rmse": None,
-            "mae": None,
-            "median_error": None,
-            "max_error": None,
-            "std_error": None,
-            "point_errors": np.empty((0,), dtype=np.float64),
-        }
+    diffs = pts_ref - pts_mov_projected
+    squared_errors = np.sum(diffs**2, axis=1)
+    point_errors = np.sqrt(squared_errors)
+
+    rmse = float(np.sqrt(np.mean(squared_errors)))
+    mae = float(np.mean(point_errors))
+    median_error = float(np.median(point_errors))
+    max_error = float(np.max(point_errors))
+    std_error = float(np.std(point_errors))
+
+    return {
+        "rmse": round(rmse, 4),
+        "mae": round(mae, 4),
+        "median_error": round(median_error, 4),
+        "max_error": round(max_error, 4),
+        "std_error": round(std_error, 4),
+        "point_errors": point_errors,
+    }
 
 
 def assess_registration_confidence(
@@ -293,6 +288,22 @@ def calculate_metrics(
     metrics : Dict[str, Any]
         Standard evaluation dictionary for pipeline and UI consumption.
     """
+    counts = {
+        "num_keypoints_ref": num_keypoints_ref,
+        "num_keypoints_mov": num_keypoints_mov,
+        "num_candidate_matches": num_candidate_matches,
+        "num_filtered_matches": num_filtered_matches,
+        "num_inliers": num_inliers,
+    }
+    if any(int(value) != value or value < 0 for value in counts.values()):
+        raise ValueError("match and keypoint counts must be non-negative integers")
+    if num_filtered_matches > num_candidate_matches:
+        raise ValueError("num_filtered_matches cannot exceed num_candidate_matches")
+    if num_inliers > num_filtered_matches:
+        raise ValueError("num_inliers cannot exceed num_filtered_matches")
+    if not 0.0 <= spatial_coverage_before <= 1.0 or not 0.0 <= spatial_coverage_after <= 1.0:
+        raise ValueError("spatial coverage values must be within [0, 1]")
+
     inlier_ratio = (
         float(num_inliers / float(num_filtered_matches))
         if num_filtered_matches > 0

@@ -72,6 +72,8 @@ def compute_grid_indices(
         Column index in [0, cols - 1] for each point.
     """
     pts = _to_numpy_points(points)
+    if not np.all(np.isfinite(pts)):
+        raise ValueError("points must contain only finite values")
     if pts.shape[0] == 0:
         return np.empty((0,), dtype=np.int64), np.empty((0,), dtype=np.int64)
 
@@ -129,9 +131,15 @@ def compute_spatial_coverage(
         - is_well_distributed (bool): True if coverage_ratio >= 0.5 and total_points >= 4
     """
     pts = _to_numpy_points(points)
+    if len(grid) != 2:
+        raise ValueError(f"grid must be a (rows, cols) pair, got {grid}")
     rows, cols = grid
+    if rows <= 0 or cols <= 0:
+        raise ValueError(f"grid rows and cols must be > 0, got {grid}")
     total_cells = rows * cols
     height, width = image_shape
+    if height <= 0 or width <= 0:
+        raise ValueError(f"image_shape dimensions must be > 0, got {image_shape}")
 
     if pts.shape[0] == 0:
         return {
@@ -225,6 +233,11 @@ def anms_spatial_balance(
     pts_ref = _to_numpy_points(points_ref)
     n_pts = pts_ref.shape[0]
 
+    if target_count < 0:
+        raise ValueError(f"target_count must be >= 0, got {target_count}")
+    if not 0.0 < c_robust <= 1.0:
+        raise ValueError(f"c_robust must be in (0, 1], got {c_robust}")
+
     has_mov = points_mov is not None
     pts_mov = _to_numpy_points(points_mov) if has_mov else None
 
@@ -253,29 +266,36 @@ def anms_spatial_balance(
 
     if scores is not None:
         strength = np.asarray(scores, dtype=np.float64).flatten()
+        if strength.shape[0] != n_pts:
+            raise ValueError(f"scores length ({strength.shape[0]}) must match points ({n_pts})")
+        if not np.all(np.isfinite(strength)):
+            raise ValueError("scores must contain only finite values")
     else:
-        # Default equal response strength
+        # Without detector responses, use a deterministic distance-greedy spread.
         strength = np.ones(n_pts, dtype=np.float64)
 
-    # Sort descending by strength
-    order = np.argsort(-strength)
+    # Sort descending by strength. Stable ordering keeps results reproducible.
+    order = np.argsort(-strength, kind="stable")
     sorted_pts = pts_ref[order]
     sorted_strength = strength[order]
 
-    # Compute suppression radius for each point
+    # Compute suppression radius for each point. Equal-strength points use the
+    # nearest previously ranked point so ANMS still spreads points spatially.
     radii = np.full(n_pts, np.inf, dtype=np.float64)
 
     # Vectorized pairwise distance calculation for efficient ANMS
     for i in range(1, n_pts):
         # Candidates that have significantly higher strength: strength[j] > c_robust * strength[i]
         stronger_mask = sorted_strength[:i] > (c_robust * sorted_strength[i])
+        if not np.any(stronger_mask):
+            stronger_mask = np.ones(i, dtype=bool)
         if np.any(stronger_mask):
             stronger_pts = sorted_pts[:i][stronger_mask]
             dists = np.sqrt(np.sum((stronger_pts - sorted_pts[i]) ** 2, axis=1))
             radii[i] = np.min(dists)
 
     # Select top target_count points with highest suppression radii
-    top_radii_order = np.argsort(-radii)[:target_count]
+    top_radii_order = np.argsort(-radii, kind="stable")[:target_count]
     selected_sorted_indices = order[top_radii_order]
     selected_indices = np.sort(selected_sorted_indices)
 
@@ -347,7 +367,11 @@ def spatially_balance(
             f"Point count mismatch: points_ref has {n_pts} points, points_mov has {pts_mov.shape[0]}"
         )
 
+    if len(grid) != 2:
+        raise ValueError(f"grid must be a (rows, cols) pair, got {grid}")
     rows, cols = grid
+    if rows <= 0 or cols <= 0:
+        raise ValueError(f"grid rows and cols must be > 0, got {grid}")
 
     # Handle empty case
     if n_pts == 0:
@@ -385,7 +409,11 @@ def spatially_balance(
             points_ref=pts_ref,
             points_mov=pts_mov,
             target_count=k_target,
-            scores=scores if score_order == "descending" else None,
+            scores=(
+                scores
+                if score_order.lower() == "descending"
+                else (-np.asarray(scores, dtype=np.float64) if scores is not None else None)
+            ),
         )
         selected_indices = anms_res["selected_indices"]
         selected_mask = anms_res["selected_mask"]
@@ -473,6 +501,10 @@ def get_grid_visualization_boxes(
     """
     height, width = image_shape
     rows, cols = grid
+    if height <= 0 or width <= 0:
+        raise ValueError(f"image_shape dimensions must be > 0, got {image_shape}")
+    if rows <= 0 or cols <= 0:
+        raise ValueError(f"grid rows and cols must be > 0, got {grid}")
     cell_w = width / float(cols)
     cell_h = height / float(rows)
 

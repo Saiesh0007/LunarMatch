@@ -173,7 +173,7 @@ def run_benchmark_experiment(
         image_shape=image_shape,
         grid=grid,
         method="anms",
-        target_count=grid["rows"] * grid["cols"] * max_per_cell if isinstance(grid, dict) else grid[0] * grid[1] * max_per_cell,
+        target_count=grid[0] * grid[1] * max_per_cell,
     )
     anms_errors = compute_reprojection_errors(
         anms_res["balanced_pts_ref"], anms_res["balanced_pts_mov"], H_gt, model_type="homography"

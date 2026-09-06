@@ -164,6 +164,18 @@ class TestMetricsModule(unittest.TestCase):
         self.assertIn("RANSAC Inliers", summary)
         self.assertIn("Reprojection RMSE", summary)
 
+    def test_calculate_metrics_rejects_inconsistent_counts(self):
+        with self.assertRaises(ValueError):
+            calculate_metrics(10, 10, 2, 3, 1, 0.5, 0.5)
+        with self.assertRaises(ValueError):
+            calculate_metrics(10, 10, 2, 1, 2, 0.5, 0.5)
+
+    def test_reprojection_errors_reject_non_finite_points(self):
+        points = self.pts_ref.copy()
+        points[0, 0] = np.nan
+        with self.assertRaises(ValueError):
+            compute_reprojection_errors(self.pts_ref, points, self.identity_homography)
+
 
 if __name__ == "__main__":
     unittest.main()

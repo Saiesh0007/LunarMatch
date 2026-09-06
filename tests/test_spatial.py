@@ -9,6 +9,7 @@ from src.spatial import (
     _to_numpy_points,
     compute_grid_indices,
     compute_spatial_coverage,
+    anms_spatial_balance,
     spatially_balance,
     get_grid_visualization_boxes,
 )
@@ -227,6 +228,24 @@ class TestSpatialModule(unittest.TestCase):
         self.assertEqual(result["num_after"], 20)
         self.assertEqual(result["balanced_pts_ref"].shape, (20, 2))
         self.assertEqual(result["balanced_pts_mov"].shape, (20, 2))
+
+    def test_anms_without_scores_spreads_points(self):
+        pts = np.array([[10.0, 10.0], [11.0, 10.0], [12.0, 10.0], [390.0, 390.0]])
+        result = anms_spatial_balance(pts, target_count=2)
+        selected = result["balanced_pts_ref"]
+        self.assertTrue(any(np.linalg.norm(p - [390.0, 390.0]) < 1e-6 for p in selected))
+
+    def test_anms_ascending_scores_are_supported(self):
+        pts = np.array([[10.0, 10.0], [20.0, 20.0], [300.0, 300.0]])
+        result = spatially_balance(
+            pts, image_shape=self.image_shape, method="anms", target_count=2,
+            scores=[0.1, 0.2, 0.9], score_order="ascending"
+        )
+        self.assertEqual(result["num_after"], 2)
+
+    def test_anms_rejects_invalid_scores(self):
+        with self.assertRaises(ValueError):
+            anms_spatial_balance(np.zeros((3, 2)), target_count=2, scores=[1.0])
 
     def test_get_grid_visualization_boxes(self):
         boxes = get_grid_visualization_boxes((400, 400), (4, 4))
