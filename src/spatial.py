@@ -5,7 +5,8 @@ SIH 2026 Problem Statement 26166
 This module handles:
 1. Spatial coverage quantification across the lunar image coordinate space.
 2. Grid-based spatial balancing to avoid correspondence clustering in high-contrast/high-texture areas (e.g. crater rims).
-3. Distribution analytics and UI visualization helper structures.
+3. Advanced Adaptive Non-Maximal Suppression (ANMS) for optimal continuous spatial spread.
+4. Distribution analytics and UI visualization helper structures.
 """
 
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -191,6 +192,107 @@ def compute_spatial_coverage(
     }
 
 
+def anms_spatial_balance(
+    points_ref: Any,
+    points_mov: Optional[Any] = None,
+    target_count: int = 100,
+    c_robust: float = 0.9,
+    scores: Optional[Union[np.ndarray, List[float]]] = None,
+) -> Dict[str, Any]:
+    """
+    Adaptive Non-Maximal Suppression (ANMS) for continuous, radius-optimal spatial distribution.
+    Computes suppression radius r_i = min_j ||p_i - p_j|| subject to score_j > c_robust * score_i.
+    Points with the largest suppression radius represent the most distinct, uniformly spaced keypoints.
+
+    Parameters:
+    -----------
+    points_ref : Any
+        (N, 2) reference points.
+    points_mov : Optional[Any]
+        (N, 2) moving points.
+    target_count : int
+        Desired number of well-distributed points to retain.
+    c_robust : float
+        Robustness coefficient (default 0.9).
+    scores : Optional[Union[np.ndarray, List[float]]]
+        Point response strengths (higher is better).
+
+    Returns:
+    --------
+    result : Dict[str, Any]
+        Selected indices, balanced points, and radii.
+    """
+    pts_ref = _to_numpy_points(points_ref)
+    n_pts = pts_ref.shape[0]
+
+    has_mov = points_mov is not None
+    pts_mov = _to_numpy_points(points_mov) if has_mov else None
+
+    if n_pts == 0:
+        return {
+            "selected_indices": np.empty((0,), dtype=np.int64),
+            "selected_mask": np.zeros((0,), dtype=bool),
+            "balanced_pts_ref": np.empty((0, 2), dtype=np.float64),
+            "balanced_pts_mov": np.empty((0, 2), dtype=np.float64) if has_mov else None,
+            "num_before": 0,
+            "num_after": 0,
+            "suppression_radii": np.empty((0,), dtype=np.float64),
+        }
+
+    if n_pts <= target_count:
+        all_idx = np.arange(n_pts, dtype=np.int64)
+        return {
+            "selected_indices": all_idx,
+            "selected_mask": np.ones(n_pts, dtype=bool),
+            "balanced_pts_ref": pts_ref,
+            "balanced_pts_mov": pts_mov,
+            "num_before": int(n_pts),
+            "num_after": int(n_pts),
+            "suppression_radii": np.full(n_pts, np.inf, dtype=np.float64),
+        }
+
+    if scores is not None:
+        strength = np.asarray(scores, dtype=np.float64).flatten()
+    else:
+        # Default equal response strength
+        strength = np.ones(n_pts, dtype=np.float64)
+
+    # Sort descending by strength
+    order = np.argsort(-strength)
+    sorted_pts = pts_ref[order]
+    sorted_strength = strength[order]
+
+    # Compute suppression radius for each point
+    radii = np.full(n_pts, np.inf, dtype=np.float64)
+
+    # Vectorized pairwise distance calculation for efficient ANMS
+    for i in range(1, n_pts):
+        # Candidates that have significantly higher strength: strength[j] > c_robust * strength[i]
+        stronger_mask = sorted_strength[:i] > (c_robust * sorted_strength[i])
+        if np.any(stronger_mask):
+            stronger_pts = sorted_pts[:i][stronger_mask]
+            dists = np.sqrt(np.sum((stronger_pts - sorted_pts[i]) ** 2, axis=1))
+            radii[i] = np.min(dists)
+
+    # Select top target_count points with highest suppression radii
+    top_radii_order = np.argsort(-radii)[:target_count]
+    selected_sorted_indices = order[top_radii_order]
+    selected_indices = np.sort(selected_sorted_indices)
+
+    selected_mask = np.zeros(n_pts, dtype=bool)
+    selected_mask[selected_indices] = True
+
+    return {
+        "selected_indices": selected_indices,
+        "selected_mask": selected_mask,
+        "balanced_pts_ref": pts_ref[selected_indices],
+        "balanced_pts_mov": pts_mov[selected_indices] if (has_mov and pts_mov is not None) else None,
+        "num_before": int(n_pts),
+        "num_after": int(len(selected_indices)),
+        "suppression_radii": radii[top_radii_order],
+    }
+
+
 def spatially_balance(
     points_ref: Any,
     points_mov: Optional[Any] = None,
@@ -199,11 +301,14 @@ def spatially_balance(
     max_per_cell: int = 10,
     scores: Optional[Union[np.ndarray, List[float]]] = None,
     score_order: str = "ascending",
+    method: str = "grid",
+    target_count: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
-    Spatially balances correspondences by capping the number of matches per grid cell.
-    Prevents dense feature clustering in high-texture areas (e.g. crater rims) from
-    biasing geometric transformation estimation.
+    Spatially balances correspondences across the lunar image coordinate space.
+    Supports:
+    - 'grid': Uniform cell capping (default SIH baseline).
+    - 'anms': Adaptive Non-Maximal Suppression (advanced continuous spread).
 
     Parameters:
     -----------
@@ -212,31 +317,24 @@ def spatially_balance(
     points_mov : Optional[Any]
         Moving image points (N, 2) or keypoints matching points_ref.
     image_shape : Optional[Tuple[int, int]]
-        (height, width) of the reference image. If None, estimated from points bounding box.
+        (height, width) of the reference image.
     grid : Tuple[int, int]
         (rows, cols) grid resolution, default (4, 4).
     max_per_cell : int
-        Maximum number of points to retain per grid cell (default 10).
+        Maximum points to keep per cell in 'grid' method.
     scores : Optional[Union[np.ndarray, List[float]]]
-        (N,) quality scores for ranking points within each cell (e.g. descriptor distance or Lowe ratio).
+        Quality scores (descriptor distance or Lowe ratio or response).
     score_order : str
-        'ascending' (smaller score is better, e.g. distance/ratio) or
-        'descending' (larger score is better, e.g. keypoint response).
+        'ascending' (lower score is better) or 'descending' (higher is better).
+    method : str
+        'grid' or 'anms'.
+    target_count : Optional[int]
+        Target count when method='anms' (defaults to rows * cols * max_per_cell).
 
     Returns:
     --------
     result : Dict[str, Any]
-        - selected_indices (np.ndarray): indices of selected points from original array
-        - selected_mask (np.ndarray): boolean mask of length N
-        - balanced_pts_ref (np.ndarray): (M, 2) selected reference coordinates
-        - balanced_pts_mov (Optional[np.ndarray]): (M, 2) selected moving coordinates
-        - num_before (int): original match count
-        - num_after (int): balanced match count
-        - coverage_before (float): spatial coverage before balancing
-        - coverage_after (float): spatial coverage after balancing
-        - grid_occupancy_before (np.ndarray): cell counts before
-        - grid_occupancy_after (np.ndarray): cell counts after
-        - reduction_ratio (float): num_after / num_before
+        Dictionary with selected indices, balanced coordinates, and coverage before/after.
     """
     pts_ref = _to_numpy_points(points_ref)
     n_pts = pts_ref.shape[0]
@@ -250,8 +348,6 @@ def spatially_balance(
         )
 
     rows, cols = grid
-    if max_per_cell <= 0:
-        raise ValueError(f"max_per_cell must be >= 1, got {max_per_cell}")
 
     # Handle empty case
     if n_pts == 0:
@@ -270,6 +366,7 @@ def spatially_balance(
             "grid_occupancy_before": empty_occ,
             "grid_occupancy_after": empty_occ,
             "reduction_ratio": 0.0,
+            "method": method,
         }
 
     # Infer image_shape if not provided
@@ -278,56 +375,64 @@ def spatially_balance(
         max_y = max(1.0, float(np.max(pts_ref[:, 1])) * 1.05)
         image_shape = (int(np.ceil(max_y)), int(np.ceil(max_x)))
 
-    # Compute coverage before balancing
     cov_before_stats = compute_spatial_coverage(pts_ref, image_shape, grid)
     cov_before = cov_before_stats["coverage_ratio"]
     occ_before = cov_before_stats["grid_occupancy"]
 
-    row_indices, col_indices = compute_grid_indices(pts_ref, image_shape, grid)
+    if method.lower() == "anms":
+        k_target = target_count if target_count is not None else (rows * cols * max_per_cell)
+        anms_res = anms_spatial_balance(
+            points_ref=pts_ref,
+            points_mov=pts_mov,
+            target_count=k_target,
+            scores=scores if score_order == "descending" else None,
+        )
+        selected_indices = anms_res["selected_indices"]
+        selected_mask = anms_res["selected_mask"]
+        balanced_pts_ref = anms_res["balanced_pts_ref"]
+        balanced_pts_mov = anms_res["balanced_pts_mov"]
 
-    # Process scores if provided
-    if scores is not None:
-        scores_arr = np.asarray(scores, dtype=np.float64).flatten()
-        if scores_arr.shape[0] != n_pts:
-            raise ValueError(f"scores length ({scores_arr.shape[0]}) must match points length ({n_pts})")
     else:
-        # Default ranking score is index order
-        scores_arr = np.arange(n_pts, dtype=np.float64)
-        score_order = "ascending"
+        # Standard Grid-Based Balancing (Default)
+        if max_per_cell <= 0:
+            raise ValueError(f"max_per_cell must be >= 1, got {max_per_cell}")
 
-    # Organize indices by cell
-    cell_bins: Dict[Tuple[int, int], List[int]] = {}
-    for idx, (r, c) in enumerate(zip(row_indices, col_indices)):
-        cell_key = (int(r), int(c))
-        if cell_key not in cell_bins:
-            cell_bins[cell_key] = []
-        cell_bins[cell_key].append(idx)
+        row_indices, col_indices = compute_grid_indices(pts_ref, image_shape, grid)
 
-    selected_indices_list: List[int] = []
-
-    # Select top max_per_cell for each cell
-    for cell_key, indices in cell_bins.items():
-        if len(indices) <= max_per_cell:
-            selected_indices_list.extend(indices)
+        if scores is not None:
+            scores_arr = np.asarray(scores, dtype=np.float64).flatten()
+            if scores_arr.shape[0] != n_pts:
+                raise ValueError(f"scores length ({scores_arr.shape[0]}) must match points ({n_pts})")
         else:
-            cell_scores = scores_arr[indices]
-            if score_order.lower() == "descending":
-                # Higher score is better
-                sorted_rel_order = np.argsort(-cell_scores)
+            scores_arr = np.arange(n_pts, dtype=np.float64)
+            score_order = "ascending"
+
+        cell_bins: Dict[Tuple[int, int], List[int]] = {}
+        for idx, (r, c) in enumerate(zip(row_indices, col_indices)):
+            cell_key = (int(r), int(c))
+            if cell_key not in cell_bins:
+                cell_bins[cell_key] = []
+            cell_bins[cell_key].append(idx)
+
+        selected_indices_list: List[int] = []
+        for cell_key, indices in cell_bins.items():
+            if len(indices) <= max_per_cell:
+                selected_indices_list.extend(indices)
             else:
-                # Lower score is better (default, e.g. distance/ratio)
-                sorted_rel_order = np.argsort(cell_scores)
+                cell_scores = scores_arr[indices]
+                if score_order.lower() == "descending":
+                    sorted_rel_order = np.argsort(-cell_scores)
+                else:
+                    sorted_rel_order = np.argsort(cell_scores)
 
-            retained_for_cell = [indices[i] for i in sorted_rel_order[:max_per_cell]]
-            selected_indices_list.extend(retained_for_cell)
+                retained_for_cell = [indices[i] for i in sorted_rel_order[:max_per_cell]]
+                selected_indices_list.extend(retained_for_cell)
 
-    selected_indices = np.array(sorted(selected_indices_list), dtype=np.int64)
-
-    selected_mask = np.zeros(n_pts, dtype=bool)
-    selected_mask[selected_indices] = True
-
-    balanced_pts_ref = pts_ref[selected_indices]
-    balanced_pts_mov = pts_mov[selected_indices] if (has_mov and pts_mov is not None) else None
+        selected_indices = np.array(sorted(selected_indices_list), dtype=np.int64)
+        selected_mask = np.zeros(n_pts, dtype=bool)
+        selected_mask[selected_indices] = True
+        balanced_pts_ref = pts_ref[selected_indices]
+        balanced_pts_mov = pts_mov[selected_indices] if (has_mov and pts_mov is not None) else None
 
     # Compute coverage after balancing
     cov_after_stats = compute_spatial_coverage(balanced_pts_ref, image_shape, grid)
@@ -348,6 +453,7 @@ def spatially_balance(
         "grid_occupancy_before": occ_before,
         "grid_occupancy_after": occ_after,
         "reduction_ratio": float(reduction_ratio),
+        "method": method,
     }
 
 
@@ -362,8 +468,7 @@ def get_grid_visualization_boxes(
     --------
     cells : List[Dict[str, Any]]
         List of dicts with:
-        - row (int)
-        - col (int)
+        - row (int), col (int)
         - xmin (float), ymin (float), xmax (float), ymax (float)
     """
     height, width = image_shape

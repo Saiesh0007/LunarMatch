@@ -199,6 +199,35 @@ class TestSpatialModule(unittest.TestCase):
         with self.assertRaises(ValueError):
             spatially_balance(pts_ref, pts_mov, image_shape=self.image_shape)
 
+    def test_anms_spatial_balance_basic(self):
+        # 30 points in a tight cluster + 10 points scattered
+        rng = np.random.default_rng(123)
+        clustered = rng.normal(50.0, 5.0, size=(30, 2))
+        scattered = rng.uniform(10.0, 390.0, size=(10, 2))
+        pts_ref = np.vstack([clustered, scattered])
+
+        from src.spatial import anms_spatial_balance
+        result = anms_spatial_balance(pts_ref, target_count=15)
+        self.assertEqual(result["num_before"], 40)
+        self.assertEqual(result["num_after"], 15)
+        self.assertEqual(result["balanced_pts_ref"].shape, (15, 2))
+        self.assertEqual(len(result["selected_indices"]), 15)
+
+    def test_spatially_balance_anms_method(self):
+        pts_ref = np.random.uniform(10.0, 390.0, size=(50, 2))
+        pts_mov = pts_ref + 2.0
+        result = spatially_balance(
+            points_ref=pts_ref,
+            points_mov=pts_mov,
+            image_shape=self.image_shape,
+            method="anms",
+            target_count=20,
+        )
+        self.assertEqual(result["method"], "anms")
+        self.assertEqual(result["num_after"], 20)
+        self.assertEqual(result["balanced_pts_ref"].shape, (20, 2))
+        self.assertEqual(result["balanced_pts_mov"].shape, (20, 2))
+
     def test_get_grid_visualization_boxes(self):
         boxes = get_grid_visualization_boxes((400, 400), (4, 4))
         self.assertEqual(len(boxes), 16)
