@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python --version)",
+      "Bash(pip list)",
+      "Bash(pip show *)",
+      "Bash(python -m pytest*)",
+      "Bash(streamlit run app.py)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git status*)"
+    ]
+  }
+}
