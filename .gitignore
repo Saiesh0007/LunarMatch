@@ -1,0 +1,53 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Output directories & data
+outputs/matches/*
+outputs/registered/*
+outputs/metrics/*
+!outputs/matches/.gitkeep
+!outputs/registered/.gitkeep
+!outputs/metrics/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# OS and IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
