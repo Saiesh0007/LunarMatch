@@ -62,6 +62,7 @@ class MetricsCalculator:
         metric_mode: MetricMode = MetricMode.MEASURED,
         simulation_seed: Optional[int] = None,
         force_fail_safe: bool = False,
+        raw_inlier_count: Optional[int] = None,
     ) -> Tuple[RegistrationStatus, RegistrationMetrics, Optional[str]]:
         """
         Evaluate full quantitative metrics and apply fail-safe criteria.
@@ -70,7 +71,7 @@ class MetricsCalculator:
             metrics: RegistrationMetrics with full data and explanation
             failure_reason: String reason if NOT_RELIABLE or FAILED
         """
-        inlier_count = len(inliers)
+        inlier_count = raw_inlier_count if raw_inlier_count is not None else len(inliers)
         inlier_ratio = (inlier_count / filtered_count * 100.0) if filtered_count > 0 else 0.0
         inlier_ratio = round(inlier_ratio, 2)
         spatial_coverage = round(spatial_coverage_after, 2)

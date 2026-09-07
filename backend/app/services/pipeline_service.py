@@ -253,6 +253,7 @@ class PipelineService:
             metric_mode=MetricMode.MEASURED,
             simulation_seed=None,
             force_fail_safe=request.fail_safe_override,
+            raw_inlier_count=len(inliers),
         )
         stages.append(PipelineStageInfo(
             stage_number=10, name="METRICS", status="COMPLETED" if status != RegistrationStatus.FAILED else "FAILED",
