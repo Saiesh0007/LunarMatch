@@ -12,6 +12,7 @@ import '../widgets/metric_card.dart';
 import '../widgets/image_comparison.dart';
 import '../widgets/responsive_badge.dart';
 import '../utils/formatters.dart';
+import '../services/report_export_service.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -58,9 +59,22 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
             const SizedBox(width: 8),
             StatusBadge(mode: res.executionMode),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined, size: 20, color: Colors.white),
+            tooltip: "Export Insight Report",
+            onPressed: () => ReportExportService.showExportModal(
+              context: context,
+              response: res,
+              referenceSensor: imgProv.referenceSensor,
+              movingSensor: imgProv.movingSensor,
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -249,6 +263,28 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // Export Insight Report Action Button
+              ElevatedButton.icon(
+                onPressed: () => ReportExportService.showExportModal(
+                  context: context,
+                  response: res,
+                  referenceSensor: imgProv.referenceSensor,
+                  movingSensor: imgProv.movingSensor,
+                ),
+                icon: const Icon(Icons.assessment_outlined, size: 18),
+                label: const Text(
+                  "EXPORT INSIGHT REPORT",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 10),
 
               // Action Navigation Buttons
               LayoutBuilder(
