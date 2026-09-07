@@ -1,6 +1,6 @@
 # LunarMatch — Hackathon Jury Demonstration Guide
 
-**Target:** Smart India Hackathon 2026 | **Problem Statement:** 26166 | **Team:** Spectrum | **Organization:** ISRO
+**Target:** Smart India Hackathon 2026 | **Problem Statement:** 26166 | **Team:** LunarMatch | **Organization:** ISRO
 
 ---
 

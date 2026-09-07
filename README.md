@@ -1,7 +1,7 @@
 # LUNARMATCH
 ### Multi-Modal Lunar Image Correspondence & Registration Engine
 
-**Smart India Hackathon 2026** | **Problem Statement:** 26166 | **Organization:** ISRO | **Team:** Spectrum | **Domain:** Space Technology
+**Smart India Hackathon 2026** | **Problem Statement:** 26166 | **Organization:** ISRO | **Team:** LunarMatch | **Domain:** Space Technology
 
 ---
 

@@ -53,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Space research emblem - Spectrum App Logo on pure black background
+                  // Space research emblem - LunarMatch App Logo on pure black background
                   Image.asset(
                     'assets/icons/app_logo.png',
                     width: 120,
@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
                   // App Title
                   const Text(
-                    "SPECTRUM",
+                    "LUNARMATCH",
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
                   // Subtitle
                   const Text(
-                    "LUNARMATCH ENGINE\nMULTI-MODAL LUNAR CORRESPONDENCE & REGISTRATION",
+                    "MULTI-MODAL LUNAR CORRESPONDENCE & REGISTRATION",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 10.5,
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ResponsiveBadge(label: "SIH 2026", variant: BadgeVariant.subtle),
                       ResponsiveBadge(label: "PS 26166", variant: BadgeVariant.subtle),
                       ResponsiveBadge(label: "ISRO", variant: BadgeVariant.subtle),
-                      ResponsiveBadge(label: "TEAM SPECTRUM", variant: BadgeVariant.standard),
+                      ResponsiveBadge(label: "TEAM LUNARMATCH", variant: BadgeVariant.standard),
                     ],
                   ),
                   const SizedBox(height: 44),

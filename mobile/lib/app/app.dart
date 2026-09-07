@@ -18,7 +18,7 @@ class LunarMatchApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ExperimentProvider()),
       ],
       child: MaterialApp(
-        title: 'Spectrum',
+        title: 'LunarMatch',
         debugShowCheckedModeBanner: false,
         theme: LunarTheme.darkTheme,
         initialRoute: AppRoutes.splash,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Pure Monochrome Space-Research Theme for SPECTRUM
+/// Pure Monochrome Space-Research Theme for LUNARMATCH
 /// Minimal, premium, technical, aerospace, scientific, Apple-like minimalism.
 class LunarTheme {
   // Pure Monochrome Palette

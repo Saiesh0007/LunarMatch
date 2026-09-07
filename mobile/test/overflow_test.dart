@@ -63,7 +63,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('SPECTRUM'), findsOneWidget);
+      expect(find.text('LUNARMATCH'), findsOneWidget);
       expect(find.text('CORE CAPABILITIES'), findsOneWidget);
       expect(find.text('PRIMARY WORKFLOW'), findsOneWidget);
       expect(find.text('PROFILING STUDIO'), findsOneWidget);
@@ -129,7 +129,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('ABOUT SPECTRUM'), findsOneWidget);
+      expect(find.text('ABOUT LUNARMATCH'), findsOneWidget);
     });
 
     testWidgets('RobustnessScreen renders without overflow on 360px viewport', (tester) async {
@@ -153,7 +153,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('SPECTRUM'), findsOneWidget);
+      expect(find.text('LUNARMATCH'), findsOneWidget);
     });
 
     testWidgets('ProcessingScreen renders without overflow on 360px viewport', (tester) async {

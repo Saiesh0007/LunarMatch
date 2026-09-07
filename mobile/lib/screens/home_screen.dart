@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 6),
             const Expanded(
               child: Text(
-                "SPECTRUM",
+                "LUNARMATCH",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         ResponsiveBadge(
-                          label: "TEAM SPECTRUM",
+                          label: "TEAM LUNARMATCH",
                           variant: BadgeVariant.subtle,
                           fontSize: 8.5,
                         ),

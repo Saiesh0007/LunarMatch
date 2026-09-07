@@ -1,6 +1,6 @@
 # LunarMatch — Architecture & Scientific Framework
 
-**Target:** Smart India Hackathon 2026 | **Problem Statement:** 26166 | **Organization:** ISRO | **Team:** Spectrum | **Domain:** Space Technology
+**Target:** Smart India Hackathon 2026 | **Problem Statement:** 26166 | **Organization:** ISRO | **Team:** LunarMatch | **Domain:** Space Technology
 
 ---
 

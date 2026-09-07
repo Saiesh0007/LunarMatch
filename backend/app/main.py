@@ -17,7 +17,7 @@ app = FastAPI(
     description=(
         "Multi-Modal Lunar Image Correspondence & Registration Engine. "
         "Target: Smart India Hackathon 2026 | Problem Statement: 26166 | "
-        "Organization: ISRO | Team: Spectrum | Domain: Space Technology"
+        "Organization: ISRO | Team: LunarMatch | Domain: Space Technology"
     ),
     version="1.0.0",
     docs_url="/docs",
@@ -45,7 +45,7 @@ def root_index():
     return {
         "service": "LunarMatch API",
         "description": "Multi-Modal Lunar Image Correspondence & Registration",
-        "team": "Spectrum",
+        "team": "LunarMatch",
         "problem_statement": "26166 (ISRO)",
         "docs_url": "/docs",
         "health_url": "/health",

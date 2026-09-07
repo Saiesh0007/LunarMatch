@@ -33,7 +33,7 @@ class _AboutScreenState extends State<AboutScreen> {
     return Scaffold(
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
-        title: const Text("ABOUT SPECTRUM"),
+        title: const Text("ABOUT LUNARMATCH"),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -70,7 +70,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "SPECTRUM",
+                                "LUNARMATCH",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w900,
@@ -79,7 +79,7 @@ class _AboutScreenState extends State<AboutScreen> {
                                 ),
                               ),
                               Text(
-                                "LunarMatch Multi-Modal Correspondence Engine",
+                                "Multi-Modal Lunar Correspondence & Registration Engine",
                                 style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
                               ),
                             ],
@@ -93,7 +93,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     _buildMetaRow("Target Event", "Smart India Hackathon 2026"),
                     _buildMetaRow("Problem Statement", "PS 26166"),
                     _buildMetaRow("Lead Organization", "ISRO (Indian Space Research Organisation)"),
-                    _buildMetaRow("Development Team", "Team Spectrum"),
+                    _buildMetaRow("Development Team", "Team LunarMatch"),
                     _buildMetaRow("Domain", "Space Technology"),
                     _buildMetaRow("Architecture Version", "v1.0.0-mvp (Baseline + Simulation)"),
                   ],

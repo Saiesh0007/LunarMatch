@@ -1,10 +1,10 @@
 class AppConstants {
-  static const String appName = "Spectrum";
+  static const String appName = "LunarMatch";
   static const String appSubtitle = "Multi-Modal Lunar Image Correspondence & Registration";
   static const String engineName = "LunarMatch";
   static const String problemStatement = "Smart India Hackathon 2026 | PS: 26166";
   static const String organization = "ISRO (Indian Space Research Organisation)";
-  static const String teamName = "Team Spectrum";
+  static const String teamName = "Team LunarMatch";
   static const String domain = "Space Technology";
 
   // Default API configuration

@@ -5,8 +5,8 @@ void main() {
   testWidgets('LunarMatchApp mounts cleanly and renders Splash Screen', (WidgetTester tester) async {
     await tester.pumpWidget(const LunarMatchApp());
 
-    // Expect Spectrum text on Splash Screen
-    expect(find.text('SPECTRUM'), findsOneWidget);
+    // Expect LunarMatch text on Splash Screen
+    expect(find.text('LUNARMATCH'), findsOneWidget);
     expect(find.text('SIH 2026'), findsOneWidget);
     expect(find.text('ISRO'), findsOneWidget);
 
