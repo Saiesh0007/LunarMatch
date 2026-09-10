@@ -42,8 +42,31 @@ outputs/metrics/*
 !outputs/matches/.gitkeep
 !outputs/registered/.gitkeep
 !outputs/metrics/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
+
+# Data directories (raw, processed, downloaded imagery & datasets)
+data/
+data/*
+DATA/
+DATA/*
+!data/.gitkeep
+!data/**/.gitkeep
+!data/examples/
+!data/examples/.gitkeep
+
+# Large imagery and satellite data formats
+*.tif
+*.tiff
+*.TIF
+*.TIFF
+*.img
+*.IMG
+*.lbl
+*.LBL
+*.fits
+*.FITS
+*.hdf5
+*.h5
+*.nc
 
 # OS and IDE
 .DS_Store
