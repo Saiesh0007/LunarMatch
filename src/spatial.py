@@ -468,6 +468,7 @@ def spatially_balance(
     occ_after = cov_after_stats["grid_occupancy"]
 
     reduction_ratio = float(len(selected_indices) / float(n_pts)) if n_pts > 0 else 0.0
+    coverage_gain = float(cov_after - cov_before)
 
     return {
         "selected_indices": selected_indices,
@@ -478,6 +479,7 @@ def spatially_balance(
         "num_after": int(len(selected_indices)),
         "coverage_before": float(cov_before),
         "coverage_after": float(cov_after),
+        "coverage_gain": float(round(coverage_gain, 4)),
         "grid_occupancy_before": occ_before,
         "grid_occupancy_after": occ_after,
         "reduction_ratio": float(reduction_ratio),

@@ -190,13 +190,13 @@ def assess_registration_confidence(
         inlier_score = 1.0
     elif num_inliers >= 15:
         inlier_score = 0.7 + 0.3 * ((num_inliers - 15) / 15.0)
-    elif num_inliers >= 6:
-        inlier_score = 0.3 + 0.4 * ((num_inliers - 6) / 9.0)
+    elif num_inliers >= 8:
+        inlier_score = 0.3 + 0.4 * ((num_inliers - 8) / 7.0)
     else:
-        inlier_score = 0.05 * num_inliers
+        inlier_score = 0.03 * num_inliers
 
-    if num_inliers < 6:
-        diagnostics.append(f"Critical: Insufficient inliers ({num_inliers} found, minimum 6 required).")
+    if num_inliers < 8:
+        diagnostics.append(f"Critical: Insufficient inliers ({num_inliers} found, minimum 8 required for reliable verification).")
     elif num_inliers < 15:
         diagnostics.append(f"Warning: Low inlier count ({num_inliers} inliers). Registration may be sensitive.")
 
@@ -205,24 +205,30 @@ def assess_registration_confidence(
         ratio_score = 1.0
     elif inlier_ratio >= 0.30:
         ratio_score = 0.6 + 0.4 * ((inlier_ratio - 0.30) / 0.20)
-    elif inlier_ratio >= 0.15:
-        ratio_score = 0.3 + 0.3 * ((inlier_ratio - 0.15) / 0.15)
+    elif inlier_ratio >= 0.10:
+        ratio_score = 0.3 + 0.3 * ((inlier_ratio - 0.10) / 0.20)
     else:
         ratio_score = max(0.0, inlier_ratio * 2.0)
 
-    if inlier_ratio < 0.15:
-        diagnostics.append(f"Warning: Poor inlier ratio ({inlier_ratio:.1%}). High false-match rate in initial matching.")
+    if inlier_ratio < 0.10:
+        diagnostics.append(f"Critical: Poor inlier ratio ({inlier_ratio:.1%}, minimum 10% required). Initial matching is dominated by outliers.")
+    elif inlier_ratio < 0.20:
+        diagnostics.append(f"Warning: Low inlier ratio ({inlier_ratio:.1%}). Substantial outliers present in match set.")
 
     # 3. Spatial Coverage Score (0.0 to 0.6+)
     if spatial_coverage >= 0.50:
         coverage_score = 1.0
     elif spatial_coverage >= 0.30:
         coverage_score = 0.6 + 0.4 * ((spatial_coverage - 0.30) / 0.20)
+    elif spatial_coverage >= 0.15:
+        coverage_score = 0.3 + 0.3 * ((spatial_coverage - 0.15) / 0.15)
     else:
         coverage_score = max(0.0, spatial_coverage * 2.0)
 
-    if spatial_coverage < 0.25:
-        diagnostics.append(f"Warning: Low spatial coverage ({spatial_coverage:.1%}). Matches are heavily clustered.")
+    if spatial_coverage < 0.15:
+        diagnostics.append(f"Critical: Low spatial coverage ({spatial_coverage:.1%}, minimum 15% required). Matches are severely clustered.")
+    elif spatial_coverage < 0.25:
+        diagnostics.append(f"Warning: Moderate spatial coverage ({spatial_coverage:.1%}). Consider enabling spatial balancing.")
 
     # 4. RMSE Score
     if rmse is not None:
@@ -236,24 +242,25 @@ def assess_registration_confidence(
             rmse_score = max(0.0, 0.4 - (rmse - 5.0) * 0.1)
 
         if rmse > 4.0:
-            diagnostics.append(f"Warning: High reprojection error (RMSE = {rmse:.2f} px). Alignment may contain distortion.")
+            diagnostics.append(f"Warning: High reprojection error (RMSE = {rmse:.2f} px). Alignment may contain geometric distortion.")
     else:
         rmse_score = 0.5  # Neutral if not computable
 
-    # Weighted Composite Score
-    # Weights: Inliers (0.35), Ratio (0.25), Spatial Coverage (0.20), RMSE (0.20)
+    # Weighted Composite Score (ISRO PS 26166 Formulation)
+    # Weights: Inliers (0.35), Inlier Ratio (0.25), Spatial Coverage (0.25), RMSE (0.15)
     composite = (
         0.35 * inlier_score
         + 0.25 * ratio_score
-        + 0.20 * coverage_score
-        + 0.20 * rmse_score
+        + 0.25 * coverage_score
+        + 0.15 * rmse_score
     )
     confidence = float(np.clip(composite, 0.0, 1.0))
 
-    # Classification
-    if num_inliers < 4 or (num_inliers < 6 and inlier_ratio < 0.15):
+    # ISRO-Grade Fail-Safe Classification:
+    # Automatic rejection (FAILED) when inliers < 8, ratio < 10%, or coverage < 15%
+    if num_inliers < 8 or inlier_ratio < 0.10 or spatial_coverage < 0.15:
         status = "FAILED"
-    elif confidence >= 0.65 and num_inliers >= 12 and spatial_coverage >= 0.25:
+    elif confidence >= 0.65 and num_inliers >= 15 and spatial_coverage >= 0.25:
         status = "RELIABLE"
     else:
         status = "LOW_CONFIDENCE"
@@ -339,6 +346,7 @@ def calculate_metrics(
         # Spatial Distribution
         "spatial_coverage_before": round(float(spatial_coverage_before), 4),
         "spatial_coverage_after": round(float(spatial_coverage_after), 4),
+        "coverage_gain": round(float(spatial_coverage_after - spatial_coverage_before), 4),
         # Reprojection Error / RMSE
         "rmse": rmse,
         "mae": mae,
@@ -348,6 +356,8 @@ def calculate_metrics(
         "runtime_seconds": round(float(runtime_seconds), 4),
         "registration_confidence": confidence,
         "status": status,
+        "is_reliable": bool(status == "RELIABLE"),
+        "is_fail_safe_triggered": bool(status == "FAILED"),
         "diagnostics": diagnostics,
     }
 

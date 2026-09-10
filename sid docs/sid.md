@@ -26,9 +26,9 @@ My main responsibilities are:
 | `src/spatial.py` | Spatial Balancing & Coverage | ✅ Completed & Tested | Divides the lunar image into a grid (e.g., 4x4) or runs continuous ANMS to ensure match points are well distributed instead of crowded into one crater. |
 | `src/metrics.py` | Quantitative Evaluation | ✅ Completed & Tested | Calculates the true mathematical scores (RMSE, inlier ratio, confidence) without fake or hardcoded numbers. |
 | `src/benchmark.py` | Controlled Benchmark Suite | ✅ Completed & Tested | Tests our spatial algorithms on synthetic lunar transformations with known Ground Truth $H_{\text{gt}}$ to measure exact pixel error. |
-| `tests/test_spatial.py` | Unit Tests for Spatial | ✅ 12/12 Passed | Automated tests checking that grid and ANMS spatial balancing never crash and correctly spread points. |
-| `tests/test_metrics.py` | Unit Tests for Metrics | ✅ 10/10 Passed | Automated tests verifying all mathematical formulas, projections, and transformation errors. |
-| `tests/test_benchmark.py` | Unit Tests for Benchmark | ✅ 4/4 Passed | Automated tests verifying synthetic point pairs, ground truth transformations, and benchmark report generation. |
+| `tests/test_spatial.py` | Unit Tests for Spatial | ✅ 14/14 Passed | Automated tests checking that grid and ANMS spatial balancing never crash and correctly spread points. |
+| `tests/test_metrics.py` | Unit Tests for Metrics | ✅ 12/12 Passed | Automated tests verifying all mathematical formulas, projections, and transformation errors. |
+| `tests/test_benchmark.py` | Unit Tests for Benchmark | ✅ 5/5 Passed | Automated tests verifying synthetic point pairs, ground truth transformations, and benchmark report generation. |
 
 ---
 
@@ -53,16 +53,25 @@ My main responsibilities are:
    - Takes moving image $(x, y)$ points and projects them onto the reference frame using the calculated Homography (3x3) or Affine (2x3 or 3x3) matrix.
 2. **Reprojection Error & RMSE (`compute_reprojection_errors`)**:
    - Compares the actual reference points with where the transformation placed the moving points:
-     $$\text{Residual} = p_{\text{ref}} - T(p_{\text{mov}})$$
-     $$\text{RMSE} = \sqrt{\frac{1}{N} \sum \|p_{\text{ref}} - T(p_{\text{mov}})\|^2}$$
+     $$\text{Residual } e_i = \|p_{\text{ref}, i} - T(p_{\text{mov}, i})\|_2$$
+     $$\text{RMSE} = \sqrt{\frac{1}{N} \sum_{i=1}^N \|p_{\text{ref}, i} - T(p_{\text{mov}, i})\|^2}$$
    - Also computes Mean Absolute Error (MAE), Median Error, and Max Error.
-3. **Registration Confidence & Fail-Safe Diagnostics (`assess_registration_confidence`)**:
-   - Evaluates whether the alignment is trustworthy:
-     - `RELIABLE`: High inliers ($\ge 12$), high ratio ($\ge 35\%$), good coverage ($\ge 25\%$), low RMSE ($\le 3.0$ px).
-     - `LOW_CONFIDENCE`: Acceptable for inspection, but marginal.
-     - `FAILED`: Insufficient matches ($< 4$) or severe error.
+3. **Registration Confidence & ISRO Fail-Safe Diagnostics (`assess_registration_confidence`)**:
+   - Computes weighted composite confidence:
+     $$S_{\text{conf}} = 0.35 \cdot \tilde{N}_{\text{inliers}} + 0.25 \cdot \tilde{R}_{\text{inlier}} + 0.25 \cdot \tilde{C}_{\text{spatial}} + 0.15 \cdot \tilde{E}_{\text{rmse}}$$
+   - **ISRO-Grade Fail-Safe Trigger**:
+     - Automatically flags `FAILED` / `NOT_RELIABLE` if:
+       - Inliers $< 8$, OR
+       - Inlier Ratio $< 10\%$, OR
+       - Spatial Coverage $< 15\%$.
+     - When unreliable, RMSE is reported strictly as `N/A` (`None`) — never a fabricated or guessed number.
+   - Evaluates overall alignment trustworthiness:
+     - `RELIABLE`: High inliers ($\ge 15$), good coverage ($\ge 25\%$), and confidence score $\ge 0.65$.
+     - `LOW_CONFIDENCE`: Acceptable for manual inspection, but marginal stability.
+     - `FAILED`: Insufficient matches or severe spatial clustering.
    - Provides clear diagnostic strings explaining why an alignment failed.
 4. **All-in-One Calculation (`calculate_metrics`) & Report Formatter (`format_metrics_summary`)**:
+   - Returns standard dictionary containing: `num_keypoints_ref`, `num_keypoints_mov`, `num_candidate_matches`, `num_filtered_matches`, `candidate_filter_retention`, `num_inliers`, `inlier_ratio`, `spatial_coverage_before`, `spatial_coverage_after`, `coverage_gain`, `rmse`, `mae`, `median_error`, `max_error`, `runtime_seconds`, `registration_confidence`, `status`, `is_reliable`, `is_fail_safe_triggered`, and `diagnostics`.
    - Prepares clean structured results for Member 1 (Pipeline integration) and Member 6 (UI display).
 
 ### C. Controlled Benchmark Suite (`src/benchmark.py`)
@@ -89,10 +98,10 @@ My main responsibilities are:
 
 ## 4. Test Results Summary
 
-Ran full test suite: **26 tests passed across all 3 modules in 0.18s**:
-- `tests/test_spatial.py`: 12 passed
-- `tests/test_metrics.py`: 10 passed
-- `tests/test_benchmark.py`: 4 passed
+Ran full test suite: **31 tests passed across all 3 modules in 0.15s**:
+- `tests/test_spatial.py`: 14 passed
+- `tests/test_metrics.py`: 12 passed
+- `tests/test_benchmark.py`: 5 passed
 
 ---
 

@@ -162,6 +162,7 @@ class TestSpatialModule(unittest.TestCase):
         # Occupied cells count must remain 2 before and after
         self.assertEqual(result["coverage_before"], 2.0 / 16.0)
         self.assertEqual(result["coverage_after"], 2.0 / 16.0)
+        self.assertEqual(result["coverage_gain"], 0.0)
 
     def test_spatially_balance_descending_scores(self):
         # Higher score is better (e.g. keypoint response)

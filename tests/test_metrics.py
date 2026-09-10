@@ -143,6 +143,9 @@ class TestMetricsModule(unittest.TestCase):
         self.assertAlmostEqual(metrics["candidate_filter_retention"], 60.0 / 90.0, places=3)
         self.assertEqual(metrics["rmse"], 1.25)
         self.assertEqual(metrics["status"], "RELIABLE")
+        self.assertTrue(metrics["is_reliable"])
+        self.assertFalse(metrics["is_fail_safe_triggered"])
+        self.assertEqual(metrics["coverage_gain"], 0.0)
         self.assertIn("diagnostics", metrics)
 
     def test_format_metrics_summary(self):
