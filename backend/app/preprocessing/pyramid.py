@@ -89,7 +89,7 @@ def extract_rift2_multiscale(
     entries = []
     descriptor_parts = []
     for level_index, pc_level in enumerate(levels):
-        keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=1000)
+        keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=500)
         if not keypoints or descriptors is None or len(descriptors) == 0:
             continue
         scale = 2.0 ** level_index

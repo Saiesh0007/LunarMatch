@@ -31,6 +31,7 @@ from ..vision.sift_extractor import SIFTExtractor
 from ..vision.rift2 import RIFT2Extractor
 from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
 from ..vision.hopc import compute_hopc, hopc_keypoints_from_dense
+from ..refinement.subpixel import derive_gsd_meters_per_pixel, refine_subpixel
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification, magsac_plus_plus
 from ..vision.spatial import SpatialBalancing
@@ -211,6 +212,35 @@ class PipelineService:
                 ransac_threshold=request.ransac_threshold,
             )
             estimator_diagnostics = {"backend": "opencv_ransac", "n_hypotheses_tried": -1}
+        subpixel_diagnostics = {"enabled": bool(request.subpixel_refinement), "n_refined": 0, "n_rejected_refinement": len(inliers), "n_rejected_out_of_bounds": 0, "per_match": [], "mean_residual_px": float("nan"), "median_residual_px": float("nan"), "p95_residual_px": float("nan")}
+        if request.subpixel_refinement and inliers:
+            source_points = np.asarray([match.mov_pt for match in inliers], dtype=np.float32)
+            reference_points = np.asarray([match.ref_pt for match in inliers], dtype=np.float32)
+            _, refined_reference, subpixel_diagnostics = refine_subpixel(
+                mov_gray,
+                ref_gray,
+                source_points,
+                reference_points,
+                patch_size=request.subpixel_patch_size,
+                peak_response_threshold=request.subpixel_peak_threshold,
+            )
+            subpixel_diagnostics["enabled"] = True
+            half_patch = request.subpixel_patch_size // 2
+            rejection_histogram = {"border_top": 0, "border_bottom": 0, "border_left": 0, "border_right": 0}
+            for result, point in zip(subpixel_diagnostics["per_match"], reference_points):
+                if result["refinement_status"] != "rejected_out_of_bounds":
+                    continue
+                if point[1] - half_patch < 0:
+                    rejection_histogram["border_top"] += 1
+                if point[1] + half_patch > ref_gray.shape[0]:
+                    rejection_histogram["border_bottom"] += 1
+                if point[0] - half_patch < 0:
+                    rejection_histogram["border_left"] += 1
+                if point[0] + half_patch > ref_gray.shape[1]:
+                    rejection_histogram["border_right"] += 1
+            subpixel_diagnostics["rejection_histogram"] = rejection_histogram
+            for match, point in zip(inliers, refined_reference):
+                match.ref_pt = [float(point[0]), float(point[1])]
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=6, name="GEOMETRIC VERIFICATION",
@@ -273,6 +303,17 @@ class PipelineService:
                             "weight": weight,
                             "residual_px": residual,
                         }) + "\n")
+                for result in subpixel_diagnostics.get("per_match", []):
+                    f_dec.write(json.dumps({
+                        "match_id": result["match_id"],
+                        "stage": "subpixel",
+                        "decision": "refined" if result["refinement_status"] == "refined" else "reject",
+                        "reason": None if result["refinement_status"] == "refined" else result["refinement_status"],
+                        "residual_px": result["residual_px"],
+                        "uncertainty_x": result["uncertainty_x"],
+                        "uncertainty_y": result["uncertainty_y"],
+                        "peak_response": result["peak_response"],
+                    }) + "\n")
                 for idx, m in enumerate(filtered_matches):
                     record = {
                         "match_id": idx,
@@ -301,7 +342,32 @@ class PipelineService:
             "n_hypotheses_tried": estimator_diagnostics.get("n_hypotheses_tried"),
             "n_inliers": len(inliers),
             "weighted_rms_px": estimator_diagnostics.get("weighted_rms_px"),
+            "subpixel": {
+                "enabled": subpixel_diagnostics["enabled"],
+                "patch_size": request.subpixel_patch_size,
+                "peak_response_threshold": request.subpixel_peak_threshold,
+                "n_refined": subpixel_diagnostics["n_refined"],
+                "n_rejected_refinement": subpixel_diagnostics["n_rejected_refinement"],
+                "n_rejected_out_of_bounds": subpixel_diagnostics["n_rejected_out_of_bounds"],
+                "mean_residual_px": subpixel_diagnostics["mean_residual_px"],
+                "median_residual_px": subpixel_diagnostics["median_residual_px"],
+                "p95_residual_px": subpixel_diagnostics["p95_residual_px"],
+                "rejection_histogram": subpixel_diagnostics.get("rejection_histogram", {"border_top": 0, "border_bottom": 0, "border_left": 0, "border_right": 0}),
+            },
         })
+        with open(run_dir / "match_points.csv", "w", encoding="utf-8", newline="") as match_file:
+            match_file.write("match_id,ref_x,ref_y,mov_x,mov_y,residual_pixels,residual_meters,uncertainty_x,uncertainty_y,refinement_status\n")
+            gsd_meters_per_pixel = request.gsd_meters_per_pixel
+            if gsd_meters_per_pixel is None:
+                gsd_meters_per_pixel = derive_gsd_meters_per_pixel(str(ref_path))
+            for match_id, match in enumerate(filtered_matches):
+                result = next((item for item in subpixel_diagnostics.get("per_match", []) if item["match_id"] == match_id), None)
+                residual = result["residual_px"] if result else float("nan")
+                uncertainty_x = result["uncertainty_x"] if result else float("nan")
+                uncertainty_y = result["uncertainty_y"] if result else float("nan")
+                status_value = result["refinement_status"] if result else "rejected_low_peak"
+                residual_meters = residual * gsd_meters_per_pixel if np.isfinite(gsd_meters_per_pixel) and np.isfinite(residual) else float("nan")
+                match_file.write(f"{match_id},{match.ref_pt[0]},{match.ref_pt[1]},{match.mov_pt[0]},{match.mov_pt[1]},{residual},{residual_meters},{uncertainty_x},{uncertainty_y},{status_value}\n")
 
         # ==========================================
         # STAGE 8 & 9: TRANSFORMATION & REGISTRATION
