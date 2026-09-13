@@ -23,6 +23,7 @@ class PipelineRunRequest(BaseModel):
     subpixel_patch_size: int = Field(64, ge=16, le=128, description="Subpixel refinement patch size")
     subpixel_peak_threshold: float = Field(0.2, ge=0.2, le=1.0, description="Minimum subpixel peak response")
     gsd_meters_per_pixel: Optional[float] = Field(None, gt=0.0, description="Ground sample distance for metric residuals")
+    forced_config: Optional[str] = Field(None, description="Optional sensor-routing configuration override")
     spatial_balancing: bool = Field(True, description="Enable spatial grid distribution filter")
     grid_size: int = Field(6, ge=2, le=16, description="NxN grid dimension for spatial balancing")
     max_features_per_cell: int = Field(5, ge=1, le=50, description="Max matches retained per grid cell")

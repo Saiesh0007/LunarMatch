@@ -32,6 +32,7 @@ from ..vision.rift2 import RIFT2Extractor
 from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
 from ..vision.hopc import compute_hopc, hopc_keypoints_from_dense
 from ..refinement.subpixel import derive_gsd_meters_per_pixel, refine_subpixel
+from .router import select_pipeline_config
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification, magsac_plus_plus
 from ..vision.spatial import SpatialBalancing
@@ -354,6 +355,7 @@ class PipelineService:
                 "p95_residual_px": subpixel_diagnostics["p95_residual_px"],
                 "rejection_histogram": subpixel_diagnostics.get("rejection_histogram", {"border_top": 0, "border_bottom": 0, "border_left": 0, "border_right": 0}),
             },
+            "routing": self._routing_config(request),
         })
         with open(run_dir / "match_points.csv", "w", encoding="utf-8", newline="") as match_file:
             match_file.write("match_id,ref_x,ref_y,mov_x,mov_y,residual_pixels,residual_meters,uncertainty_x,uncertainty_y,refinement_status\n")
@@ -434,6 +436,7 @@ class PipelineService:
             metrics=metrics,
             status=status,
             exec_mode=ExecutionMode.LIVE_BASELINE,
+            subpixel_diagnostics=subpixel_diagnostics,
         )
 
         matrix_serializable = matrix.tolist() if matrix is not None else None
@@ -569,8 +572,10 @@ class PipelineService:
         metrics: RegistrationMetrics,
         status: RegistrationStatus,
         exec_mode: ExecutionMode,
+        subpixel_diagnostics: Optional[Dict[str, Any]] = None,
     ) -> ArtifactPaths:
         """Persist all required JSON and image artifacts for complete auditability."""
+        subpixel_diagnostics = subpixel_diagnostics or {"enabled": False, "n_refined": 0, "n_rejected_refinement": 0, "n_rejected_out_of_bounds": 0, "per_match": [], "mean_residual_px": float("nan"), "median_residual_px": float("nan"), "p95_residual_px": float("nan")}
         # 1. input_metadata.json
         save_json(run_dir / "input_metadata.json", {
             "run_id": run_id,
@@ -581,6 +586,11 @@ class PipelineService:
             "moving_sensor": request.moving_sensor.value,
             "reference_dimensions": [int(ref_img.shape[1]), int(ref_img.shape[0])],
             "moving_dimensions": [int(mov_img.shape[1]), int(mov_img.shape[0])],
+        })
+        routing = self._routing_config(request)
+        save_json(run_dir / "run_manifest.json", {
+            "run_id": run_id,
+            "routing_config": routing,
         })
 
         # 2. configuration.json
@@ -691,6 +701,27 @@ class PipelineService:
             ext = SIFTExtractor(nfeatures=max_features)
             kps, desc = ext.extract(img)
             return kps, desc, "SIFT", None
+
+    @staticmethod
+    def _routing_config(request: PipelineRunRequest) -> Dict[str, Any]:
+        """Return the sensor-pair routing decision for pipeline artifacts."""
+        config = select_pipeline_config(
+            {"sensor": request.moving_sensor.value},
+            {"sensor": request.reference_sensor.value},
+            request.forced_config,
+        )
+        return {
+            "source_sensor": config.source_sensor,
+            "reference_sensor": config.reference_sensor,
+            "preprocessing": config.preprocessing,
+            "feature_method": config.feature_method,
+            "matcher": config.matcher,
+            "estimator": config.estimator,
+            "geometry_model": config.geometry_model,
+            "subpixel_refinement": config.subpixel_refinement,
+            "pyramid_levels": config.pyramid_levels,
+            "rationale": config.rationale,
+        }
 
     def _build_failure_response(
         self,
