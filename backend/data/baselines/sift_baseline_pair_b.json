@@ -1,0 +1,143 @@
+{
+  "run_id": "run_20260913_143920_bbf2e8",
+  "status": "NOT_RELIABLE",
+  "execution_mode": "LIVE BASELINE",
+  "stages": [
+    {
+      "stage_number": 1,
+      "name": "INPUT VALIDATION",
+      "status": "COMPLETED",
+      "duration_ms": 11.1,
+      "details": "Reference: (640, 640), Moving: (640, 640)"
+    },
+    {
+      "stage_number": 2,
+      "name": "PREPROCESSING",
+      "status": "COMPLETED",
+      "duration_ms": 18.3,
+      "details": "CLAHE=True, Denoise=True"
+    },
+    {
+      "stage_number": 3,
+      "name": "FEATURE EXTRACTION",
+      "status": "COMPLETED",
+      "duration_ms": 302.2,
+      "details": "Reference: 2001 kps, Moving: 2000 kps (SIFT)"
+    },
+    {
+      "stage_number": 4,
+      "name": "FEATURE MATCHING",
+      "status": "COMPLETED",
+      "duration_ms": 29.5,
+      "details": "2001 candidate 2-NN pairs evaluated"
+    },
+    {
+      "stage_number": 5,
+      "name": "RATIO FILTERING",
+      "status": "COMPLETED",
+      "duration_ms": 1.2,
+      "details": "Lowe threshold 0.75: 1 matches retained"
+    },
+    {
+      "stage_number": 6,
+      "name": "GEOMETRIC VERIFICATION",
+      "status": "FAILED",
+      "duration_ms": 0.0,
+      "details": "RANSAC inliers: 0 / 1 (threshold 3.0px)"
+    },
+    {
+      "stage_number": 7,
+      "name": "SPATIAL BALANCING",
+      "status": "COMPLETED",
+      "duration_ms": 0.0,
+      "details": "Grid 6x6: 0/36 cells (0.0%)"
+    },
+    {
+      "stage_number": 8,
+      "name": "TRANSFORMATION",
+      "status": "FAILED",
+      "duration_ms": 1.0,
+      "details": "Skipped due to unverified geometry"
+    },
+    {
+      "stage_number": 9,
+      "name": "REGISTRATION",
+      "status": "FAILED",
+      "duration_ms": 1.0,
+      "details": "Failed registration"
+    },
+    {
+      "stage_number": 10,
+      "name": "METRICS",
+      "status": "COMPLETED",
+      "duration_ms": 2.5,
+      "details": "Status: NOT_RELIABLE | Confidence: REJECTED"
+    }
+  ],
+  "metrics": {
+    "metric_mode": "MEASURED",
+    "simulation_seed": null,
+    "keypoints_reference": 2001,
+    "keypoints_moving": 2000,
+    "candidate_matches": 2001,
+    "filtered_matches": 1,
+    "ransac_inliers": 0,
+    "inlier_ratio": 0.0,
+    "spatial_coverage": 0.0,
+    "spatial_coverage_before": 0.0,
+    "rmse_px": null,
+    "runtime_ms": 361.9,
+    "confidence_level": "REJECTED",
+    "confidence_score": 0.0,
+    "confidence_explanation": "REGISTRATION NOT RELIABLE: Geometric transformation matrix could not be computed; Insufficient RANSAC inliers (0 < 8 minimum threshold); Inlier ratio too low (0.0% < 10% minimum threshold); Poor spatial distribution (coverage 0.0% < 15% threshold)"
+  },
+  "spatial_stats": {
+    "grid_size": 6,
+    "total_cells": 36,
+    "occupied_cells_before": 0,
+    "occupied_cells_after": 0,
+    "coverage_percentage_before": 0.0,
+    "coverage_percentage_after": 0.0,
+    "coverage_gain_percentage": 0.0
+  },
+  "outputs": {
+    "registered_image_url": "/api/v1/results/run_20260913_143920_bbf2e8/artifact/registered.png",
+    "overlay_image_url": "/api/v1/results/run_20260913_143920_bbf2e8/artifact/overlay.png",
+    "difference_image_url": "/api/v1/results/run_20260913_143920_bbf2e8/artifact/difference.png",
+    "correspondence_image_url": "/api/v1/results/run_20260913_143920_bbf2e8/artifact/correspondences.png",
+    "artifacts_dir": "C:\\sih\\backend\\outputs\\run_20260913_143920_bbf2e8"
+  },
+  "warnings": [],
+  "failure_reason": "Geometric transformation matrix could not be computed; Insufficient RANSAC inliers (0 < 8 minimum threshold); Inlier ratio too low (0.0% < 10% minimum threshold); Poor spatial distribution (coverage 0.0% < 15% threshold)",
+  "diagnostic_details": {
+    "stability_msg": "Insufficient matches: 1 < 4 required",
+    "inlier_count": 0,
+    "filtered_count": 1,
+    "geometric_model": "homography"
+  },
+  "transformation_matrix": null,
+  "configuration": {
+    "reference_image_id": "demo_pair_b_ref",
+    "moving_image_id": "demo_pair_b_mov",
+    "reference_sensor": "OHRC",
+    "moving_sensor": "TMC-2",
+    "feature_method": "SIFT",
+    "matcher": "BF",
+    "ratio_threshold": 0.75,
+    "geometric_model": "homography",
+    "spatial_balancing": true,
+    "grid_size": 6,
+    "max_features_per_cell": 5,
+    "ransac_threshold": 3.0,
+    "max_features": 2000,
+    "preprocessing": {
+      "normalize": true,
+      "clahe": true,
+      "denoise": true,
+      "clip_limit": 2.0,
+      "tile_grid_size": 8
+    },
+    "simulation_mode": false,
+    "fail_safe_override": false
+  }
+}

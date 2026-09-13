@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QualityReport",
+  "type": "object",
+  "required": [
+    "run_id",
+    "timestamp",
+    "status",
+    "criteria",
+    "all_criteria_passed"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "status": { "type": "string" },
+    "all_criteria_passed": { "type": "boolean" },
+    "criteria": {
+      "type": "object",
+      "required": [
+        "overlap_ratio",
+        "inlier_count",
+        "inlier_ratio",
+        "spatial_coverage",
+        "rmse_pixels",
+        "homography_determinant",
+        "condition_number"
+      ],
+      "properties": {
+        "overlap_ratio": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "inlier_count": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "integer" },
+            "threshold": { "type": "integer" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "inlier_ratio": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "spatial_coverage": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "rmse_pixels": {
+          "type": "object",
+          "properties": {
+            "value": { "type": ["number", "null"] },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "homography_determinant": {
+          "type": "object",
+          "properties": {
+            "value": { "type": ["number", "null"] },
+            "range": { "type": "array", "items": { "type": "number" } },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "condition_number": {
+          "type": "object",
+          "properties": {
+            "value": { "type": ["number", "null"] },
+            "threshold": { "type": "number" },
+            "passed": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "refinement_summary": {
+      "type": "object",
+      "properties": {
+        "n_refined": { "type": "integer" },
+        "n_rejected_refinement": { "type": "integer" },
+        "mean_residual_px": { "type": ["number", "null"] }
+      }
+    },
+    "failing_reasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
