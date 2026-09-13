@@ -29,6 +29,7 @@ from ..vision.preprocessing import preprocess_lunar_image
 from ..vision.sift_extractor import SIFTExtractor
 from ..vision.rift2 import RIFT2Extractor
 from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
+from ..vision.hopc import compute_hopc, hopc_keypoints_from_dense
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification
 from ..vision.spatial import SpatialBalancing
@@ -553,6 +554,10 @@ class PipelineService:
     ) -> Tuple[List[cv2.KeyPoint], np.ndarray, str, Optional[np.ndarray]]:
         """Extract features using RIFT2, SIFT, or joint ablation selection."""
         method_str = str(method.value if hasattr(method, "value") else method).lower()
+        if method_str == "hopc":
+            hopc_map = compute_hopc(img)
+            kps, desc = hopc_keypoints_from_dense(img, hopc_map, max_keypoints=max_features)
+            return kps, desc, "HOPC", None
         if method_str == "rift2_multiscale":
             points, descriptors, levels = extract_rift2_multiscale(img, n_levels=3)
             keypoints = [LunarKeyPoint(float(x), float(y), 96.0, pyramid_level=int(level)) for (x, y), level in zip(points, levels)]

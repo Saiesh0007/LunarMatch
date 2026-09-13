@@ -17,6 +17,7 @@ class FeatureMethod(str, Enum):
     SIFT = "sift"
     BOTH = "both"
     HOPC = "hopc"
+    HOPC_RIFT2_FUSION = "hopc_rift2_fusion"
     SIFT_UPPER = "SIFT"
     RIFT_SIMULATED = "RIFT — SIMULATED"
     SUPERPOINT_SIMULATED = "SuperPoint — SIMULATED"
