@@ -147,11 +147,16 @@ All 4 test suites passed:
 | **Offline Local Demo** | `IMPLEMENTED` | **YES** | Zero-network fallback using bundled demo assets. |
 | **Robustness Lab** | `IMPLEMENTED` | **YES** | Illumination, scale, rotation, translation parameter sweeps. |
 | **Multi-scale pyramid on PC map** | `IMPLEMENTED` | **YES** | Phase 1.2, commit `0fc85da`. 3 levels, KD-tree dedup, level filtering. |
-| **RIFT (Phase Congruency)** | `SIMULATED` | **YES** | Deterministic simulation; research model planned. |
+| **RIFT2 (Phase Congruency + MIM)** | `IMPLEMENTED` | **YES** | Phase 1.1, commit `2372478`; 216-D illumination-invariant descriptors. |
+| **HOPC** | `IMPLEMENTED` | **YES** | Phase 1.3, commit `07afdc0`; dense 288-D PC representation. |
+| **MAGSAC++** | `IMPLEMENTED` | **YES** | Phase 1.4, commit `5a79d6a`; OpenCV USAC backend with diagnostics. |
+| **Sensor-pair routing** | `IMPLEMENTED` | **YES** | Phase 1.6, commit `c55ecb0`; 8 routing rows plus unknown fallback. |
+| **PDS4 / GeoTIFF readers** | `IMPLEMENTED` | **YES** | Phase 2, synthetic fixture coverage; rasterio-backed metadata loading. |
+| **Failure detection thresholds** | `IMPLEMENTED` | **YES** | Phase 2 quality checklist with explicit rejection reasons. |
+| **IIRS path** | `EXPERIMENTAL` | **NO** | Band-mean fallback implemented; real IIRS validation remains pending. |
 | **SuperPoint Deep Features**| `SIMULATED` | **YES** | Deterministic simulation; neural weights planned. |
 | **LightGlue Graph Matcher**| `PLANNED` | **NO** | Deep attention correspondence filter scheduled. |
 | **RANSAC++ Consensus** | `PLANNED` | **NO** | Non-uniform spatial prior sampling scheduled. |
-| **Sub-Pixel Refinement** | `PLANNED` | **NO** | Modular stub in place; scientific validation planned. |
 
 ---
 

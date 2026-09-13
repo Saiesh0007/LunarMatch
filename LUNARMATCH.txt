@@ -1,0 +1,17 @@
+LunarMatch Phase 1 truth matrix
+
+IMPLEMENTED
+- RIFT2: commit 2372478
+- Multi-scale pyramid on phase congruency: commit 0fc85da
+- HOPC: commit 07afdc0
+- MAGSAC++: commit 5a79d6a
+- Sub-pixel refinement: commit 253699d
+- Sensor-pair routing: commit c55ecb0
+
+Phase 2 additions
+- PDS4 and GeoTIFF readers: synthetic fixtures implemented
+- Registration failure thresholds: implemented
+- IIRS route: EXPERIMENTAL until validated against real IIRS data
+
+PLANNED
+- SuperPoint and LightGlue

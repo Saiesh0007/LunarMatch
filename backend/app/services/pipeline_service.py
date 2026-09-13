@@ -32,6 +32,8 @@ from ..vision.rift2 import RIFT2Extractor
 from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
 from ..vision.hopc import compute_hopc, hopc_keypoints_from_dense
 from ..refinement.subpixel import derive_gsd_meters_per_pixel, refine_subpixel
+from ..evaluation.manifest import build_run_manifest
+from ..evaluation.quality import evaluate_registration
 from .router import select_pipeline_config
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification, magsac_plus_plus
@@ -336,27 +338,6 @@ class PipelineService:
                     f_dec.write(json.dumps(record) + "\n")
         except Exception as err:
             logger.warning(f"Could not write match_decisions.jsonl: {err}")
-        save_json(run_dir / "quality_report.json", {
-            "estimator": request.estimator_method.value,
-            "sigma_max": 3.0 if request.estimator_method == EstimatorMethod.MAGSAC else None,
-            "best_sigma": estimator_diagnostics.get("best_sigma"),
-            "n_hypotheses_tried": estimator_diagnostics.get("n_hypotheses_tried"),
-            "n_inliers": len(inliers),
-            "weighted_rms_px": estimator_diagnostics.get("weighted_rms_px"),
-            "subpixel": {
-                "enabled": subpixel_diagnostics["enabled"],
-                "patch_size": request.subpixel_patch_size,
-                "peak_response_threshold": request.subpixel_peak_threshold,
-                "n_refined": subpixel_diagnostics["n_refined"],
-                "n_rejected_refinement": subpixel_diagnostics["n_rejected_refinement"],
-                "n_rejected_out_of_bounds": subpixel_diagnostics["n_rejected_out_of_bounds"],
-                "mean_residual_px": subpixel_diagnostics["mean_residual_px"],
-                "median_residual_px": subpixel_diagnostics["median_residual_px"],
-                "p95_residual_px": subpixel_diagnostics["p95_residual_px"],
-                "rejection_histogram": subpixel_diagnostics.get("rejection_histogram", {"border_top": 0, "border_bottom": 0, "border_left": 0, "border_right": 0}),
-            },
-            "routing": self._routing_config(request),
-        })
         with open(run_dir / "match_points.csv", "w", encoding="utf-8", newline="") as match_file:
             match_file.write("match_id,ref_x,ref_y,mov_x,mov_y,residual_pixels,residual_meters,uncertainty_x,uncertainty_y,refinement_status\n")
             gsd_meters_per_pixel = request.gsd_meters_per_pixel
@@ -410,6 +391,35 @@ class PipelineService:
             force_fail_safe=request.fail_safe_override,
             raw_inlier_count=len(inliers),
         )
+        save_json(run_dir / "quality_report.json", {
+            "estimator": request.estimator_method.value,
+            "sigma_max": 3.0 if request.estimator_method == EstimatorMethod.MAGSAC else None,
+            "best_sigma": estimator_diagnostics.get("best_sigma"),
+            "n_hypotheses_tried": estimator_diagnostics.get("n_hypotheses_tried"),
+            "n_inliers": len(inliers),
+            "weighted_rms_px": estimator_diagnostics.get("weighted_rms_px"),
+            "subpixel": {
+                "enabled": subpixel_diagnostics["enabled"],
+                "patch_size": request.subpixel_patch_size,
+                "peak_response_threshold": request.subpixel_peak_threshold,
+                "n_refined": subpixel_diagnostics["n_refined"],
+                "n_rejected_refinement": subpixel_diagnostics["n_rejected_refinement"],
+                "n_rejected_out_of_bounds": subpixel_diagnostics["n_rejected_out_of_bounds"],
+                "mean_residual_px": subpixel_diagnostics["mean_residual_px"],
+                "median_residual_px": subpixel_diagnostics["median_residual_px"],
+                "p95_residual_px": subpixel_diagnostics["p95_residual_px"],
+                "rejection_histogram": subpixel_diagnostics.get("rejection_histogram", {"border_top": 0, "border_bottom": 0, "border_left": 0, "border_right": 0}),
+            },
+            "routing": self._routing_config(request),
+            "registration_decision": evaluate_registration(
+                overlap_ratio=1.0,
+                inlier_count=len(inliers),
+                inlier_ratio=len(inliers) / max(len(filtered_matches), 1),
+                spatial_coverage=spatial_stats.coverage_percentage_after / 100.0,
+                rmse_pixels=metrics.rmse_px if metrics.rmse_px is not None else float("inf"),
+                transform_matrix=matrix,
+            ),
+        })
         stages.append(PipelineStageInfo(
             stage_number=10, name="METRICS", status="COMPLETED" if status != RegistrationStatus.FAILED else "FAILED",
             duration_ms=2.5, details=f"Status: {status.value} | Confidence: {metrics.confidence_level.value}"
@@ -588,10 +598,15 @@ class PipelineService:
             "moving_dimensions": [int(mov_img.shape[1]), int(mov_img.shape[0])],
         })
         routing = self._routing_config(request)
-        save_json(run_dir / "run_manifest.json", {
-            "run_id": run_id,
-            "routing_config": routing,
-        })
+        save_json(run_dir / "run_manifest.json", build_run_manifest(
+            run_id,
+            str(ref_path),
+            str(mov_path),
+            request.model_dump(),
+            synthetic_validation=exec_mode == ExecutionMode.DEMO_SIMULATION,
+            seed=settings.SIMULATION_SEED if exec_mode == ExecutionMode.DEMO_SIMULATION else None,
+            routing_config=routing,
+        ))
 
         # 2. configuration.json
         save_json(run_dir / "configuration.json", request.model_dump())
