@@ -17,6 +17,7 @@ class FeatureMatcher:
             self.matcher = cv2.FlannBasedMatcher(index_params, search_params)
         else:
             self.matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+        self.level_rejections: List[Dict[str, Any]] = []
 
     def match(
         self,
@@ -24,6 +25,9 @@ class FeatureMatcher:
         desc_ref: np.ndarray,
         kps_mov: List[cv2.KeyPoint],
         desc_mov: np.ndarray,
+        levels_ref: Optional[np.ndarray] = None,
+        levels_mov: Optional[np.ndarray] = None,
+        max_level_gap: int = 1,
     ) -> Tuple[List[MatchPairModel], int]:
         """
         Execute 2-NN matching and Lowe's ratio filtering.
@@ -34,6 +38,8 @@ class FeatureMatcher:
         if desc_ref is None or desc_mov is None or len(desc_ref) < 2 or len(desc_mov) < 2:
             logger.warning("Insufficient descriptors for matching")
             return [], 0
+
+        self.level_rejections = []
 
         # Ensure float32 for FLANN / SIFT L2
         desc1 = desc_ref.astype(np.float32)
@@ -49,6 +55,14 @@ class FeatureMatcher:
                 continue
             m, n = match_pair[0], match_pair[1]
             if m.distance < self.ratio_threshold * n.distance:
+                if levels_ref is not None and levels_mov is not None and abs(int(levels_ref[m.queryIdx]) - int(levels_mov[m.trainIdx])) > max_level_gap:
+                    self.level_rejections.append({
+                        "ref_idx": int(m.queryIdx),
+                        "mov_idx": int(m.trainIdx),
+                        "pyramid_level_source": int(levels_ref[m.queryIdx]),
+                        "pyramid_level_reference": int(levels_mov[m.trainIdx]),
+                    })
+                    continue
                 ref_pt = [float(kps_ref[m.queryIdx].pt[0]), float(kps_ref[m.queryIdx].pt[1])]
                 mov_pt = [float(kps_mov[m.trainIdx].pt[0]), float(kps_mov[m.trainIdx].pt[1])]
                 filtered_matches.append(

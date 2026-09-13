@@ -13,6 +13,7 @@ class SensorType(str, Enum):
 
 class FeatureMethod(str, Enum):
     RIFT2 = "rift2"
+    RIFT2_MULTISCALE = "rift2_multiscale"
     SIFT = "sift"
     BOTH = "both"
     HOPC = "hopc"

@@ -198,8 +198,12 @@ class RIFT2Extractor(BaseFeatureExtractor):
         self.max_features = max_features
         self.fast_threshold = fast_threshold
 
-    def extract(self, img: np.ndarray) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
-        """Extract RIFT2 keypoints and 216-D descriptors from grayscale image."""
+    def extract(
+        self,
+        img: np.ndarray,
+        phase_map: Optional[np.ndarray] = None,
+    ) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
+        """Extract RIFT2 features, optionally using a supplied phase-congruency map."""
         if len(img.shape) == 3:
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         else:
@@ -209,10 +213,20 @@ class RIFT2Extractor(BaseFeatureExtractor):
         if h < 32 or w < 32:
             return [], np.empty((0, 216), dtype=np.float32)
 
-        # 1. Compute Phase Congruency & MIM
-        pc_max, pc_min, mim, sum_amps = compute_phase_congruency_and_mim(
-            gray, n_scales=self.n_scales, n_orientations=self.n_orientations, return_amplitudes=True
-        )
+        # 1. Compute Phase Congruency & MIM, or use the supplied phase map.
+        if phase_map is None:
+            pc_max, pc_min, mim, sum_amps = compute_phase_congruency_and_mim(
+                gray, n_scales=self.n_scales, n_orientations=self.n_orientations, return_amplitudes=True
+            )
+        else:
+            pc_max = np.ascontiguousarray(phase_map, dtype=np.float32)
+            if pc_max.shape != gray.shape:
+                raise ValueError("phase_map must have the same shape as img")
+            pc_min = pc_max
+            sum_amps = np.repeat(
+                pc_max[:, :, np.newaxis], self.n_orientations, axis=2
+            ).astype(np.float32)
+            mim = np.zeros(gray.shape, dtype=np.int32)
 
         # 2. Detect keypoints on pc_max (edges) and pc_min (corners)
         norm_max = cv2.normalize(pc_max, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
@@ -347,3 +361,39 @@ def extract_rift2(image_gray: np.ndarray, max_features: int = 2000) -> Tuple[Lis
     """Expose high-level RIFT2 feature extraction API."""
     extractor = RIFT2Extractor(max_features=max_features)
     return extractor.extract(image_gray)
+
+
+def compute_phase_congruency(image_gray: np.ndarray) -> np.ndarray:
+    """Compute the base phase-congruency response map.
+
+    Args:
+        image_gray: Two-dimensional grayscale image.
+    Returns:
+        The maximum phase-congruency moment map as float32.
+    Raises:
+        ValueError: If the input is not a two-dimensional image.
+    """
+    if image_gray.ndim != 2:
+        raise ValueError("image_gray must be a two-dimensional array")
+    pc_max, _, _ = compute_phase_congruency_and_mim(image_gray)
+    return np.ascontiguousarray(pc_max, dtype=np.float32)
+
+
+def extract_rift2_on_pc(
+    phase_map: np.ndarray,
+    max_features: int = 2000,
+) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
+    """Extract RIFT2 descriptors directly from a phase-congruency map.
+
+    Args:
+        phase_map: Grayscale phase-congruency response map.
+        max_features: Maximum number of keypoints to retain.
+    Returns:
+        Keypoints and 216-dimensional descriptors.
+    Raises:
+        ValueError: If the phase map is not a two-dimensional array.
+    """
+    if phase_map.ndim != 2:
+        raise ValueError("phase_map must be a two-dimensional array")
+    extractor = RIFT2Extractor(max_features=max_features)
+    return extractor.extract(phase_map, phase_map=phase_map)

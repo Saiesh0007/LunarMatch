@@ -28,6 +28,7 @@ from ..models.responses import (
 from ..vision.preprocessing import preprocess_lunar_image
 from ..vision.sift_extractor import SIFTExtractor
 from ..vision.rift2 import RIFT2Extractor
+from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification
 from ..vision.spatial import SpatialBalancing
@@ -149,8 +150,8 @@ class PipelineService:
         # STAGE 3: FEATURE EXTRACTION
         # ==========================================
         t0 = time.perf_counter()
-        kps_ref, desc_ref, label_ref = self._extract_features(ref_pre, request.feature_method, request.max_features)
-        kps_mov, desc_mov, label_mov = self._extract_features(mov_pre, request.feature_method, request.max_features)
+        kps_ref, desc_ref, label_ref, levels_ref = self._extract_features(ref_pre, request.feature_method, request.max_features)
+        kps_mov, desc_mov, label_mov, levels_mov = self._extract_features(mov_pre, request.feature_method, request.max_features)
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=3, name="FEATURE EXTRACTION", status="COMPLETED", duration_ms=round(dur, 1),
@@ -162,7 +163,7 @@ class PipelineService:
         # ==========================================
         t0 = time.perf_counter()
         matcher = FeatureMatcher(matcher_type=request.matcher, ratio_threshold=request.ratio_threshold)
-        filtered_matches, candidate_count = matcher.match(kps_ref, desc_ref, kps_mov, desc_mov)
+        filtered_matches, candidate_count = matcher.match(kps_ref, desc_ref, kps_mov, desc_mov, levels_ref, levels_mov)
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=4, name="FEATURE MATCHING", status="COMPLETED", duration_ms=round(dur, 1),
@@ -227,12 +228,21 @@ class PipelineService:
         decisions_path = run_dir / "match_decisions.jsonl"
         try:
             with open(decisions_path, "w", encoding="utf-8") as f_dec:
+                for rejection in matcher.level_rejections:
+                    f_dec.write(json.dumps({
+                        "stage": "level_filter",
+                        "decision": "reject",
+                        "reason": "level_gap",
+                        **rejection,
+                    }) + "\n")
                 for idx, m in enumerate(filtered_matches):
                     record = {
                         "match_id": idx,
                         "ref_pt": m.ref_pt,
                         "mov_pt": m.mov_pt,
                         "distance": float(m.distance),
+                        "pyramid_level_source": int(levels_ref[m.ref_idx]) if levels_ref is not None and m.ref_idx < len(levels_ref) else None,
+                        "pyramid_level_reference": int(levels_mov[m.mov_idx]) if levels_mov is not None and m.mov_idx < len(levels_mov) else None,
                         "ratio_test": {"decision": "accept", "threshold": request.ratio_threshold},
                         "geometric_verification": {
                             "decision": "accept" if m.is_inlier else "reject",
@@ -540,27 +550,31 @@ class PipelineService:
         img: np.ndarray,
         method: FeatureMethod,
         max_features: int,
-    ) -> Tuple[List[cv2.KeyPoint], np.ndarray, str]:
+    ) -> Tuple[List[cv2.KeyPoint], np.ndarray, str, Optional[np.ndarray]]:
         """Extract features using RIFT2, SIFT, or joint ablation selection."""
         method_str = str(method.value if hasattr(method, "value") else method).lower()
+        if method_str == "rift2_multiscale":
+            points, descriptors, levels = extract_rift2_multiscale(img, n_levels=3)
+            keypoints = [LunarKeyPoint(float(x), float(y), 96.0, pyramid_level=int(level)) for (x, y), level in zip(points, levels)]
+            return keypoints, descriptors, "RIFT2-MULTISCALE", levels
         if "rift" in method_str:
             ext = RIFT2Extractor(max_features=max_features)
             kps, desc = ext.extract(img)
-            return kps, desc, "RIFT2"
+            return kps, desc, "RIFT2", None
         elif "both" in method_str:
             rift_ext = RIFT2Extractor(max_features=max_features // 2)
             sift_ext = SIFTExtractor(nfeatures=max_features // 2)
             kps_r, desc_r = rift_ext.extract(img)
             kps_s, desc_s = sift_ext.extract(img)
             if len(kps_r) >= 15:
-                return kps_r, desc_r, "RIFT2+SIFT(RIFT2-Primary)"
+                return kps_r, desc_r, "RIFT2+SIFT(RIFT2-Primary)", None
             elif len(kps_s) > 0:
-                return kps_s, desc_s, "RIFT2+SIFT(SIFT-Fallback)"
-            return kps_r, desc_r, "RIFT2+SIFT"
+                return kps_s, desc_s, "RIFT2+SIFT(SIFT-Fallback)", None
+            return kps_r, desc_r, "RIFT2+SIFT", None
         else:
             ext = SIFTExtractor(nfeatures=max_features)
             kps, desc = ext.extract(img)
-            return kps, desc, "SIFT"
+            return kps, desc, "SIFT", None
 
     def _build_failure_response(
         self,
