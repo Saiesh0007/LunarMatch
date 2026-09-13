@@ -12,7 +12,11 @@ class SensorType(str, Enum):
     OTHER = "Other"
 
 class FeatureMethod(str, Enum):
-    SIFT = "SIFT"
+    RIFT2 = "rift2"
+    SIFT = "sift"
+    BOTH = "both"
+    HOPC = "hopc"
+    SIFT_UPPER = "SIFT"
     RIFT_SIMULATED = "RIFT — SIMULATED"
     SUPERPOINT_SIMULATED = "SuperPoint — SIMULATED"
 

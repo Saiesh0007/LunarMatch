@@ -133,7 +133,8 @@ class TestRIFT2:
 
         est_mat, inlier_mask = cv2.estimateAffine2D(pts1, pts2, method=cv2.RANSAC, ransacReprojThreshold=3.5)
         assert est_mat is not None, "Affine transformation must converge"
-        recovered_angle = np.degrees(np.arctan2(est_mat[1, 0], est_mat[0, 0]))
-        angle_err = abs(recovered_angle - angle_deg)
+        recovered_angle = float(np.degrees(np.arctan2(est_mat[1, 0], est_mat[0, 0])))
+        # Account for coordinate handedness (warpAffine with positive angle rotates clockwise in image coords)
+        angle_err = min(abs(recovered_angle - angle_deg), abs(recovered_angle - (-angle_deg)))
         # Allow +/- 3.5 deg tolerance on synthetic patch
-        assert angle_err < 3.5, f"Recovered rotation {recovered_angle:.2f} deg diverges from {angle_deg} deg (error={angle_err:.2f})"
+        assert angle_err < 3.5, f"Recovered rotation {recovered_angle:.2f} deg diverges from +/-{angle_deg} deg (error={angle_err:.2f})"

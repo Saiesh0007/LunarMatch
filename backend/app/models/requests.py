@@ -13,7 +13,7 @@ class PipelineRunRequest(BaseModel):
     moving_image_id: str = Field(..., description="ID or path of the moving image to transform")
     reference_sensor: SensorType = Field(SensorType.OHRC, description="Sensor for reference image")
     moving_sensor: SensorType = Field(SensorType.TMC_2, description="Sensor for moving image")
-    feature_method: FeatureMethod = Field(FeatureMethod.SIFT, description="Feature extraction technique")
+    feature_method: FeatureMethod = Field(FeatureMethod.RIFT2, description="Feature extraction technique: rift2 | sift | both | hopc")
     matcher: MatcherType = Field(MatcherType.BF, description="Feature matching algorithm")
     ratio_threshold: float = Field(0.75, ge=0.4, le=0.95, description="Lowe's ratio test threshold")
     geometric_model: GeometricModel = Field(GeometricModel.HOMOGRAPHY, description="Transformation geometry")

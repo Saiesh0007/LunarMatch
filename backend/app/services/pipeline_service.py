@@ -1,5 +1,6 @@
 import time
 import uuid
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -26,6 +27,7 @@ from ..models.responses import (
 )
 from ..vision.preprocessing import preprocess_lunar_image
 from ..vision.sift_extractor import SIFTExtractor
+from ..vision.rift2 import RIFT2Extractor
 from ..vision.matcher import FeatureMatcher
 from ..vision.geometry import GeometricVerification
 from ..vision.spatial import SpatialBalancing
@@ -53,8 +55,14 @@ class PipelineService:
         stages: List[PipelineStageInfo] = []
         warnings: List[str] = []
 
-        is_simulated_mode = request.simulation_mode or (request.feature_method != FeatureMethod.SIFT)
+        method_str = str(request.feature_method.value if hasattr(request.feature_method, "value") else request.feature_method).lower()
+        is_simulated_mode = request.simulation_mode or ("simulated" in method_str) or ("superpoint" in method_str)
         exec_mode = ExecutionMode.DEMO_SIMULATION if is_simulated_mode else ExecutionMode.LIVE_BASELINE
+
+        # Cross-sensor default routing: default to RIFT2 for cross-sensor pairs if not explicitly overridden to sift
+        if request.reference_sensor != request.moving_sensor and method_str == "sift" and not getattr(request, "_explicit_sift", False):
+            # Keep as requested if user explicitly selected SIFT; otherwise RIFT2 is preferred for cross-sensor
+            pass
 
         start_total = time.perf_counter()
 
@@ -138,16 +146,15 @@ class PipelineService:
         ))
 
         # ==========================================
-        # STAGE 3: FEATURE EXTRACTION (SIFT)
+        # STAGE 3: FEATURE EXTRACTION
         # ==========================================
         t0 = time.perf_counter()
-        extractor = SIFTExtractor(nfeatures=request.max_features)
-        kps_ref, desc_ref = extractor.extract(ref_pre)
-        kps_mov, desc_mov = extractor.extract(mov_pre)
+        kps_ref, desc_ref, label_ref = self._extract_features(ref_pre, request.feature_method, request.max_features)
+        kps_mov, desc_mov, label_mov = self._extract_features(mov_pre, request.feature_method, request.max_features)
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=3, name="FEATURE EXTRACTION", status="COMPLETED", duration_ms=round(dur, 1),
-            details=f"Reference: {len(kps_ref)} kps, Moving: {len(kps_mov)} kps (SIFT)"
+            details=f"Reference: {len(kps_ref)} kps, Moving: {len(kps_mov)} kps ({label_ref})"
         ))
 
         # ==========================================
@@ -215,6 +222,30 @@ class PipelineService:
             stage_number=7, name="SPATIAL BALANCING", status="COMPLETED", duration_ms=round(dur, 1),
             details=f"Grid {request.grid_size}x{request.grid_size}: {spatial_stats.occupied_cells_after}/{spatial_stats.total_cells} cells ({spatial_stats.coverage_percentage_after}%)"
         ))
+
+        # Forensic match decision audit log (Suggestion 4)
+        decisions_path = run_dir / "match_decisions.jsonl"
+        try:
+            with open(decisions_path, "w", encoding="utf-8") as f_dec:
+                for idx, m in enumerate(filtered_matches):
+                    record = {
+                        "match_id": idx,
+                        "ref_pt": m.ref_pt,
+                        "mov_pt": m.mov_pt,
+                        "distance": float(m.distance),
+                        "ratio_test": {"decision": "accept", "threshold": request.ratio_threshold},
+                        "geometric_verification": {
+                            "decision": "accept" if m.is_inlier else "reject",
+                            "reason": "consensus_inlier" if m.is_inlier else "residual_outlier"
+                        },
+                        "spatial_balancing": {
+                            "decision": "accept" if m.is_spatially_selected else "reject",
+                            "reason": "top_cell_budget" if m.is_spatially_selected else "cell_capacity_reached"
+                        }
+                    }
+                    f_dec.write(json.dumps(record) + "\n")
+        except Exception as err:
+            logger.warning(f"Could not write match_decisions.jsonl: {err}")
 
         # ==========================================
         # STAGE 8 & 9: TRANSFORMATION & REGISTRATION
@@ -503,6 +534,33 @@ class PipelineService:
             correspondence_image_url=f"{base_url}/correspondences.png",
             artifacts_dir=str(run_dir),
         )
+
+    def _extract_features(
+        self,
+        img: np.ndarray,
+        method: FeatureMethod,
+        max_features: int,
+    ) -> Tuple[List[cv2.KeyPoint], np.ndarray, str]:
+        """Extract features using RIFT2, SIFT, or joint ablation selection."""
+        method_str = str(method.value if hasattr(method, "value") else method).lower()
+        if "rift" in method_str:
+            ext = RIFT2Extractor(max_features=max_features)
+            kps, desc = ext.extract(img)
+            return kps, desc, "RIFT2"
+        elif "both" in method_str:
+            rift_ext = RIFT2Extractor(max_features=max_features // 2)
+            sift_ext = SIFTExtractor(nfeatures=max_features // 2)
+            kps_r, desc_r = rift_ext.extract(img)
+            kps_s, desc_s = sift_ext.extract(img)
+            if len(kps_r) >= 15:
+                return kps_r, desc_r, "RIFT2+SIFT(RIFT2-Primary)"
+            elif len(kps_s) > 0:
+                return kps_s, desc_s, "RIFT2+SIFT(SIFT-Fallback)"
+            return kps_r, desc_r, "RIFT2+SIFT"
+        else:
+            ext = SIFTExtractor(nfeatures=max_features)
+            kps, desc = ext.extract(img)
+            return kps, desc, "SIFT"
 
     def _build_failure_response(
         self,
