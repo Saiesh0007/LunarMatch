@@ -151,6 +151,7 @@ All 4 test suites passed:
 | **HOPC** | `IMPLEMENTED` | **YES** | Phase 1.3, commit `07afdc0`; dense 288-D PC representation. |
 | **MAGSAC++** | `IMPLEMENTED` | **YES** | Phase 1.4, commit `5a79d6a`; OpenCV USAC backend with diagnostics. |
 | **Sensor-pair routing** | `IMPLEMENTED` | **YES** | Phase 1.6, commit `c55ecb0`; 8 routing rows plus unknown fallback. |
+| **Sub-pixel refinement** | `IMPLEMENTED` | **YES** | Phase 1.5, commit `253699d`; validated bias sweep and safe rejection. |
 | **PDS4 / GeoTIFF readers** | `IMPLEMENTED` | **YES** | Phase 2, synthetic fixture coverage; rasterio-backed metadata loading. |
 | **Failure detection thresholds** | `IMPLEMENTED` | **YES** | Phase 2 quality checklist with explicit rejection reasons. |
 | **IIRS path** | `EXPERIMENTAL` | **NO** | Band-mean fallback implemented; real IIRS validation remains pending. |
