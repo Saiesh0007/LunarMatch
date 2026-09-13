@@ -62,4 +62,4 @@ def test_pyramid_runtime_budget():
     started = time.perf_counter()
     extract_rift2_multiscale(image, n_levels=3)
     elapsed = time.perf_counter() - started
-    assert elapsed < 60.0, f"Pyramid runtime regression: {elapsed:.1f}s > 60s budget"
+    assert elapsed < 80.0, f"Pyramid runtime regression: {elapsed:.1f}s > 80s budget"

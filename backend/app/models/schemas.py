@@ -30,6 +30,10 @@ class GeometricModel(str, Enum):
     AFFINE = "affine"
     HOMOGRAPHY = "homography"
 
+class EstimatorMethod(str, Enum):
+    MAGSAC = "magsac"
+    RANSAC = "ransac"
+
 class RegistrationStatus(str, Enum):
     SUCCESSFUL = "SUCCESSFUL"
     LOW_CONFIDENCE = "LOW_CONFIDENCE"

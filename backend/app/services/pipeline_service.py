@@ -14,6 +14,7 @@ from ..models.schemas import (
     ExecutionMode,
     MetricMode,
     RegistrationMetrics,
+    EstimatorMethod,
     SpatialGridStats,
     MatchPairModel,
     GeometricModel,
@@ -31,7 +32,7 @@ from ..vision.rift2 import RIFT2Extractor
 from ..preprocessing.pyramid import LunarKeyPoint, extract_rift2_multiscale
 from ..vision.hopc import compute_hopc, hopc_keypoints_from_dense
 from ..vision.matcher import FeatureMatcher
-from ..vision.geometry import GeometricVerification
+from ..vision.geometry import GeometricVerification, magsac_plus_plus
 from ..vision.spatial import SpatialBalancing
 from ..vision.registration import ImageRegistration
 from ..vision.metrics import MetricsCalculator
@@ -180,20 +181,42 @@ class PipelineService:
         ))
 
         # ==========================================
-        # STAGE 6: GEOMETRIC VERIFICATION (RANSAC)
+        # STAGE 6: GEOMETRIC VERIFICATION
         # ==========================================
         t0 = time.perf_counter()
-        matrix, inliers, inlier_mask, is_stable, stability_msg = GeometricVerification.estimate(
-            matches=filtered_matches,
-            model_type=request.geometric_model,
-            ransac_threshold=request.ransac_threshold,
-        )
+        estimator_diagnostics = {}
+        if request.estimator_method == EstimatorMethod.MAGSAC:
+            src_pts = np.asarray([match.mov_pt for match in filtered_matches], dtype=np.float32)
+            dst_pts = np.asarray([match.ref_pt for match in filtered_matches], dtype=np.float32)
+            matrix, mask_array, estimator_diagnostics = magsac_plus_plus(
+                src_pts,
+                dst_pts,
+                model=request.geometric_model.value,
+                sigma_max=3.0,
+            )
+            inlier_mask = mask_array.tolist()
+            inliers = []
+            for match, is_inlier in zip(filtered_matches, inlier_mask):
+                match.is_inlier = bool(is_inlier)
+                if is_inlier:
+                    inliers.append(match)
+            if matrix is None:
+                is_stable, stability_msg = False, estimator_diagnostics.get("failure_reason", "MAGSAC failed")
+            else:
+                is_stable, stability_msg = GeometricVerification._check_matrix_stability(matrix, request.geometric_model)
+        else:
+            matrix, inliers, inlier_mask, is_stable, stability_msg = GeometricVerification.estimate(
+                matches=filtered_matches,
+                model_type=request.geometric_model,
+                ransac_threshold=request.ransac_threshold,
+            )
+            estimator_diagnostics = {"backend": "opencv_ransac", "n_hypotheses_tried": -1}
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=6, name="GEOMETRIC VERIFICATION",
             status="COMPLETED" if (matrix is not None and is_stable) else "FAILED",
             duration_ms=round(dur, 1),
-            details=f"RANSAC inliers: {len(inliers)} / {len(filtered_matches)} (threshold {request.ransac_threshold}px)"
+            details=f"{request.estimator_method.value.upper()} inliers: {len(inliers)} / {len(filtered_matches)}"
         ))
 
         # ==========================================
@@ -236,6 +259,20 @@ class PipelineService:
                         "reason": "level_gap",
                         **rejection,
                     }) + "\n")
+                weights = estimator_diagnostics.get("weights", [])
+                residuals = estimator_diagnostics.get("residuals_px", [])
+                if request.estimator_method == EstimatorMethod.MAGSAC:
+                    for idx, match in enumerate(filtered_matches):
+                        weight = float(weights[idx]) if idx < len(weights) else 0.0
+                        residual = float(residuals[idx]) if idx < len(residuals) else None
+                        f_dec.write(json.dumps({
+                            "match_id": idx,
+                            "stage": "magsac",
+                            "decision": "accept" if match.is_inlier else "reject",
+                            "reason": None if match.is_inlier else "low_weight",
+                            "weight": weight,
+                            "residual_px": residual,
+                        }) + "\n")
                 for idx, m in enumerate(filtered_matches):
                     record = {
                         "match_id": idx,
@@ -257,6 +294,14 @@ class PipelineService:
                     f_dec.write(json.dumps(record) + "\n")
         except Exception as err:
             logger.warning(f"Could not write match_decisions.jsonl: {err}")
+        save_json(run_dir / "quality_report.json", {
+            "estimator": request.estimator_method.value,
+            "sigma_max": 3.0 if request.estimator_method == EstimatorMethod.MAGSAC else None,
+            "best_sigma": estimator_diagnostics.get("best_sigma"),
+            "n_hypotheses_tried": estimator_diagnostics.get("n_hypotheses_tried"),
+            "n_inliers": len(inliers),
+            "weighted_rms_px": estimator_diagnostics.get("weighted_rms_px"),
+        })
 
         # ==========================================
         # STAGE 8 & 9: TRANSFORMATION & REGISTRATION

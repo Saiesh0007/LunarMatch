@@ -95,3 +95,77 @@ class GeometricVerification:
             return True, "Transformation matrix is mathematically stable"
         except Exception as e:
             return False, f"Matrix stability check exception: {str(e)}"
+
+
+def magsac_plus_plus(
+    src_pts: np.ndarray,
+    dst_pts: np.ndarray,
+    model: str = "affine",
+    sigma_max: float = 3.0,
+    max_iters: int = 10000,
+    confidence: float = 0.99,
+    random_seed: int = 0,
+) -> Tuple[Optional[np.ndarray], np.ndarray, dict]:
+    """Estimate a geometric model with OpenCV's USAC MAGSAC backend.
+
+    Args:
+        src_pts: Source points with shape ``(N, 2)``.
+        dst_pts: Destination points with shape ``(N, 2)``.
+        model: ``affine``, ``homography``, or ``similarity``.
+        sigma_max: Upper bound for the inlier noise scale in pixels.
+        max_iters: Maximum robust-estimation iterations.
+        confidence: Desired confidence for the robust estimator.
+        random_seed: Seed for OpenCV's deterministic random sampler.
+    Returns:
+        Model parameters, boolean inlier mask, and MAGSAC diagnostics.
+    Raises:
+        ValueError: If inputs or estimator parameters are invalid.
+    """
+    src = np.asarray(src_pts, dtype=np.float32)
+    dst = np.asarray(dst_pts, dtype=np.float32)
+    if src.ndim != 2 or dst.ndim != 2 or src.shape != dst.shape or src.shape[1] != 2:
+        raise ValueError("src_pts and dst_pts must both have shape (N, 2)")
+    if sigma_max <= 0 or max_iters < 1 or not 0.0 < confidence < 1.0:
+        raise ValueError("invalid MAGSAC parameters")
+    model_name = model.value if hasattr(model, "value") else str(model).lower()
+    minimum = 4 if model_name == "homography" else 3 if model_name in ("affine", "similarity") else 0
+    if minimum == 0:
+        raise ValueError(f"unsupported model: {model_name}")
+    if len(src) < minimum:
+        return None, np.zeros(len(src), dtype=bool), {"failure_reason": f"insufficient points: {len(src)} < {minimum}"}
+    if not hasattr(cv2, "USAC_MAGSAC"):
+        return None, np.zeros(len(src), dtype=bool), {"failure_reason": "OpenCV USAC_MAGSAC is unavailable"}
+
+    cv2.setRNGSeed(int(random_seed))
+    if model_name == "homography":
+        params, raw_mask = cv2.findHomography(src, dst, method=cv2.USAC_MAGSAC, ransacReprojThreshold=float(sigma_max), maxIters=int(max_iters), confidence=float(confidence))
+    elif model_name == "similarity":
+        params, raw_mask = cv2.estimateAffinePartial2D(src, dst, method=cv2.USAC_MAGSAC, ransacReprojThreshold=float(sigma_max), maxIters=int(max_iters), confidence=float(confidence), refineIters=10)
+    else:
+        params, raw_mask = cv2.estimateAffine2D(src, dst, method=cv2.USAC_MAGSAC, ransacReprojThreshold=float(sigma_max), maxIters=int(max_iters), confidence=float(confidence), refineIters=10)
+    if params is None or raw_mask is None:
+        return None, np.zeros(len(src), dtype=bool), {"failure_reason": "USAC_MAGSAC failed to find a model", "backend": "opencv_usac_magsac"}
+
+    mask = np.asarray(raw_mask, dtype=bool).reshape(-1)
+    if model_name == "homography":
+        homogeneous = np.column_stack((src, np.ones(len(src), dtype=np.float32)))
+        projected = homogeneous @ params.T
+        projected = projected[:, :2] / np.maximum(np.abs(projected[:, 2:3]), 1e-8)
+    else:
+        projected = cv2.transform(src.reshape(-1, 1, 2), params).reshape(-1, 2)
+    residuals = np.linalg.norm(projected - dst, axis=1)
+    inlier_residuals = residuals[mask]
+    best_sigma = float(np.clip(np.median(inlier_residuals) / 0.6745 if len(inlier_residuals) else sigma_max, 1e-6, sigma_max))
+    weights = np.exp(-0.5 * (residuals / best_sigma) ** 2).astype(np.float32)
+    weighted_rms = float(np.sqrt(np.sum(weights * residuals ** 2) / max(np.sum(weights), 1e-6)))
+    diagnostics = {
+        "backend": "opencv_usac_magsac",
+        "n_hypotheses_tried": int(max_iters),
+        "best_sigma": best_sigma,
+        "best_score": float(np.sum(weights)),
+        "n_inliers_at_best_sigma": int(np.count_nonzero(mask)),
+        "weighted_rms_px": weighted_rms,
+        "weights": weights.tolist(),
+        "residuals_px": residuals.tolist(),
+    }
+    return params, mask, diagnostics

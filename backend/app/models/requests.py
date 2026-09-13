@@ -5,6 +5,7 @@ from .schemas import (
     FeatureMethod,
     MatcherType,
     GeometricModel,
+    EstimatorMethod,
     PreprocessingConfig
 )
 
@@ -17,6 +18,7 @@ class PipelineRunRequest(BaseModel):
     matcher: MatcherType = Field(MatcherType.BF, description="Feature matching algorithm")
     ratio_threshold: float = Field(0.75, ge=0.4, le=0.95, description="Lowe's ratio test threshold")
     geometric_model: GeometricModel = Field(GeometricModel.HOMOGRAPHY, description="Transformation geometry")
+    estimator_method: EstimatorMethod = Field(EstimatorMethod.MAGSAC, description="Robust estimator")
     spatial_balancing: bool = Field(True, description="Enable spatial grid distribution filter")
     grid_size: int = Field(6, ge=2, le=16, description="NxN grid dimension for spatial balancing")
     max_features_per_cell: int = Field(5, ge=1, le=50, description="Max matches retained per grid cell")
