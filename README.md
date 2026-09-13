@@ -146,7 +146,7 @@ All 4 test suites passed:
 | **Deterministic Simulation**| `IMPLEMENTED` | **YES** | Seed 26166 engine for reproducible demo exploration. |
 | **Offline Local Demo** | `IMPLEMENTED` | **YES** | Zero-network fallback using bundled demo assets. |
 | **Robustness Lab** | `IMPLEMENTED` | **YES** | Illumination, scale, rotation, translation parameter sweeps. |
-| **Multi-scale pyramid on PC map** | `IMPLEMENTED` | **YES** | Phase 1.2, commit `pending`. 3 levels, KD-tree dedup, level filtering. |
+| **Multi-scale pyramid on PC map** | `IMPLEMENTED` | **YES** | Phase 1.2, commit `0fc85da`. 3 levels, KD-tree dedup, level filtering. |
 | **RIFT (Phase Congruency)** | `SIMULATED` | **YES** | Deterministic simulation; research model planned. |
 | **SuperPoint Deep Features**| `SIMULATED` | **YES** | Deterministic simulation; neural weights planned. |
 | **LightGlue Graph Matcher**| `PLANNED` | **NO** | Deep attention correspondence filter scheduled. |
