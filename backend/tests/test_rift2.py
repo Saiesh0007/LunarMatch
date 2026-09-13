@@ -95,21 +95,32 @@ class TestRIFT2:
         # Match using BFMatcher with Lowe's ratio test
         bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
         raw_matches = bf.knnMatch(descs1, descs2, k=2)
-        good = [m[0] for m in raw_matches if len(m) == 2 and m[0].distance < 0.85 * m[1].distance]
+        n_candidates_before_ratio = len(raw_matches)
 
-        assert len(good) >= 8, f"Expected at least 8 matches under illumination shift, got {len(good)}"
+        good = [m[0] for m in raw_matches if len(m) == 2 and m[0].distance < 0.85 * m[1].distance]
+        n_after_ratio = len(good)
+
+        assert n_after_ratio >= 8, f"Expected at least 8 matches under illumination shift, got {n_after_ratio}"
+
         # Check geometric displacement is near zero (since images are spatially aligned)
         displacements = [
             np.linalg.norm(np.array(kps1[m.queryIdx].pt) - np.array(kps2[m.trainIdx].pt))
             for m in good
         ]
-        inliers_count = sum(d < 5.0 for d in displacements)
-        assert inliers_count >= 5, f"Expected at least 5 spatial inliers under illumination variation, got {inliers_count}"
+        n_inliers_after_ransac = sum(d < 5.0 for d in displacements)
+        print(f"\n[Illumination Test Audit] Candidates: {n_candidates_before_ratio}, Ratio Filtered: {n_after_ratio}, Spatial Inliers: {n_inliers_after_ransac}")
+        assert n_inliers_after_ransac >= 5, f"Expected at least 5 spatial inliers, got {n_inliers_after_ransac}"
 
-    def test_rotation_invariance(self):
-        """Verify RIFT2 recovers true rotation on synthetic rotated crater image."""
+    @pytest.mark.parametrize("angle_deg", [30.0, 90.0, 180.0, 270.0])
+    def test_rotation_invariance_multiple_angles(self, angle_deg: float):
+        """
+        Verify RIFT2 recovers true rotation across all quadrants on synthetic rotated crater image.
+        Note on Coordinate Sign Convention:
+        OpenCV cv2.getRotationMatrix2D rotates clockwise in screen coordinates where +Y points downwards.
+        Therefore, an image rotation by +angle_deg corresponds to affine transformation angle -angle_deg (or 360 - angle_deg).
+        The test validates that the recovered affine rotation matches the true rotation to within +/- 3.5 deg.
+        """
         img = create_synthetic_lunar_patch(size=256, seed=26166)
-        angle_deg = 30.0
         center = (128.0, 128.0)
         rot_mat = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
         img_rot = cv2.warpAffine(img, rot_mat, (256, 256), borderMode=cv2.BORDER_REFLECT)
@@ -125,16 +136,32 @@ class TestRIFT2:
         raw_matches = bf.knnMatch(descs1, descs2, k=2)
         good = [m[0] for m in raw_matches if len(m) == 2 and m[0].distance < 0.88 * m[1].distance]
 
-        assert len(good) >= 6, f"Expected matches under 30 deg rotation, got {len(good)}"
+        assert len(good) >= 6, f"Expected matches under {angle_deg} deg rotation, got {len(good)}"
 
         # Estimate affine matrix and verify rotation recovery
         pts1 = np.float32([kps1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         pts2 = np.float32([kps2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
         est_mat, inlier_mask = cv2.estimateAffine2D(pts1, pts2, method=cv2.RANSAC, ransacReprojThreshold=3.5)
-        assert est_mat is not None, "Affine transformation must converge"
+        assert est_mat is not None, f"Affine transformation must converge for angle {angle_deg}"
         recovered_angle = float(np.degrees(np.arctan2(est_mat[1, 0], est_mat[0, 0])))
-        # Account for coordinate handedness (warpAffine with positive angle rotates clockwise in image coords)
-        angle_err = min(abs(recovered_angle - angle_deg), abs(recovered_angle - (-angle_deg)))
-        # Allow +/- 3.5 deg tolerance on synthetic patch
-        assert angle_err < 3.5, f"Recovered rotation {recovered_angle:.2f} deg diverges from +/-{angle_deg} deg (error={angle_err:.2f})"
+
+        # Normalize angles to [0, 360) for comparison
+        # Screen rotation by +angle_deg produces affine mapping with angle = -angle_deg
+        expected_cw = (-angle_deg) % 360.0
+        rec_norm = recovered_angle % 360.0
+        diff = abs(rec_norm - expected_cw)
+        angle_err = min(diff, 360.0 - diff)
+
+        assert angle_err < 3.5, f"Recovered angle {recovered_angle:.2f} deg diverges from expected {-angle_deg:.2f} deg (err={angle_err:.2f})"
+
+    def test_rift2_runtime_regression(self):
+        """Regression canary: extract_rift2 on 512x512 image must complete well within 15s budget."""
+        import time
+        img = create_synthetic_lunar_patch(size=512, seed=26166)
+        t0 = time.perf_counter()
+        kps, descs = extract_rift2(img, max_features=300)
+        elapsed = time.perf_counter() - t0
+        assert elapsed < 15.0, f"Runtime regression detected: {elapsed:.2f} s exceeds 15.0 s threshold"
+        assert len(kps) > 0
+        assert descs.shape[1] == 216
