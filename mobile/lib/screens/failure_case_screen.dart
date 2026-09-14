@@ -86,7 +86,7 @@ class _FailureCaseScreenState extends State<FailureCaseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Image pair placeholder
+              // Image pair visualization
               _buildImagePair(),
               const SizedBox(height: 16),
 

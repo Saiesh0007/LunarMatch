@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/theme.dart';
 
 class StatusBadge extends StatelessWidget {
-  final String mode; // "LIVE BASELINE", "SIMULATED PIPELINE", "LOCAL DEMO"
+  final String mode; // "LIVE", "DEMO", "LOCAL DEMO"
 
   const StatusBadge({
     super.key,
@@ -17,8 +17,8 @@ class StatusBadge extends StatelessWidget {
       displayMode = "LOCAL DEMO";
     } else if (displayMode == "LIVE" || displayMode == "LIVE BASELINE") {
       displayMode = "LIVE";
-    } else if (displayMode.contains("SIMULAT")) {
-      displayMode = "SIMULATION";
+    } else if (displayMode.contains("DEMO")) {
+      displayMode = "DEMO";
     }
 
     return Container(

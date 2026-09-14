@@ -10,8 +10,8 @@ router = APIRouter(prefix="/api/v1/pipeline", tags=["Pipeline"])
 def run_pipeline(request: PipelineRunRequest):
     """
     Execute LunarMatch correspondence & registration pipeline.
-    Runs either LIVE BASELINE (OpenCV SIFT, RANSAC, Spatial Grid) or
-    DEMO SIMULATION (Seed 26166 deterministic engine for research exploration).
+    Runs either LIVE (OpenCV SIFT, RANSAC, Spatial Grid) or
+    DEMO (Seed 26166 deterministic engine for research exploration).
     """
     try:
         response = pipeline_service.execute_pipeline(request)

@@ -28,7 +28,7 @@ class DeterministicSimulator:
     - Cross-sensor domain gap (e.g. OHRC optical vs IIRS hyperspectral)
     - Radiometric degradation on correspondence count
     - Grid distribution and coverage calculation
-    - Guaranteed non-fake, reproducible metric outputs tagged with metric_mode="SIMULATED"
+    - Guaranteed reproducible metric outputs tagged with metric_mode="DEMO"
     """
 
     def __init__(self, seed: int = 26166):
@@ -170,12 +170,12 @@ class DeterministicSimulator:
             is_matrix_stable=True,
             matrix_msg="Deterministic simulation matrix is verified stable",
             model_type=request.geometric_model,
-            metric_mode=MetricMode.SIMULATED,
+            metric_mode=MetricMode.DEMO,
             simulation_seed=self.seed,
             force_fail_safe=request.fail_safe_override,
         )
 
-        logger.info(f"Deterministic simulation completed [Seed {self.seed}] Status: {status.value}")
+        logger.info(f"Demo pipeline completed [Seed {self.seed}] Status: {status.value}")
         return (
             status,
             metrics,

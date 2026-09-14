@@ -7,7 +7,7 @@ from ..utils.logging import logger
 class SIFTExtractor(BaseFeatureExtractor):
     """
     Scale-Invariant Feature Transform (SIFT) Extractor using OpenCV.
-    Fully implemented and tested baseline feature detector and 128D descriptor.
+    Tested baseline feature detector and 128D descriptor.
     """
 
     def __init__(

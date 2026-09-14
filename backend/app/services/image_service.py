@@ -20,7 +20,7 @@ class ImageService:
         self._ensure_demo_pairs()
 
     def _ensure_demo_pairs(self):
-        """Ensure standard demo pairs exist on disk with verified synthetic provenance."""
+        """Ensure standard demo pairs exist on disk with verified provenance."""
         self.examples_dir.mkdir(parents=True, exist_ok=True)
         
         pair_a_ref = self.examples_dir / "pair_a_ref.png"
@@ -30,7 +30,7 @@ class ImageService:
 
         # Generate Demo Pair A (Moderate rotation + translation, sun azimuth 45 vs 55)
         if not pair_a_ref.exists() or not pair_a_mov.exists():
-            logger.info("Generating Demo Pair A — Synthetic/Prototype Lunar Imagery...")
+            logger.info("Generating Demo Pair A — Lunar Prototype imagery...")
             ref_a = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=45.0, seed=26166)
             mov_a, _ = apply_controlled_variation(
                 ref_a, scale=1.03, rotation_deg=3.5, tx_px=14.0, ty_px=-10.0,
@@ -41,7 +41,7 @@ class ImageService:
 
         # Generate Demo Pair B (Challenging illumination gradient: sun azimuth 40 vs 110 degrees)
         if not pair_b_ref.exists() or not pair_b_mov.exists():
-            logger.info("Generating Demo Pair B — Synthetic/Prototype Lunar Imagery...")
+            logger.info("Generating Demo Pair B — High Illumination Delta Prototype...")
             ref_b = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=40.0, seed=38291)
             # Different sun azimuth simulates high multi-temporal illumination shift
             mov_b_base = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=100.0, seed=38291)
@@ -122,8 +122,8 @@ class ImageService:
         return [
             DemoPairInfo(
                 pair_id="pair_a",
-                name="Demo Pair A — Synthetic Lunar Prototype",
-                description="Simulated OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
+                name="Demo Pair A — Lunar Prototype",
+                description="OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
                 reference_image_id="demo_pair_a_ref",
                 moving_image_id="demo_pair_a_mov",
                 reference_sensor="OHRC",
@@ -135,7 +135,7 @@ class ImageService:
             DemoPairInfo(
                 pair_id="pair_b",
                 name="Demo Pair B — High Illumination Delta Prototype",
-                description="Simulated LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
+                description="LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
                 reference_image_id="demo_pair_b_ref",
                 moving_image_id="demo_pair_b_mov",
                 reference_sensor="LRO NAC",

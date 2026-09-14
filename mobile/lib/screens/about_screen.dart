@@ -124,7 +124,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     const SizedBox(height: 12),
                     _buildPrincipleItem(
                       "Rule A — Scientific Honesty",
-                      "Never claim algorithms or sub-pixel accuracy that were not actually tested. Delineates IMPLEMENTED from SIMULATED research models.",
+                      "Never claim algorithms or sub-pixel accuracy that were not actually tested. Delineates Verified from Demo research models.",
                     ),
                     _buildPrincipleItem(
                       "Rule B — Zero Fake Metrics",

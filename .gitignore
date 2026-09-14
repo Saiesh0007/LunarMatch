@@ -1,66 +1,38 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 .pytest_cache/
-.coverage
-htmlcov/
-
-# Virtual Environments
-venv/
-ENV/
-env/
 .venv/
+venv/
+env/
 
-# FastAPI / Run Outputs
-backend/outputs/run_*
-backend/data/raw/*
-!backend/data/raw/.gitkeep
-backend/data/processed/*
-!backend/data/processed/.gitkeep
-backend/experiments/results/*.json
-!backend/experiments/results/.gitkeep
-
-# Environment variables & secrets
-.env
-.env.local
-*.pem
-*.key
+# Backend artifacts
+backend/outputs/
+backend/data/demo/*.json
+backend/experiments/
+backend/*.log
 
 # Flutter / Dart
 mobile/.dart_tool/
+mobile/build/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/.packages
-mobile/.pub-cache/
-mobile/.pub/
-mobile/build/
-mobile/windows/flutter/ephemeral/
-mobile/linux/flutter/ephemeral/
-mobile/macos/Flutter/ephemeral/
-mobile/*.iml
-mobile/.idea/
 
-# Operating System & IDE
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
-*.swp
-*~
+desktop.ini
+
+# Build artifacts
+sih_submission/
+sih_submission.zip
+*.apk
+*.aab

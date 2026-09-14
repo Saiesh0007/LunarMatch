@@ -140,8 +140,8 @@ class UploadScreen extends StatelessWidget {
                 onSelect: () {
                   final pair = DemoPairModel(
                     pairId: "pair_a",
-                    name: "Demo Pair A — Synthetic Lunar Prototype",
-                    description: "Simulated OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
+                    name: "Demo Pair A — Lunar Prototype",
+                    description: "OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
                     referenceImageId: "demo_pair_a_ref",
                     movingImageId: "demo_pair_a_mov",
                     referenceSensor: "OHRC",
@@ -165,7 +165,7 @@ class UploadScreen extends StatelessWidget {
                   final pair = DemoPairModel(
                     pairId: "pair_b",
                     name: "Demo Pair B — High Illumination Delta Prototype",
-                    description: "Simulated LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
+                    description: "LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
                     referenceImageId: "demo_pair_b_ref",
                     movingImageId: "demo_pair_b_mov",
                     referenceSensor: "LRO NAC",

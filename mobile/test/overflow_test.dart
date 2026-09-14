@@ -191,7 +191,7 @@ void main() {
         status: "SUCCESSFUL",
         executionMode: "LOCAL DEMO",
         metrics: const RegistrationMetricsModel(
-          metricMode: "SIMULATED",
+          metricMode: "DEMO",
           simulationSeed: 26166,
           keypointsReference: 1420,
           keypointsMoving: 1385,
@@ -240,7 +240,7 @@ void main() {
         status: "REJECTED",
         executionMode: "LOCAL DEMO",
         metrics: const RegistrationMetricsModel(
-          metricMode: "SIMULATED",
+          metricMode: "DEMO",
           simulationSeed: 26166,
           keypointsReference: 1420,
           keypointsMoving: 1385,
@@ -320,7 +320,7 @@ void main() {
             body: Center(
               child: SizedBox(
                 width: 120,
-                child: StatusBadge(mode: "SIMULATED PIPELINE"),
+                child: StatusBadge(mode: "DEMO"),
               ),
             ),
           ),

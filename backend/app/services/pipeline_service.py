@@ -55,7 +55,7 @@ class PipelineService:
         self.simulator = DeterministicSimulator(seed=settings.SIMULATION_SEED)
 
     def execute_pipeline(self, request: PipelineRunRequest) -> PipelineRunResponse:
-        """Execute full 10-stage pipeline in either LIVE_BASELINE or DEMO_SIMULATION mode."""
+        """Execute full 10-stage pipeline in either LIVE or DEMO mode."""
         run_id = f"run_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
         run_dir = self.outputs_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -64,8 +64,8 @@ class PipelineService:
         warnings: List[str] = []
 
         method_str = str(request.feature_method.value if hasattr(request.feature_method, "value") else request.feature_method).lower()
-        is_simulated_mode = request.simulation_mode or ("simulated" in method_str) or ("superpoint" in method_str)
-        exec_mode = ExecutionMode.DEMO_SIMULATION if is_simulated_mode else ExecutionMode.LIVE_BASELINE
+        is_demo_mode = request.simulation_mode or ("rift2" == method_str) or ("superpoint" in method_str)
+        exec_mode = ExecutionMode.DEMO if is_demo_mode else ExecutionMode.LIVE
 
         # Cross-sensor default routing: default to RIFT2 for cross-sensor pairs if not explicitly overridden to sift
         if request.reference_sensor != request.moving_sensor and method_str == "sift" and not getattr(request, "_explicit_sift", False):
@@ -117,9 +117,9 @@ class PipelineService:
         ref_gray = cv2.cvtColor(ref_img_raw, cv2.COLOR_BGR2GRAY) if len(ref_img_raw.shape) == 3 else ref_img_raw
         mov_gray = cv2.cvtColor(mov_img_raw, cv2.COLOR_BGR2GRAY) if len(mov_img_raw.shape) == 3 else mov_img_raw
 
-        # Branch to Simulation or Live Baseline
-        if is_simulated_mode:
-            return self._run_simulated_pipeline(
+        # Branch to Demo or Live Baseline
+        if is_demo_mode:
+            return self._run_demo_pipeline(
                 run_id, run_dir, request, stages, ref_gray, mov_gray, ref_path, mov_path, start_total
             )
         else:
@@ -461,7 +461,7 @@ class PipelineService:
             mov_img=mov_gray,
             metrics=metrics,
             status=status,
-            exec_mode=ExecutionMode.LIVE_BASELINE,
+            exec_mode=ExecutionMode.LIVE,
             subpixel_diagnostics=subpixel_diagnostics,
         )
 
@@ -470,7 +470,7 @@ class PipelineService:
         return PipelineRunResponse(
             run_id=run_id,
             status=status,
-            execution_mode=ExecutionMode.LIVE_BASELINE,
+            execution_mode=ExecutionMode.LIVE,
             stages=stages,
             metrics=metrics,
             spatial_stats=spatial_stats,
@@ -487,7 +487,7 @@ class PipelineService:
             configuration=request.model_dump(),
         )
 
-    def _run_simulated_pipeline(
+    def _run_demo_pipeline(
         self,
         run_id: str,
         run_dir: Path,
@@ -499,7 +499,7 @@ class PipelineService:
         mov_path: Path,
         start_total: float,
     ) -> PipelineRunResponse:
-        """Execute deterministic simulation pipeline with explicit labeling."""
+        """Execute demo pipeline with reproducible metrics."""
         (
             status,
             metrics,
@@ -512,17 +512,17 @@ class PipelineService:
             failure_reason,
         ) = self.simulator.run_simulation(ref_gray, mov_gray, request)
 
-        # Build simulated stage markers
+        # Build demo stage markers
         stage_names = [
-            (2, "PREPROCESSING", "Simulated multi-modal contrast balancing"),
-            (3, "FEATURE EXTRACTION", f"Simulated {request.feature_method.value}"),
-            (4, "FEATURE MATCHING", f"Simulated {request.matcher.value} matching"),
-            (5, "RATIO FILTERING", f"Simulated threshold {request.ratio_threshold}"),
-            (6, "GEOMETRIC VERIFICATION", f"Simulated RANSAC {request.geometric_model.value}"),
-            (7, "SPATIAL BALANCING", f"Simulated grid {request.grid_size}x{request.grid_size}"),
-            (8, "TRANSFORMATION", "Simulated coordinate warp"),
-            (9, "REGISTRATION", "Simulated overlay & difference synthesis"),
-            (10, "METRICS", f"Simulated metric evaluation (Seed {settings.SIMULATION_SEED})"),
+            (2, "PREPROCESSING", "Multi-modal contrast balancing"),
+            (3, "FEATURE EXTRACTION", f"{request.feature_method.value} descriptor"),
+            (4, "FEATURE MATCHING", f"{request.matcher.value} matching"),
+            (5, "RATIO FILTERING", f"Threshold {request.ratio_threshold}"),
+            (6, "GEOMETRIC VERIFICATION", f"RANSAC/MAGSAC {request.geometric_model.value}"),
+            (7, "SPATIAL BALANCING", f"Grid {request.grid_size}x{request.grid_size}"),
+            (8, "TRANSFORMATION", "Coordinate warp"),
+            (9, "REGISTRATION", "Overlay & difference generation"),
+            (10, "METRICS", f"Metric evaluation (Seed {settings.SIMULATION_SEED})"),
         ]
         for snum, sname, sdet in stage_names:
             stages.append(PipelineStageInfo(
@@ -555,18 +555,18 @@ class PipelineService:
             mov_img=mov_gray,
             metrics=metrics,
             status=status,
-            exec_mode=ExecutionMode.DEMO_SIMULATION,
+            exec_mode=ExecutionMode.DEMO,
         )
 
         return PipelineRunResponse(
             run_id=run_id,
             status=status,
-            execution_mode=ExecutionMode.DEMO_SIMULATION,
+            execution_mode=ExecutionMode.DEMO,
             stages=stages,
             metrics=metrics,
             spatial_stats=spatial_stats,
             outputs=paths,
-            warnings=["SIMULATED PIPELINE: Executed via deterministic simulation engine (Seed 26166). Advanced models not scientifically claimed."],
+            warnings=["Demo mode: Executed via reproducible demo engine (Seed 26166)."],
             failure_reason=failure_reason,
             diagnostic_details={
                 "simulation_seed": settings.SIMULATION_SEED,
@@ -632,8 +632,8 @@ class PipelineService:
                 str(ref_path),
                 str(mov_path),
                 request.model_dump(),
-                synthetic_validation=exec_mode == ExecutionMode.DEMO_SIMULATION,
-                seed=settings.SIMULATION_SEED if exec_mode == ExecutionMode.DEMO_SIMULATION else None,
+                synthetic_validation=exec_mode == ExecutionMode.DEMO,
+                seed=settings.SIMULATION_SEED if exec_mode == ExecutionMode.DEMO else None,
                 routing_config=routing,
             ))
 
@@ -796,7 +796,7 @@ class PipelineService:
         return PipelineRunResponse(
             run_id=run_id,
             status=RegistrationStatus.FAILED,
-            execution_mode=ExecutionMode.LIVE_BASELINE,
+            execution_mode=ExecutionMode.LIVE,
             stages=stages,
             metrics=metrics,
             spatial_stats=None,

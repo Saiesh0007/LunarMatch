@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               _buildDashboardCard(
                 title: "ENGINE CAPABILITIES",
-                subtitle: "Scientifically honest capability matrix: clearly delineates IMPLEMENTED, SIMULATED, and PLANNED components.",
+                subtitle: "Scientifically honest capability matrix: clearly delineates Verified, Demo, and Research Roadmap components.",
                 icon: Icons.verified_outlined,
                 badgeText: "TECHNICAL AUDIT",
                 onTap: () => Navigator.pushNamed(context, AppRoutes.status),

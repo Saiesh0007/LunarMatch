@@ -166,8 +166,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ),
                   ResponsiveBadge(
-                    label: metrics.metricMode == "SIMULATED"
-                        ? "SIMULATED (SEED ${metrics.simulationSeed ?? 26166})"
+                    label: metrics.metricMode == "DEMO"
+                        ? "DEMO (SEED ${metrics.simulationSeed ?? 26166})"
                         : "MEASURED EXECUTION",
                     variant: BadgeVariant.subtle,
                     fontSize: 8.5,

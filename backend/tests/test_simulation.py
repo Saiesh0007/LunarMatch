@@ -11,7 +11,7 @@ def test_simulation_determinism():
     req = PipelineRunRequest(
         reference_image_id="dummy_ref",
         moving_image_id="dummy_mov",
-        feature_method=FeatureMethod.RIFT_SIMULATED,
+        feature_method=FeatureMethod.RIFT2,
         grid_size=6,
     )
 
@@ -22,7 +22,7 @@ def test_simulation_determinism():
     status2, metrics2, stats2, matches2, reg2, _, _, H2, _ = sim2.run_simulation(ref_img, mov_img, req)
 
     assert status1 == status2
-    assert metrics1.metric_mode == MetricMode.SIMULATED
+    assert metrics1.metric_mode == MetricMode.DEMO
     assert metrics1.simulation_seed == 26166
     assert metrics1.inlier_ratio == metrics2.inlier_ratio
     assert metrics1.spatial_coverage == metrics2.spatial_coverage

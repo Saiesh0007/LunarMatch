@@ -76,7 +76,7 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
                     Text(
                       _showTargetArchitecture
                           ? "Multi-stage deep neural and phase-congruency framework engineered for extreme multi-modal optical-to-radar correspondence (e.g. OHRC to Chandrayaan-2 Dual-Frequency SAR)."
-                          : "Fully implemented, verifiable baseline using OpenCV SIFT, dual-pass Lowe ratio rejection, RANSAC projective estimation, and uniform spatial grid balancing.",
+                          : "Verified baseline using OpenCV SIFT, dual-pass Lowe ratio rejection, RANSAC projective estimation, and uniform spatial grid balancing.",
                       style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.45),
                     ),
                   ],

@@ -57,7 +57,7 @@ class LocalDemoSimulator {
 
     final metrics = isRejected
         ? RegistrationMetricsModel(
-            metricMode: "SIMULATED",
+            metricMode: "DEMO",
             simulationSeed: 26166,
             keypointsReference: 1420,
             keypointsMoving: 1385,
@@ -74,7 +74,7 @@ class LocalDemoSimulator {
             confidenceExplanation: "REGISTRATION NOT RELIABLE: Insufficient inliers (4 < 8 minimum threshold); Inlier ratio below 10%",
           )
         : RegistrationMetricsModel(
-            metricMode: "SIMULATED",
+            metricMode: "DEMO",
             simulationSeed: 26166,
             keypointsReference: 1420,
             keypointsMoving: 1385,

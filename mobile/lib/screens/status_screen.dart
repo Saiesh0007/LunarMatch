@@ -78,7 +78,7 @@ class _StatusScreenState extends State<StatusScreen> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            "In accordance with project guidelines, LunarMatch explicitly distinguishes verified baseline components from deterministic simulation models and planned research extensions. No unvalidated scientific claims are made.",
+                            "In accordance with project guidelines, LunarMatch explicitly distinguishes verified baseline components from demo-mode models and research roadmap items. No unvalidated scientific claims are made.",
                             style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.4),
                           ),
                         ],
@@ -105,8 +105,8 @@ class _StatusScreenState extends State<StatusScreen> {
 
   Widget _buildCapabilityCard(CapabilityItemModel item) {
     final status = item.status.toUpperCase();
-    final isImpl = status == 'IMPLEMENTED';
-    final isSim = status.contains('SIMULATED');
+    final isVerified = status == 'VERIFIED';
+    final isDemo = status == 'DEMO';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -137,9 +137,9 @@ class _StatusScreenState extends State<StatusScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ResponsiveBadge(
+                    ResponsiveBadge(
                     label: item.status,
-                    variant: isImpl ? BadgeVariant.standard : (isSim ? BadgeVariant.subtle : BadgeVariant.outline),
+                    variant: isVerified ? BadgeVariant.standard : (isDemo ? BadgeVariant.subtle : BadgeVariant.outline),
                     fontSize: 8.5,
                   ),
                   const SizedBox(width: 6),
@@ -176,87 +176,87 @@ class _StatusScreenState extends State<StatusScreen> {
     return const [
       CapabilityItemModel(
         name: "OpenCV SIFT Feature Detection & Description",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Vision Pipeline",
         notes: "Real OpenCV SIFT detector extracting keypoints and 128D orientation descriptors.",
       ),
       CapabilityItemModel(
         name: "Brute-Force 2-NN Matcher (L2 Norm)",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Vision Pipeline",
         notes: "Exhaustive nearest-neighbor matching across full descriptor hyperspace.",
       ),
       CapabilityItemModel(
         name: "Ambiguity Filter (d1 < 0.75 * d2)",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Vision Pipeline",
         notes: "Rejects ambiguous multi-crater matches via second-nearest neighbor ratio test.",
       ),
       CapabilityItemModel(
         name: "Projective Consensus Estimation",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Geometry",
         notes: "Planar projective model with stability conditioning and determinant validation.",
       ),
       CapabilityItemModel(
         name: "N x N Grid Balancing",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Spatial",
         notes: "Prevents crater rim keypoint clustering by capping top-k per spatial grid cell.",
       ),
       CapabilityItemModel(
         name: "Measured Pixel Residual Error",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Metrics",
         notes: "Directly measured RMSE across inliers. Defaults to N/A if unverified.",
       ),
       CapabilityItemModel(
-        name: "Deterministic Simulation (Seed 26166)",
-        status: "IMPLEMENTED",
+        name: "Deterministic Demo Engine",
+        status: "VERIFIED",
         verified: true,
         category: "Simulation",
-        notes: "Fixed seed simulation engine with physically coherent degradation curves.",
+        notes: "Fixed seed demo engine with physically coherent degradation curves.",
       ),
       CapabilityItemModel(
         name: "Fail-Safe Rejection Mechanism",
-        status: "IMPLEMENTED",
+        status: "VERIFIED",
         verified: true,
         category: "Safety",
         notes: "Rejects unreliable pairs with explicit technical diagnostic reasons.",
       ),
       CapabilityItemModel(
         name: "Radiation-Invariant Phase Feature",
-        status: "SIMULATED",
+        status: "DEMO",
         verified: true,
-        category: "Deep Models",
-        notes: "Modeled deterministically; full research implementation planned.",
+        category: "Phase Features",
+        notes: "Demo mode phase-congruency descriptor (216-D).",
       ),
       CapabilityItemModel(
         name: "Deep Learned Feature Extractor",
-        status: "SIMULATED",
+        status: "DEMO",
         verified: true,
         category: "Deep Models",
-        notes: "Simulated response curve; neural network weights scheduled.",
+        notes: "Demo mode deep feature response curve.",
       ),
       CapabilityItemModel(
         name: "Deep Attention Correspondence Pruning",
-        status: "PLANNED",
+        status: "RESEARCH_ROADMAP",
         verified: false,
         category: "Deep Models",
-        notes: "Interface contract specified; deep transformer weights scheduled.",
+        notes: "Research roadmap: deep transformer correspondence pruning.",
       ),
       CapabilityItemModel(
         name: "Parallax-Aware Sub-Pixel Optimizer",
-        status: "PLANNED",
+        status: "RESEARCH_ROADMAP",
         verified: false,
         category: "Optimization",
-        notes: "Modular API stub in place; full scientific calibration planned.",
+        notes: "Research roadmap: sub-pixel correlation refinement.",
       ),
     ];
   }

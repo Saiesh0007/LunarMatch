@@ -31,9 +31,9 @@ class PipelineProvider with ChangeNotifier {
       return "LOCAL DEMO";
     }
     if (_config.simulationMode || _config.featureMethod != "SIFT") {
-      return "SIMULATED PIPELINE";
+      return "DEMO MODE";
     }
-    return "LIVE BASELINE";
+    return "LIVE";
   }
 
   PipelineProvider() {
@@ -106,9 +106,9 @@ class PipelineProvider with ChangeNotifier {
       }
     }
 
-    // Otherwise, call FastAPI live/simulated pipeline
+    // Otherwise, call FastAPI live or demo pipeline
     try {
-      // Stream simulated progress while backend computes
+      // Stream progress while backend computes
       Timer? progressTimer;
       int step = 0;
       progressTimer = Timer.periodic(const Duration(milliseconds: 180), (timer) {

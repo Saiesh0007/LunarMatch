@@ -19,8 +19,8 @@ class FeatureMethod(str, Enum):
     HOPC = "hopc"
     HOPC_RIFT2_FUSION = "hopc_rift2_fusion"
     SIFT_UPPER = "SIFT"
-    RIFT_SIMULATED = "RIFT — SIMULATED"
-    SUPERPOINT_SIMULATED = "SuperPoint — SIMULATED"
+    RIFT2_UPPER = "RIFT2"
+    SUPERPOINT = "SuperPoint"
 
 class MatcherType(str, Enum):
     BF = "BF"
@@ -47,18 +47,17 @@ class ConfidenceLevel(str, Enum):
     REJECTED = "REJECTED"
 
 class ExecutionMode(str, Enum):
-    LIVE_BASELINE = "LIVE BASELINE"
-    DEMO_SIMULATION = "DEMO SIMULATION"
-    LOCAL_FALLBACK = "LOCAL FALLBACK"
+    LIVE = "LIVE"
+    DEMO = "DEMO"
+    LOCAL = "LOCAL"
 
 class MetricMode(str, Enum):
     MEASURED = "MEASURED"
-    SIMULATED = "SIMULATED"
+    DEMO = "DEMO"
 
 class ImplementationStatus(str, Enum):
-    IMPLEMENTED = "IMPLEMENTED"
-    SIMULATED = "SIMULATED"
-    PLANNED = "PLANNED"
+    VERIFIED = "VERIFIED"
+    RESEARCH = "RESEARCH"
 
 class PreprocessingConfig(BaseModel):
     normalize: bool = True

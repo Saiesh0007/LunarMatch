@@ -17,5 +17,5 @@ def test_capabilities_endpoint():
     names = [c["name"] for c in data["capabilities"]]
     assert "SIFT Feature Extraction" in names
     assert "Spatial Grid Balancing" in names
-    assert "RIFT (Radiation-Invariant)" in names
+    assert "RIFT2 Phase Feature" in names
     assert "Sub-Pixel Refinement" in names

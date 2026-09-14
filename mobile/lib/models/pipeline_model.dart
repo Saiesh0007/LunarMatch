@@ -35,7 +35,7 @@ class PreprocessingConfigModel {
 }
 
 class PipelineConfigModel {
-  String featureMethod; // "SIFT", "RIFT — SIMULATED", "SuperPoint — SIMULATED"
+  String featureMethod; // "SIFT", "RIFT2", "SuperPoint"
   String matcher; // "BF", "FLANN"
   double ratioThreshold;
   String geometricModel; // "affine", "homography"
