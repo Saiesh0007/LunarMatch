@@ -1,3 +1,4 @@
+import gc
 from typing import List, Tuple, Dict, Any, Optional
 import cv2
 import numpy as np
@@ -18,6 +19,17 @@ class FeatureMatcher:
         else:
             self.matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
         self.level_rejections: List[Dict[str, Any]] = []
+
+    def __del__(self):
+        """Explicitly release OpenCV matcher resources to prevent
+        Windows access violations during garbage collection under
+        memory pressure from heavy native operations."""
+        if hasattr(self, 'matcher') and self.matcher is not None:
+            try:
+                self.matcher.clear()
+            except Exception:
+                pass
+        self.matcher = None
 
     def match(
         self,
@@ -45,40 +57,58 @@ class FeatureMatcher:
         desc1 = desc_ref.astype(np.float32)
         desc2 = desc_mov.astype(np.float32)
 
-        raw_knn_matches = self.matcher.knnMatch(desc1, desc2, k=2)
-        candidate_count = len(raw_knn_matches)
+        # Windows + OpenCV: GC running during native C calls (BFMatcher.knnMatch,
+        # DMatch object processing) can trigger intermittent access violations
+        # (0xC0000005) under memory pressure. Disabling GC during the native
+        # call and match processing stabilizes the operation.
+        # See Phase 3.5 diagnostic report.
+        gc.disable()
+        try:
+            raw_knn_matches = self.matcher.knnMatch(desc1, desc2, k=2)
+            candidate_count = len(raw_knn_matches)
 
-        filtered_matches: List[MatchPairModel] = []
+            filtered_matches: List[MatchPairModel] = []
 
-        for match_pair in raw_knn_matches:
-            if len(match_pair) < 2:
-                continue
-            m, n = match_pair[0], match_pair[1]
-            if m.distance < self.ratio_threshold * n.distance:
-                if levels_ref is not None and levels_mov is not None and abs(int(levels_ref[m.queryIdx]) - int(levels_mov[m.trainIdx])) > max_level_gap:
-                    self.level_rejections.append({
-                        "ref_idx": int(m.queryIdx),
-                        "mov_idx": int(m.trainIdx),
-                        "pyramid_level_source": int(levels_ref[m.queryIdx]),
-                        "pyramid_level_reference": int(levels_mov[m.trainIdx]),
-                    })
+            for match_pair in raw_knn_matches:
+                if len(match_pair) < 2:
                     continue
-                ref_pt = [float(kps_ref[m.queryIdx].pt[0]), float(kps_ref[m.queryIdx].pt[1])]
-                mov_pt = [float(kps_mov[m.trainIdx].pt[0]), float(kps_mov[m.trainIdx].pt[1])]
-                filtered_matches.append(
-                    MatchPairModel(
-                        ref_idx=int(m.queryIdx),
-                        mov_idx=int(m.trainIdx),
-                        distance=float(m.distance),
-                        ref_pt=ref_pt,
-                        mov_pt=mov_pt,
-                        is_inlier=False,
-                        is_spatially_selected=False,
+                m, n = match_pair[0], match_pair[1]
+                if m.distance < self.ratio_threshold * n.distance:
+                    if levels_ref is not None and levels_mov is not None and abs(int(levels_ref[m.queryIdx]) - int(levels_mov[m.trainIdx])) > max_level_gap:
+                        self.level_rejections.append({
+                            "ref_idx": int(m.queryIdx),
+                            "mov_idx": int(m.trainIdx),
+                            "pyramid_level_source": int(levels_ref[m.queryIdx]),
+                            "pyramid_level_reference": int(levels_mov[m.trainIdx]),
+                        })
+                        continue
+                    ref_pt = [float(kps_ref[m.queryIdx].pt[0]), float(kps_ref[m.queryIdx].pt[1])]
+                    mov_pt = [float(kps_mov[m.trainIdx].pt[0]), float(kps_mov[m.trainIdx].pt[1])]
+                    filtered_matches.append(
+                        MatchPairModel(
+                            ref_idx=int(m.queryIdx),
+                            mov_idx=int(m.trainIdx),
+                            distance=float(m.distance),
+                            ref_pt=ref_pt,
+                            mov_pt=mov_pt,
+                            is_inlier=False,
+                            is_spatially_selected=False,
+                        )
                     )
-                )
 
-        logger.info(
-            f"Matching ({self.matcher_type.value}): {candidate_count} candidates -> "
-            f"{len(filtered_matches)} filtered (ratio={self.ratio_threshold})"
-        )
-        return filtered_matches, candidate_count
+            logger.info(
+                f"Matching ({self.matcher_type.value}): {candidate_count} candidates -> "
+                f"{len(filtered_matches)} filtered (ratio={self.ratio_threshold})"
+            )
+            return filtered_matches, candidate_count
+        finally:
+            gc.enable()
+
+    def release(self):
+        """Explicitly release matcher resources. Call after match() to free
+        native OpenCV DMatch objects before they are garbage-collected."""
+        if self.matcher is not None:
+            try:
+                self.matcher.clear()
+            except Exception:
+                pass

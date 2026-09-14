@@ -8,7 +8,8 @@ from .api import (
     images_router,
     pipeline_router,
     experiments_router,
-    results_router
+    results_router,
+    routes_demo
 )
 from .utils.logging import logger
 
@@ -39,6 +40,7 @@ app.include_router(images_router)
 app.include_router(pipeline_router)
 app.include_router(experiments_router)
 app.include_router(results_router)
+app.include_router(routes_demo.router, prefix="/api/demo", tags=["demo"])
 
 @app.get("/", tags=["Root"])
 def root_index():

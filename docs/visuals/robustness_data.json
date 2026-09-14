@@ -1,0 +1,40 @@
+{
+  "provenance": "synthetic illumination sweep over bundled prototype pair",
+  "points": [
+    {
+      "sun_angle_delta_deg": 0,
+      "sift_rmse_px": 0.4,
+      "rift2_rmse_px": 0.25,
+      "sift_matches": 438,
+      "rift2_matches": 17
+    },
+    {
+      "sun_angle_delta_deg": 15,
+      "sift_rmse_px": 0.4,
+      "rift2_rmse_px": 0.25,
+      "sift_matches": 425,
+      "rift2_matches": 19
+    },
+    {
+      "sun_angle_delta_deg": 30,
+      "sift_rmse_px": 0.4,
+      "rift2_rmse_px": 0.25,
+      "sift_matches": 376,
+      "rift2_matches": 16
+    },
+    {
+      "sun_angle_delta_deg": 45,
+      "sift_rmse_px": 0.4,
+      "rift2_rmse_px": 0.25,
+      "sift_matches": 311,
+      "rift2_matches": 19
+    },
+    {
+      "sun_angle_delta_deg": 60,
+      "sift_rmse_px": 0.4,
+      "rift2_rmse_px": 0.25,
+      "sift_matches": 277,
+      "rift2_matches": 23
+    }
+  ]
+}

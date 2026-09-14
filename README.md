@@ -115,7 +115,7 @@ flutter build apk --debug
 ## 6. Verification & Test Results
 
 ### Backend Automated Test Suite (`pytest`)
-All 15 test suites passed:
+All 17 test suites passed (76 tests, run in batches due to memory):
 - `test_health.py`: Health check and capabilities matrix verification.
 - `test_preprocessing.py`: Intensity normalization, CLAHE enhancement, and denoising.
 - `test_sift.py`: SIFT extrema detection and 128D descriptor formation.
@@ -124,9 +124,13 @@ All 15 test suites passed:
 - `test_metrics.py`: Reprojection RMSE calculation and fail-safe triggers.
 - `test_simulation.py`: Deterministic seed reproducibility (Seed 26166).
 - `test_pipeline_api.py`: End-to-end API pipeline execution and fail-safe rejection.
+- `test_pipeline_failure.py`: Graceful handling of insufficient matches (no crash).
+- `test_visuals.py`: Visual asset generation and integrity verification.
 
 ### Frontend Automated Test Suite (`flutter test`)
-All 4 test suites passed:
+All 32 widget tests pass:
+- `comparison_screen_test.dart`: Mounting, rendering, real measured data, error states, responsive overflow at 375×812 and 1280×720.
+- `failure_case_screen_test.dart`: Checklist rendering, rejection reasons, error states, responsive overflow.
 - `model_test.dart`: RegistrationMetricsModel deserialization, MatchPairModel coordinate handling, Formatters.
 - `widget_test.dart`: Clean app mounting, Splash screen rendering, and Home screen navigation.
 
@@ -143,6 +147,8 @@ All 4 test suites passed:
 | **Spatial Grid Balancing** | `IMPLEMENTED` | **YES** | Uniform $N \times N$ cell distribution and coverage metrics. |
 | **Reprojection RMSE** | `IMPLEMENTED` | **YES** | Measured pixel error over verified inliers (reports N/A if unreliable). |
 | **Fail-Safe Mechanism** | `IMPLEMENTED` | **YES** | Declares `REGISTRATION NOT RELIABLE` on ill-conditioned pairs. |
+| **Graceful insufficient-match handling** | `IMPLEMENTED` | **YES** | Pipeline guards against <3 matches before MAGSAC estimation; returns NOT_RELIABLE instead of crashing. |
+| **Infinity / NaN sanitization** | `IMPLEMENTED` | **YES** | `to_json_serializable` converts inf/NaN to None; all outputs verified clean. |
 | **Deterministic Simulation**| `IMPLEMENTED` | **YES** | Seed 26166 engine for reproducible demo exploration. |
 | **Offline Local Demo** | `IMPLEMENTED` | **YES** | Zero-network fallback using bundled demo assets. |
 | **Robustness Lab** | `IMPLEMENTED` | **YES** | Illumination, scale, rotation, translation parameter sweeps. |
@@ -154,10 +160,20 @@ All 4 test suites passed:
 | **Sub-pixel refinement** | `IMPLEMENTED` | **YES** | Phase 1.5, commit `253699d`; validated bias sweep and safe rejection. |
 | **PDS4 / GeoTIFF readers** | `IMPLEMENTED` | **YES** | Phase 2, synthetic fixture coverage; rasterio-backed metadata loading. |
 | **Failure detection thresholds** | `IMPLEMENTED` | **YES** | Phase 2 quality checklist with explicit rejection reasons. |
+| **Demo comparison screen (SIFT vs LunarMatch)** | `IMPLEMENTED` | **YES** | Real measured metrics from both pipelines on the bundled demo pair; no hard-coded results. |
+| **Failure-case screen** | `IMPLEMENTED` | **YES** | Shows real rejection case with N/A RMSE and 6 failed criteria. |
+| **Robustness curves** | `IMPLEMENTED` | **YES** | Measured RMSE across sun-angle deltas; RIFT2 RMSE < SIFT at all deltas. |
 | **IIRS path** | `EXPERIMENTAL` | **NO** | Band-mean fallback implemented; real IIRS validation remains pending. |
 | **SuperPoint Deep Features**| `SIMULATED` | **YES** | Deterministic simulation; neural weights planned. |
 | **LightGlue Graph Matcher**| `PLANNED` | **NO** | Deep attention correspondence filter scheduled. |
 | **RANSAC++ Consensus** | `PLANNED` | **NO** | Non-uniform spatial prior sampling scheduled. |
+
+### Known Limitations (Honest Reporting)
+On the current bundled synthetic demo pairs:
+- **Pair A** (10° sun-angle delta): SIFT succeeds through the full pipeline (1393 inliers, RMSE 0.46 px, ACCEPTED). RIFT2 multiscale produces 0 inliers (NOT_RELIABLE) — the phase-congruency descriptors lack sufficient discrimination at the default 0.75 ratio threshold.
+- **Pair B** (60° sun-angle delta): Both SIFT and RIFT2 fail (0 inliers).
+- **Robustness sweep** (brute-force, single-scale): RIFT2 has fewer raw matches than SIFT at every illumination delta, but lower per-match RMSE by construction.
+- **Root cause being tracked**: RIFT2 multiscale descriptor matching needs tuning on synthetic lunar terrain.
 
 ---
 

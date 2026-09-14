@@ -86,7 +86,6 @@ class ImageService:
 
     def resolve_image_path(self, image_id_or_path: str) -> Path:
         """Resolve an image identifier or demo shortcut to an existing absolute Path."""
-        # Check standard demo keywords
         demo_map = {
             "demo_pair_a_ref": self.examples_dir / "pair_a_ref.png",
             "demo_pair_a_mov": self.examples_dir / "pair_a_mov.png",
@@ -95,18 +94,25 @@ class ImageService:
         }
         if image_id_or_path in demo_map:
             p = demo_map[image_id_or_path]
-            if p.exists():
+            try:
+                if p.exists():
+                    return p
+            except (OSError, ValueError):
                 return p
 
-        # Check raw upload dir
         for ext in [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"]:
             candidate = self.raw_dir / f"{image_id_or_path}{ext}"
-            if candidate.exists():
+            try:
+                if candidate.exists():
+                    return candidate
+            except (OSError, ValueError):
                 return candidate
 
-        # Direct path check
         p = Path(image_id_or_path)
-        if p.exists() and p.is_file():
+        try:
+            if p.exists() and p.is_file():
+                return p
+        except (OSError, ValueError):
             return p
 
         raise FileNotFoundError(f"Image resource could not be found: {image_id_or_path}")

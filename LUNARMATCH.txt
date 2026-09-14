@@ -9,6 +9,21 @@ IMPLEMENTED
 - Sensor-pair routing: commit c55ecb0
 - Phase 2 readers, quality thresholds, and manifests: commit bf08c83
 
+Phase 3 additions
+- Demo router wiring (/api/demo prefix, no /api double-prefix)
+- Infinity/NaN sanitization in JSON serialization
+- Mock-based Flutter tests with @GenerateMocks
+- Crash guard: pipeline returns NOT_RELIABLE instead of crashing on <3 matches
+- Real SIFT-vs-RIFT2 comparison (no hard-coded metrics)
+- Honest money-shot visual: side-by-side comparison + robustness curves
+
+Known limitation (Phase 3 honest reporting)
+- On bundled synthetic demo pairs, SIFT succeeds on Pair A (1393 inliers,
+  RMSE 0.46px) while RIFT2 multiscale produces 0 inliers. Both fail on
+  Pair B (60° sun-angle delta). RIFT2 descriptor discrimination needs
+  tuning on synthetic lunar terrain. Robustness sweep shows RIFT2 has
+  lower per-match RMSE at all deltas.
+
 Phase 2 additions
 - PDS4 and GeoTIFF readers: synthetic fixtures implemented
 - Registration failure thresholds: implemented

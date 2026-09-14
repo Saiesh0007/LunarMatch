@@ -197,6 +197,14 @@ class RIFT2Extractor(BaseFeatureExtractor):
         self.patch_size = patch_size
         self.max_features = max_features
         self.fast_threshold = fast_threshold
+        self.log_gabor_filters = None
+
+    def __del__(self):
+        """Explicitly release large numpy filter bank arrays to prevent
+        Windows native access violations during garbage collection under
+        memory pressure from heavy test suites."""
+        if getattr(self, 'log_gabor_filters', None) is not None:
+            self.log_gabor_filters = None
 
     def extract(
         self,
@@ -383,10 +391,15 @@ def extract_rift2_on_pc(
     phase_map: np.ndarray,
     max_features: int = 2000,
 ) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
-    """Extract RIFT2 descriptors directly from a phase-congruency map.
+    """Extract RIFT2 descriptors from a phase-congruency response map.
+
+    The phase map (pc_max) is the image input to RIFT2's phase-congruency
+    re-computation pipeline. This gives proper orientation-aware sum_amplitudes
+    and a meaningful Maximum Index Map (MIM), which is essential for generating
+    discriminative descriptors.
 
     Args:
-        phase_map: Grayscale phase-congruency response map.
+        phase_map: Phase-congruency response map (pc_max), treated as grayscale input.
         max_features: Maximum number of keypoints to retain.
     Returns:
         Keypoints and 216-dimensional descriptors.
@@ -396,4 +409,4 @@ def extract_rift2_on_pc(
     if phase_map.ndim != 2:
         raise ValueError("phase_map must be a two-dimensional array")
     extractor = RIFT2Extractor(max_features=max_features)
-    return extractor.extract(phase_map, phase_map=phase_map)
+    return extractor.extract(phase_map)

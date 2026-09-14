@@ -3,6 +3,16 @@ from typing import Any
 import numpy as np
 
 
+def _is_finite_float(value: Any) -> bool:
+    """Return True only when value is a real, finite number (rejects None/inf/nan)."""
+    if value is None:
+        return False
+    try:
+        return bool(np.isfinite(float(value)))
+    except (TypeError, ValueError):
+        return False
+
+
 ACCEPTANCE_CRITERIA = {
     "overlap_ratio": (">=", 0.10),
     "inlier_count": (">=", 30),
@@ -58,14 +68,18 @@ def evaluate_registration(
     checklist = {}
     failed = []
     for name, (operator, threshold) in ACCEPTANCE_CRITERIA.items():
-        value = float(values[name])
-        if operator == ">=":
-            passed = bool(np.isfinite(value) and value >= threshold)
-        elif operator == "<=":
-            passed = bool(np.isfinite(value) and value <= threshold)
+        value = values[name]
+        if value is None or not _is_finite_float(value):
+            passed = False
         else:
-            low, high = threshold
-            passed = bool(np.isfinite(value) and low <= value <= high)
+            value = float(value)
+            if operator == ">=":
+                passed = bool(value >= threshold)
+            elif operator == "<=":
+                passed = bool(value <= threshold)
+            else:
+                low, high = threshold
+                passed = bool(low <= value <= high)
         checklist[name] = {"value": value, "threshold": threshold, "pass": passed}
         if not passed:
             failed.append(name)

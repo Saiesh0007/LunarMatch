@@ -190,6 +190,22 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 10),
 
               _buildDashboardCard(
+                title: "COMPARE SIFT vs LUNARMATCH",
+                subtitle: "Side-by-side comparison of SIFT baseline vs LunarMatch RIFT2 on the same input pair with delta metrics.",
+                icon: Icons.compare_outlined,
+                badgeText: "DEMO SCREEN",
+                onTap: () => Navigator.pushNamed(context, AppRoutes.comparison),
+              ),
+
+              _buildDashboardCard(
+                title: "SEE FAILURE DETECTION",
+                subtitle: "When LunarMatch says NO: rejection criteria, honest diagnostics, and trustworthiness metrics.",
+                icon: Icons.error_outline,
+                badgeText: "HONESTY DEMO",
+                onTap: () => Navigator.pushNamed(context, AppRoutes.failureCase),
+              ),
+
+              _buildDashboardCard(
                 title: "IMAGE REGISTRATION",
                 subtitle: "Select Reference (Fixed) and Moving images, configure preprocessing, and run registration pipeline.",
                 icon: Icons.layers_outlined,

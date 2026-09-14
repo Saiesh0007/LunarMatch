@@ -1,6 +1,7 @@
 import time
 import uuid
 import json
+import gc
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -170,6 +171,9 @@ class PipelineService:
         t0 = time.perf_counter()
         matcher = FeatureMatcher(matcher_type=request.matcher, ratio_threshold=request.ratio_threshold)
         filtered_matches, candidate_count = matcher.match(kps_ref, desc_ref, kps_mov, desc_mov, levels_ref, levels_mov)
+        level_rejections = matcher.level_rejections
+        matcher.release()
+        del matcher
         dur = (time.perf_counter() - t0) * 1000.0
         stages.append(PipelineStageInfo(
             stage_number=4, name="FEATURE MATCHING", status="COMPLETED", duration_ms=round(dur, 1),
@@ -190,24 +194,36 @@ class PipelineService:
         t0 = time.perf_counter()
         estimator_diagnostics = {}
         if request.estimator_method == EstimatorMethod.MAGSAC:
-            src_pts = np.asarray([match.mov_pt for match in filtered_matches], dtype=np.float32)
-            dst_pts = np.asarray([match.ref_pt for match in filtered_matches], dtype=np.float32)
-            matrix, mask_array, estimator_diagnostics = magsac_plus_plus(
-                src_pts,
-                dst_pts,
-                model=request.geometric_model.value,
-                sigma_max=3.0,
-            )
-            inlier_mask = mask_array.tolist()
-            inliers = []
-            for match, is_inlier in zip(filtered_matches, inlier_mask):
-                match.is_inlier = bool(is_inlier)
-                if is_inlier:
-                    inliers.append(match)
-            if matrix is None:
-                is_stable, stability_msg = False, estimator_diagnostics.get("failure_reason", "MAGSAC failed")
+            _model_name = request.geometric_model.value
+            _min_pts = 4 if _model_name == "homography" else 3
+            if len(filtered_matches) < _min_pts:
+                matrix = None
+                mask_array = np.zeros(len(filtered_matches), dtype=bool)
+                inlier_mask = mask_array.tolist()
+                inliers = []
+                estimator_diagnostics = {
+                    "failure_reason": f"insufficient_matches_for_estimation: {len(filtered_matches)} < {_min_pts}",
+                }
+                is_stable, stability_msg = False, "insufficient_matches_for_estimation"
             else:
-                is_stable, stability_msg = GeometricVerification._check_matrix_stability(matrix, request.geometric_model)
+                src_pts = np.asarray([match.mov_pt for match in filtered_matches], dtype=np.float32).reshape(-1, 2)
+                dst_pts = np.asarray([match.ref_pt for match in filtered_matches], dtype=np.float32).reshape(-1, 2)
+                matrix, mask_array, estimator_diagnostics = magsac_plus_plus(
+                    src_pts,
+                    dst_pts,
+                    model=request.geometric_model.value,
+                    sigma_max=3.0,
+                )
+                inlier_mask = mask_array.tolist()
+                inliers = []
+                for match, is_inlier in zip(filtered_matches, inlier_mask):
+                    match.is_inlier = bool(is_inlier)
+                    if is_inlier:
+                        inliers.append(match)
+                if matrix is None:
+                    is_stable, stability_msg = False, estimator_diagnostics.get("failure_reason", "MAGSAC failed")
+                else:
+                    is_stable, stability_msg = GeometricVerification._check_matrix_stability(matrix, request.geometric_model)
         else:
             matrix, inliers, inlier_mask, is_stable, stability_msg = GeometricVerification.estimate(
                 matches=filtered_matches,
@@ -285,7 +301,7 @@ class PipelineService:
         decisions_path = run_dir / "match_decisions.jsonl"
         try:
             with open(decisions_path, "w", encoding="utf-8") as f_dec:
-                for rejection in matcher.level_rejections:
+                for rejection in level_rejections:
                     f_dec.write(json.dumps({
                         "stage": "level_filter",
                         "decision": "reject",
@@ -416,7 +432,7 @@ class PipelineService:
                 inlier_count=len(inliers),
                 inlier_ratio=len(inliers) / max(len(filtered_matches), 1),
                 spatial_coverage=spatial_stats.coverage_percentage_after / 100.0,
-                rmse_pixels=metrics.rmse_px if metrics.rmse_px is not None else float("inf"),
+                rmse_pixels=metrics.rmse_px,
                 transform_matrix=matrix,
             ),
         })
@@ -584,103 +600,118 @@ class PipelineService:
         exec_mode: ExecutionMode,
         subpixel_diagnostics: Optional[Dict[str, Any]] = None,
     ) -> ArtifactPaths:
-        """Persist all required JSON and image artifacts for complete auditability."""
-        subpixel_diagnostics = subpixel_diagnostics or {"enabled": False, "n_refined": 0, "n_rejected_refinement": 0, "n_rejected_out_of_bounds": 0, "per_match": [], "mean_residual_px": float("nan"), "median_residual_px": float("nan"), "p95_residual_px": float("nan")}
-        # 1. input_metadata.json
-        save_json(run_dir / "input_metadata.json", {
-            "run_id": run_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "reference_image": str(ref_path.name),
-            "moving_image": str(mov_path.name),
-            "reference_sensor": request.reference_sensor.value,
-            "moving_sensor": request.moving_sensor.value,
-            "reference_dimensions": [int(ref_img.shape[1]), int(ref_img.shape[0])],
-            "moving_dimensions": [int(mov_img.shape[1]), int(mov_img.shape[0])],
-        })
-        routing = self._routing_config(request)
-        save_json(run_dir / "run_manifest.json", build_run_manifest(
-            run_id,
-            str(ref_path),
-            str(mov_path),
-            request.model_dump(),
-            synthetic_validation=exec_mode == ExecutionMode.DEMO_SIMULATION,
-            seed=settings.SIMULATION_SEED if exec_mode == ExecutionMode.DEMO_SIMULATION else None,
-            routing_config=routing,
-        ))
+        """Persist all required JSON and image artifacts for complete auditability.
 
-        # 2. configuration.json
-        save_json(run_dir / "configuration.json", request.model_dump())
+        GC is disabled during this entire method because native libraries
+        (numpy, cv2, rasterio) can cause access violations on Windows when
+        Python's garbage collector runs during C-level operations on the
+        arrays and Path objects produced by the pipeline.
+        See Phase 3.5 diagnostic report.
+        """
+        # Windows + OpenCV/NumPy: GC running during native C calls (pathlib
+        # operations, numpy array processing, cv2.imwrite/warpAffine)
+        # can trigger intermittent access violations (0xC0000005).
+        # Disabling GC during artifact persistence stabilizes the operation.
+        gc.disable()
+        try:
+            subpixel_diagnostics = subpixel_diagnostics or {"enabled": False, "n_refined": 0, "n_rejected_refinement": 0, "n_rejected_out_of_bounds": 0, "per_match": [], "mean_residual_px": float("nan"), "median_residual_px": float("nan"), "p95_residual_px": float("nan")}
+            # 1. input_metadata.json
+            save_json(run_dir / "input_metadata.json", {
+                "run_id": run_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "reference_image": str(ref_path.name),
+                "moving_image": str(mov_path.name),
+                "reference_sensor": request.reference_sensor.value,
+                "moving_sensor": request.moving_sensor.value,
+                "reference_dimensions": [int(ref_img.shape[1]), int(ref_img.shape[0])],
+                "moving_dimensions": [int(mov_img.shape[1]), int(mov_img.shape[0])],
+            })
+            routing = self._routing_config(request)
+            save_json(run_dir / "run_manifest.json", build_run_manifest(
+                run_id,
+                str(ref_path),
+                str(mov_path),
+                request.model_dump(),
+                synthetic_validation=exec_mode == ExecutionMode.DEMO_SIMULATION,
+                seed=settings.SIMULATION_SEED if exec_mode == ExecutionMode.DEMO_SIMULATION else None,
+                routing_config=routing,
+            ))
 
-        # 3. keypoints_reference.json
-        kps_ref_data = [{"x": round(float(kp.pt[0]), 2), "y": round(float(kp.pt[1]), 2), "size": round(float(kp.size), 2)} for kp in kps_ref] if kps_ref else []
-        save_json(run_dir / "keypoints_reference.json", kps_ref_data[:500])
+            # 2. configuration.json
+            save_json(run_dir / "configuration.json", request.model_dump())
 
-        # 4. keypoints_moving.json
-        kps_mov_data = [{"x": round(float(kp.pt[0]), 2), "y": round(float(kp.pt[1]), 2), "size": round(float(kp.size), 2)} for kp in kps_mov] if kps_mov else []
-        save_json(run_dir / "keypoints_moving.json", kps_mov_data[:500])
+            # 3. keypoints_reference.json
+            kps_ref_data = [{"x": round(float(kp.pt[0]), 2), "y": round(float(kp.pt[1]), 2), "size": round(float(kp.size), 2)} for kp in kps_ref] if kps_ref else []
+            save_json(run_dir / "keypoints_reference.json", kps_ref_data[:500])
 
-        # 5. matches_candidate.json
-        save_json(run_dir / "matches_candidate.json", [m.model_dump() for m in matches_candidate[:300]])
+            # 4. keypoints_moving.json
+            kps_mov_data = [{"x": round(float(kp.pt[0]), 2), "y": round(float(kp.pt[1]), 2), "size": round(float(kp.size), 2)} for kp in kps_mov] if kps_mov else []
+            save_json(run_dir / "keypoints_moving.json", kps_mov_data[:500])
 
-        # 6. matches_filtered.json
-        save_json(run_dir / "matches_filtered.json", [m.model_dump() for m in matches_filtered[:300]])
+            # 5. matches_candidate.json
+            save_json(run_dir / "matches_candidate.json", [m.model_dump() for m in matches_candidate[:300]])
 
-        # 7. matches_inliers.json
-        save_json(run_dir / "matches_inliers.json", [m.model_dump() for m in matches_inliers[:300]])
+            # 6. matches_filtered.json
+            save_json(run_dir / "matches_filtered.json", [m.model_dump() for m in matches_filtered[:300]])
 
-        # 8. matches_spatial.json
-        save_json(run_dir / "matches_spatial.json", [m.model_dump() for m in matches_spatial[:300]])
+            # 7. matches_inliers.json
+            save_json(run_dir / "matches_inliers.json", [m.model_dump() for m in matches_inliers[:300]])
 
-        # 9, 10, 11. Images
-        save_image(run_dir / "registered.png", registered_img)
-        save_image(run_dir / "overlay.png", overlay_img)
-        save_image(run_dir / "difference.png", difference_img)
+            # 8. matches_spatial.json
+            save_json(run_dir / "matches_spatial.json", [m.model_dump() for m in matches_spatial[:300]])
 
-        # Correspondence visualization image
-        pts_r = [m.ref_pt for m in matches_filtered]
-        pts_m = [m.mov_pt for m in matches_filtered]
-        inlier_mask = [m.is_inlier for m in matches_filtered]
-        corr_vis = draw_correspondences(ref_img, mov_img, pts_r, pts_m, inlier_mask)
-        save_image(run_dir / "correspondences.png", corr_vis)
+            # 9, 10, 11. Images
+            save_image(run_dir / "registered.png", registered_img)
+            save_image(run_dir / "overlay.png", overlay_img)
+            save_image(run_dir / "difference.png", difference_img)
 
-        # 12. metrics.json
-        save_json(run_dir / "metrics.json", metrics.model_dump())
+            # Correspondence visualization image
+            pts_r = [m.ref_pt for m in matches_filtered]
+            pts_m = [m.mov_pt for m in matches_filtered]
+            inlier_mask = [m.is_inlier for m in matches_filtered]
+            corr_vis = draw_correspondences(ref_img, mov_img, pts_r, pts_m, inlier_mask)
+            save_image(run_dir / "correspondences.png", corr_vis)
 
-        # 13. experiment_log.json
-        save_json(run_dir / "experiment_log.json", {
-            "run_id": run_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "status": status.value,
-            "execution_mode": exec_mode.value,
-            "reference_sensor": request.reference_sensor.value,
-            "moving_sensor": request.moving_sensor.value,
-            "feature_method": request.feature_method.value,
-            "matcher": request.matcher.value,
-            "geometric_model": request.geometric_model.value,
-            "ratio_threshold": request.ratio_threshold,
-            "ransac_threshold": request.ransac_threshold,
-            "spatial_grid_size": request.grid_size,
-            "spatial_balancing": request.spatial_balancing,
-            "keypoints_ref": metrics.keypoints_reference,
-            "keypoints_mov": metrics.keypoints_moving,
-            "candidate_matches": metrics.candidate_matches,
-            "filtered_matches": metrics.filtered_matches,
-            "inliers": metrics.ransac_inliers,
-            "inlier_ratio": metrics.inlier_ratio,
-            "spatial_coverage": metrics.spatial_coverage,
-            "rmse_px": metrics.rmse_px,
-            "runtime_ms": metrics.runtime_ms,
-            "confidence": metrics.confidence_level.value,
-        })
+            # 12. metrics.json
+            save_json(run_dir / "metrics.json", metrics.model_dump())
 
-        base_url = f"/api/v1/results/{run_id}/artifact"
-        return ArtifactPaths(
-            registered_image_url=f"{base_url}/registered.png",
-            overlay_image_url=f"{base_url}/overlay.png",
-            difference_image_url=f"{base_url}/difference.png",
-            correspondence_image_url=f"{base_url}/correspondences.png",
-            artifacts_dir=str(run_dir),
-        )
+            # 13. experiment_log.json
+            save_json(run_dir / "experiment_log.json", {
+                "run_id": run_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "status": status.value,
+                "execution_mode": exec_mode.value,
+                "reference_sensor": request.reference_sensor.value,
+                "moving_sensor": request.moving_sensor.value,
+                "feature_method": request.feature_method.value,
+                "matcher": request.matcher.value,
+                "geometric_model": request.geometric_model.value,
+                "ratio_threshold": request.ratio_threshold,
+                "ransac_threshold": request.ransac_threshold,
+                "spatial_grid_size": request.grid_size,
+                "spatial_balancing": request.spatial_balancing,
+                "keypoints_ref": metrics.keypoints_reference,
+                "keypoints_mov": metrics.keypoints_moving,
+                "candidate_matches": metrics.candidate_matches,
+                "filtered_matches": metrics.filtered_matches,
+                "inliers": metrics.ransac_inliers,
+                "inlier_ratio": metrics.inlier_ratio,
+                "spatial_coverage": metrics.spatial_coverage,
+                "rmse_px": metrics.rmse_px,
+                "runtime_ms": metrics.runtime_ms,
+                "confidence": metrics.confidence_level.value,
+            })
+
+            base_url = f"/api/v1/results/{run_id}/artifact"
+            return ArtifactPaths(
+                registered_image_url=f"{base_url}/registered.png",
+                overlay_image_url=f"{base_url}/overlay.png",
+                difference_image_url=f"{base_url}/difference.png",
+                correspondence_image_url=f"{base_url}/correspondences.png",
+                artifacts_dir=str(run_dir),
+            )
+        finally:
+            gc.enable()
 
     def _extract_features(
         self,

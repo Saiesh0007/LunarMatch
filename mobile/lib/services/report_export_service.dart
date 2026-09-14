@@ -70,7 +70,7 @@ class ReportExportService {
 
     buffer.writeln("## 4. SEQUENTIAL PIPELINE STAGES");
     for (final s in response.stages) {
-      final dur = s.durationMs != null ? " [${s.durationMs!.toStringAsFixed(1)} ms]" : "";
+       final dur = s.durationMs > 0 ? " [${s.durationMs.toStringAsFixed(1)} ms]" : "";
       buffer.writeln("  Stage ${s.stageNumber.toString().padLeft(2, '0')}: ${s.name.padRight(24)} -> ${s.status}$dur");
       if (s.details != null && s.details!.isNotEmpty) {
         buffer.writeln("    └─ Details: ${s.details}");

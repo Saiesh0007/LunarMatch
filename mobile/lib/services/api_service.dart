@@ -135,8 +135,35 @@ class ApiService {
     throw Exception("Failed to load capabilities");
   }
 
+  Future<Map<String, dynamic>> fetchDemoCompare(String pairName) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/api/demo/compare'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'pair_name': pairName}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception("Demo compare failed (${response.statusCode}): ${response.body}");
+  }
+
+  Future<Map<String, dynamic>> fetchFailureCase() async {
+    final response = await http
+        .get(Uri.parse('$_baseUrl/api/demo/failure-case'))
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception("Failure case fetch failed (${response.statusCode}): ${response.body}");
+  }
+
   String resolveFullUrl(String? endpointOrPath) {
-    if (endpointOrPath == null || endpointOrPath.isEmpty) return "";
+    if (endpointOrPath == null) return "";
+    if (endpointOrPath.isEmpty) return "";
     if (endpointOrPath.startsWith("http://") || endpointOrPath.startsWith("https://")) {
       return endpointOrPath;
     }
