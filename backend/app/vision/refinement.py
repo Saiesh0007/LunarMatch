@@ -11,7 +11,7 @@ class SubPixelRefinement:
     Achieves sub-0.3px precision on synthetic benchmark pairs.
     """
 
-    STATUS: ImplementationStatus = ImplementationStatus.VERIFIED
+    STATUS: ImplementationStatus = ImplementationStatus.ACTIVE
 
     @staticmethod
     def refine(

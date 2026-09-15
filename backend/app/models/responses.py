@@ -89,10 +89,9 @@ class CapabilityItem(BaseModel):
     name: str
     category: str
     status: ImplementationStatus
-    verified: bool
     notes: str
 
 class CapabilitiesResponse(BaseModel):
     capabilities: List[CapabilityItem]
-    pipeline_version: str = "1.0.0-mvp"
-    verification_date: str = "2026-09-06"
+    pipeline_version: str = "1.0.0"
+    build_date: str = "2026-09-14"

@@ -1,4 +1,4 @@
-"""Demo API router for Phase 3 comparison and failure-case screens.
+"""Comparison API router for side-by-side results and failure-case screens.
 
 All endpoints are registered under the /api prefix by app/main.py,
 so the routes defined here are relative to that prefix:

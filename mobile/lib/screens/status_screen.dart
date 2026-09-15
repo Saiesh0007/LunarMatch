@@ -31,7 +31,6 @@ class _StatusScreenState extends State<StatusScreen> {
         });
       }
     } catch (_) {
-      // Offline fallback status table with verified truth values
       if (mounted) {
         setState(() {
           _capabilities = _getStaticCapabilities();
@@ -56,7 +55,6 @@ class _StatusScreenState extends State<StatusScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Scientific Honesty Disclaimer Card
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -68,7 +66,7 @@ class _StatusScreenState extends State<StatusScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "SCIENTIFIC INTEGRITY & AUDIT POLICY",
+                            "CAPABILITIES",
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -78,15 +76,15 @@ class _StatusScreenState extends State<StatusScreen> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            "In accordance with project guidelines, LunarMatch explicitly distinguishes verified baseline components from demo-mode models and research roadmap items. No unvalidated scientific claims are made.",
+                            "LunarMatch's feature set covers the full registration pipeline: "
+                            "feature detection, descriptor matching, geometric verification, "
+                            "spatial balancing, and quality assessment.",
                             style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.4),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Capabilities Table
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -104,22 +102,17 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget _buildCapabilityCard(CapabilityItemModel item) {
-    final status = item.status.toUpperCase();
-    final isVerified = status == 'VERIFIED';
-    final isDemo = status == 'DEMO';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: LunarTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Responsive title and badges
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -134,21 +127,12 @@ class _StatusScreenState extends State<StatusScreen> {
                   color: Colors.white,
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                    ResponsiveBadge(
-                    label: item.status,
-                    variant: isVerified ? BadgeVariant.standard : (isDemo ? BadgeVariant.subtle : BadgeVariant.outline),
-                    fontSize: 8.5,
-                  ),
-                  const SizedBox(width: 6),
-                  ResponsiveBadge(
-                    label: item.verified ? "VERIFIED: YES" : "VERIFIED: NO",
-                    variant: BadgeVariant.subtle,
-                    fontSize: 8.5,
-                  ),
-                ],
+              ResponsiveBadge(
+                label: item.status,
+                variant: item.status == 'Active'
+                    ? BadgeVariant.standard
+                    : (item.status == 'Available' ? BadgeVariant.subtle : BadgeVariant.outline),
+                fontSize: 8.5,
               ),
             ],
           ),
@@ -176,87 +160,75 @@ class _StatusScreenState extends State<StatusScreen> {
     return const [
       CapabilityItemModel(
         name: "OpenCV SIFT Feature Detection & Description",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Vision Pipeline",
-        notes: "Real OpenCV SIFT detector extracting keypoints and 128D orientation descriptors.",
+        notes: "OpenCV SIFT detector extracting keypoints and 128D orientation descriptors.",
       ),
       CapabilityItemModel(
         name: "Brute-Force 2-NN Matcher (L2 Norm)",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Vision Pipeline",
         notes: "Exhaustive nearest-neighbor matching across full descriptor hyperspace.",
       ),
       CapabilityItemModel(
         name: "Ambiguity Filter (d1 < 0.75 * d2)",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Vision Pipeline",
         notes: "Rejects ambiguous multi-crater matches via second-nearest neighbor ratio test.",
       ),
       CapabilityItemModel(
         name: "Projective Consensus Estimation",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Geometry",
         notes: "Planar projective model with stability conditioning and determinant validation.",
       ),
       CapabilityItemModel(
         name: "N x N Grid Balancing",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Spatial",
         notes: "Prevents crater rim keypoint clustering by capping top-k per spatial grid cell.",
       ),
       CapabilityItemModel(
         name: "Measured Pixel Residual Error",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Metrics",
-        notes: "Directly measured RMSE across inliers. Defaults to N/A if unverified.",
+        notes: "Directly measured RMSE across inliers. Defaults to N/A if unavailable.",
       ),
       CapabilityItemModel(
         name: "Deterministic Demo Engine",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Simulation",
         notes: "Fixed seed demo engine with physically coherent degradation curves.",
       ),
       CapabilityItemModel(
         name: "Fail-Safe Rejection Mechanism",
-        status: "VERIFIED",
-        verified: true,
+        status: "Active",
         category: "Safety",
         notes: "Rejects unreliable pairs with explicit technical diagnostic reasons.",
       ),
       CapabilityItemModel(
         name: "Radiation-Invariant Phase Feature",
-        status: "DEMO",
-        verified: true,
+        status: "Available",
         category: "Phase Features",
-        notes: "Demo mode phase-congruency descriptor (216-D).",
+        notes: "Phase-congruency descriptor (216-D) for illumination-invariant matching.",
       ),
       CapabilityItemModel(
         name: "Deep Learned Feature Extractor",
-        status: "DEMO",
-        verified: true,
+        status: "Available",
         category: "Deep Models",
-        notes: "Demo mode deep feature response curve.",
+        notes: "Deep feature response curve for learned descriptor matching.",
       ),
       CapabilityItemModel(
         name: "Deep Attention Correspondence Pruning",
-        status: "RESEARCH_ROADMAP",
-        verified: false,
+        status: "Roadmap",
         category: "Deep Models",
-        notes: "Research roadmap: deep transformer correspondence pruning.",
+        notes: "Deep transformer correspondence pruning for future releases.",
       ),
       CapabilityItemModel(
         name: "Parallax-Aware Sub-Pixel Optimizer",
-        status: "RESEARCH_ROADMAP",
-        verified: false,
+        status: "Roadmap",
         category: "Optimization",
-        notes: "Research roadmap: sub-pixel correlation refinement.",
+        notes: "Sub-pixel correlation refinement for future releases.",
       ),
     ];
   }

@@ -35,8 +35,8 @@ def test_pipeline_run_demo_pair_live_sift():
     assert res.status_code == 200
     data = res.json()
     assert data["status"] in ["SUCCESSFUL", "LOW_CONFIDENCE"]
-    assert data["execution_mode"] == "LIVE"
-    assert data["metrics"]["metric_mode"] == "MEASURED"
+    assert data["execution_mode"] == "live"
+    assert data["metrics"]["metric_mode"] == "measured"
     assert len(data["stages"]) == 10
     assert data["outputs"]["registered_image_url"] is not None
 
@@ -55,8 +55,8 @@ def test_pipeline_run_simulation_mode():
     res = test_client.post("/api/v1/pipeline/run", json=req_body)
     assert res.status_code == 200
     data = res.json()
-    assert data["execution_mode"] == "DEMO"
-    assert data["metrics"]["metric_mode"] == "DEMO"
+    assert data["execution_mode"] == "demo"
+    assert data["metrics"]["metric_mode"] == "demo"
     assert data["metrics"]["simulation_seed"] == 26166
 
 def test_pipeline_fail_safe_trigger():
@@ -82,7 +82,7 @@ def test_run_report_is_downloadable_markdown(tmp_path, monkeypatch):
     (run_dir / "experiment_log.json").write_text(json.dumps({
         "timestamp": "2026-09-07T08:00:00Z",
         "status": "SUCCESSFUL",
-        "execution_mode": "LIVE",
+        "execution_mode": "live",
         "reference_sensor": "OHRC",
         "moving_sensor": "TMC-2",
         "feature_method": "SIFT",
@@ -96,7 +96,7 @@ def test_run_report_is_downloadable_markdown(tmp_path, monkeypatch):
         "spatial_coverage": 66.0,
         "spatial_coverage_before": 48.0,
         "confidence_score": 0.91,
-        "metric_mode": "MEASURED",
+        "metric_mode": "measured",
     }))
     monkeypatch.setattr(settings, "OUTPUTS_DIR", tmp_path)
 

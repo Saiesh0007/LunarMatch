@@ -85,7 +85,7 @@ Execution Mode: {log_data.get('execution_mode', 'N/A')} ({metrics_data.get('metr
 {"-" * 76}
 • REPROJECTION RMSE      : {rmse_str}
 • RANSAC INLIER RATIO    : {inlier_ratio:.2f} %
-• RANSAC INLIER COUNT    : {inliers} verified geometric consensus tie-points
+• RANSAC INLIER COUNT    : {inliers} geometric consensus tie-points
 • SPATIAL COVERAGE (POST): {cov:.2f} %
 • SPATIAL COVERAGE (PRE) : {cov_pre:.2f} %
 • NET COVERAGE GAIN      : +{max(0.0, cov - cov_pre):.2f} %

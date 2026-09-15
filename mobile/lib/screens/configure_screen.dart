@@ -72,9 +72,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               // Section 1: Feature Extraction Method
               const SectionHeader(
                 title: "01 FEATURE EXTRACTION METHOD",
-                subtitle: "Select between verified baseline or demo research models",
+                subtitle: "Select between baseline or advanced research models",
               ),
-              _buildMethodRadio("SIFT", "OpenCV SIFT Baseline", "VERIFIED", isSimulated: false),
+              _buildMethodRadio("SIFT", "OpenCV SIFT Baseline", "Active", isSimulated: false),
               _buildMethodRadio("RIFT2", "Radiation-Invariant Phase Feature", "DEMO", isSimulated: true),
               _buildMethodRadio("SuperPoint", "Deep Learned Feature Extractor", "DEMO", isSimulated: true),
               const SizedBox(height: 16),

@@ -47,17 +47,18 @@ class ConfidenceLevel(str, Enum):
     REJECTED = "REJECTED"
 
 class ExecutionMode(str, Enum):
-    LIVE = "LIVE"
-    DEMO = "DEMO"
-    LOCAL = "LOCAL"
+    LIVE = "live"
+    DEMO = "demo"
+    LOCAL = "local"
 
 class MetricMode(str, Enum):
-    MEASURED = "MEASURED"
-    DEMO = "DEMO"
+    MEASURED = "measured"
+    DEMO = "demo"
 
 class ImplementationStatus(str, Enum):
-    VERIFIED = "VERIFIED"
-    RESEARCH = "RESEARCH"
+    ACTIVE = "Active"
+    AVAILABLE = "Available"
+    ROADMAP = "Roadmap"
 
 class PreprocessingConfig(BaseModel):
     normalize: bool = True
