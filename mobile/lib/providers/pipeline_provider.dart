@@ -10,7 +10,7 @@ enum PipelineExecutionStatus { idle, running, completed, error }
 class PipelineProvider with ChangeNotifier {
   PipelineConfigModel _config = PipelineConfigModel();
   PipelineExecutionStatus _status = PipelineExecutionStatus.idle;
-  
+
   bool _isBackendConnected = false;
   bool _forceLocalDemo = false;
 
@@ -25,6 +25,8 @@ class PipelineProvider with ChangeNotifier {
   PipelineRunResponseModel? get latestResponse => _latestResponse;
   List<PipelineStageModel> get currentStages => _currentStages;
   String? get errorMessage => _errorMessage;
+
+  String get apiBaseUrl => apiService.baseUrl;
 
   String get currentExecutionModeLabel {
     if (_forceLocalDemo || !_isBackendConnected) {
@@ -47,6 +49,18 @@ class PipelineProvider with ChangeNotifier {
 
   void toggleLocalDemoMode(bool enable) {
     _forceLocalDemo = enable;
+    notifyListeners();
+  }
+
+  void cancel() {
+    _status = PipelineExecutionStatus.idle;
+    _errorMessage = "Cancelled by user";
+    notifyListeners();
+  }
+
+  void setBaseUrl(String url) {
+    apiService.setBaseUrl(url);
+    checkBackendHealth();
     notifyListeners();
   }
 
@@ -99,7 +113,7 @@ class PipelineProvider with ChangeNotifier {
         notifyListeners();
         return;
       } catch (e) {
-        _errorMessage = "Local demo simulator failure: $e";
+        _errorMessage = "Offline simulator failure: $e";
         _status = PipelineExecutionStatus.error;
         notifyListeners();
         return;

@@ -91,7 +91,7 @@ class _SpatialGridOverlayWidgetState extends State<SpatialGridOverlayWidget> {
           Container(
             height: 260,
             decoration: BoxDecoration(
-              color: const Color(0xFF070707),
+              color: LunarTheme.background,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: LunarTheme.border),
             ),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app/theme.dart';
@@ -5,8 +6,6 @@ import '../app/routes.dart';
 import '../models/image_model.dart';
 import '../providers/image_provider.dart';
 import '../services/image_service.dart';
-import '../widgets/lunar_image_card.dart';
-import '../widgets/responsive_badge.dart';
 
 class UploadScreen extends StatelessWidget {
   const UploadScreen({super.key});
@@ -16,15 +15,14 @@ class UploadScreen extends StatelessWidget {
     final imgProv = context.watch<LunarImageProvider>();
 
     return Scaffold(
+      backgroundColor: LunarTheme.background,
       appBar: AppBar(
-        title: const Text("SELECT LUNAR IMAGES"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.white),
-            tooltip: "Clear Images",
-            onPressed: imgProv.clearImages,
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: LunarTheme.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("New Registration"),
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -32,167 +30,74 @@ class UploadScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Technical Instructions & Terminology banner
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.white),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "REFERENCE is the fixed coordinate frame. MOVING is the image that gets transformed. Both must share overlapping surface features.",
-                        style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
-                      ),
-                    ),
-                  ],
-                ),
+              // Upload zone: Source Image
+              _buildUploadZone(
+                title: "Source Image",
+                subtitle: "Primary image to register",
+                image: imgProv.referenceImage,
+                onUpload: () async {
+                  final picked = await ImagePickerService.pickImage(sensor: imgProv.referenceSensor);
+                  if (picked != null) imgProv.setReferenceImage(picked);
+                },
               ),
               const SizedBox(height: 16),
 
-              // Reference Image Card
-              LunarImageCard(
-                roleTitle: "REFERENCE IMAGE",
-                roleSubtitle: "Fixed coordinate system (Reference Frame)",
-                image: imgProv.referenceImage,
-                currentSensor: imgProv.referenceSensor,
-                roleColor: Colors.white,
-                onSensorChanged: (s) => imgProv.setReferenceSensor(s),
-                onUploadPressed: () async {
-                  final img = await ImagePickerService.pickImage(sensor: imgProv.referenceSensor);
-                  if (img != null) imgProv.setReferenceImage(img);
-                },
-                onDemoPressed: () async {
-                  final img = await ImagePickerService.loadBundledDemoImage(
-                    assetPath: "assets/demo/pair_a_ref.png",
-                    imageId: "demo_pair_a_ref",
-                    name: "Demo Pair A Reference (Synthetic OHRC)",
-                    sensor: "OHRC",
-                  );
-                  imgProv.setReferenceImage(img);
+              // Upload zone: Reference Image
+              _buildUploadZone(
+                title: "Reference Image",
+                subtitle: "Reference coordinate frame",
+                image: imgProv.movingImage,
+                onUpload: () async {
+                  final picked = await ImagePickerService.pickImage(sensor: imgProv.movingSensor);
+                  if (picked != null) imgProv.setMovingImage(picked);
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Swap Button
+              // Upload zone: DEM Optional
+              _buildUploadZone(
+                title: "DEM (Optional)",
+                subtitle: "Digital elevation model for terrain correction",
+                image: null,
+                onUpload: () async {
+                  final picked = await ImagePickerService.pickImage(sensor: "DEM");
+                  // Handle DEM upload if needed
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Supported formats caption
               Center(
-                child: OutlinedButton.icon(
-                  onPressed: imgProv.hasBothImages ? imgProv.swapImages : null,
-                  icon: const Icon(Icons.swap_vert, size: 16),
-                  label: const Text("SWAP REFERENCE & MOVING"),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: LunarTheme.borderLight),
+                child: Text(
+                  "Supported formats: .png · .jpg · .tif (≤ 100 MB)",
+                  style: LunarTheme.mono.copyWith(
+                    fontSize: 11,
+                    color: LunarTheme.textTertiary,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Moving Image Card
-              LunarImageCard(
-                roleTitle: "MOVING IMAGE",
-                roleSubtitle: "Image to transform (Warped Coordinate Frame)",
-                image: imgProv.movingImage,
-                currentSensor: imgProv.movingSensor,
-                roleColor: Colors.white,
-                onSensorChanged: (s) => imgProv.setMovingSensor(s),
-                onUploadPressed: () async {
-                  final img = await ImagePickerService.pickImage(sensor: imgProv.movingSensor);
-                  if (img != null) imgProv.setMovingImage(img);
-                },
-                onDemoPressed: () async {
-                  final img = await ImagePickerService.loadBundledDemoImage(
-                    assetPath: "assets/demo/pair_a_mov.png",
-                    imageId: "demo_pair_a_mov",
-                    name: "Demo Pair A Moving (Synthetic TMC-2)",
-                    sensor: "TMC-2",
-                  );
-                  imgProv.setMovingImage(img);
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Demo Pairs Quick Load
-              const Text(
-                "BUNDLED DEMONSTRATION PAIRS",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  color: LunarTheme.textTertiary,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              _buildDemoPairSelector(
-                context: context,
-                pairId: "pair_a",
-                title: "DEMO PAIR A — SYNTHETIC LUNAR PROTOTYPE",
-                sensors: "OHRC Optical ↔ TMC-2 Stereo Simulation",
-                provenance: "SYNTHETIC PROTOTYPE: Procedurally rendered crater terrain with affine perturbation.",
-                onSelect: () {
-                  final pair = DemoPairModel(
-                    pairId: "pair_a",
-                    name: "Demo Pair A — Lunar Prototype",
-                    description: "OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
-                    referenceImageId: "demo_pair_a_ref",
-                    movingImageId: "demo_pair_a_mov",
-                    referenceSensor: "OHRC",
-                    movingSensor: "TMC-2",
-                    referenceAssetPath: "assets/demo/pair_a_ref.png",
-                    movingAssetPath: "assets/demo/pair_a_mov.png",
-                    provenanceNote: "SYNTHETIC PROTOTYPE: Procedurally rendered crater terrain with affine perturbation.",
-                  );
-                  imgProv.loadDemoPair(pair);
-                },
-              ),
-              const SizedBox(height: 8),
-
-              _buildDemoPairSelector(
-                context: context,
-                pairId: "pair_b",
-                title: "DEMO PAIR B — STEEP ILLUMINATION DELTA",
-                sensors: "LRO NAC ↔ IIRS Hyperspectral Simulation (60° Sun Angle Delta)",
-                provenance: "SYNTHETIC PROTOTYPE: High shadow variation designed to stress-test descriptor robustness.",
-                onSelect: () {
-                  final pair = DemoPairModel(
-                    pairId: "pair_b",
-                    name: "Demo Pair B — High Illumination Delta Prototype",
-                    description: "LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
-                    referenceImageId: "demo_pair_b_ref",
-                    movingImageId: "demo_pair_b_mov",
-                    referenceSensor: "LRO NAC",
-                    movingSensor: "IIRS",
-                    referenceAssetPath: "assets/demo/pair_b_ref.png",
-                    movingAssetPath: "assets/demo/pair_b_mov.png",
-                    provenanceNote: "SYNTHETIC PROTOTYPE: High shadow variation designed to stress-test descriptor robustness.",
-                  );
-                  imgProv.loadDemoPair(pair);
-                },
-              ),
               const SizedBox(height: 24),
 
-              // Next Button
-              ElevatedButton.icon(
+              // Continue button
+              ElevatedButton(
                 onPressed: imgProv.hasBothImages
                     ? () => Navigator.pushNamed(context, AppRoutes.configure)
                     : null,
-                icon: const Icon(Icons.tune_outlined, size: 18),
-                label: const Text("CONFIGURE PIPELINE"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.white,
+                  backgroundColor: LunarTheme.primary,
                   foregroundColor: Colors.black,
-                  disabledBackgroundColor: const Color(0xFF222222),
-                  disabledForegroundColor: const Color(0xFF555555),
+                  disabledBackgroundColor: LunarTheme.surfaceElevated,
+                  disabledForegroundColor: LunarTheme.textTertiary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                child: const Text("Continue"),
               ),
             ],
           ),
@@ -201,67 +106,150 @@ class UploadScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDemoPairSelector({
-    required BuildContext context,
-    required String pairId,
+  Widget _buildUploadZone({
     required String title,
-    required String sensors,
-    required String provenance,
-    required VoidCallback onSelect,
+    required String subtitle,
+    required LunarImageModel? image,
+    required VoidCallback onUpload,
   }) {
-    final imgProv = context.watch<LunarImageProvider>();
-    final isSelected = imgProv.selectedDemoPair?.pairId == pairId;
+    final hasImage = image != null;
 
     return Container(
       decoration: BoxDecoration(
         color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? Colors.white : LunarTheme.border,
-          width: isSelected ? 1.2 : 1.0,
+          color: hasImage ? LunarTheme.success : LunarTheme.border,
+          width: 1,
+          style: BorderStyle.solid,
         ),
       ),
-      child: InkWell(
-        onTap: onSelect,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: LunarTheme.surfaceElevated,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              border: Border(
+                bottom: BorderSide(color: LunarTheme.border, width: 1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: LunarTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: LunarTheme.mono.copyWith(
+                    fontSize: 10,
+                    color: LunarTheme.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Content area
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: hasImage
+                ? Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: image.localPath != null
+                            ? Image.file(
+                                File(image.localPath!),
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : image.bytes != null
+                                ? Image.memory(
+                                    image.bytes!,
+                                    height: 160,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  )
+                                : const SizedBox(
+                                    height: 160,
+                                    child: Center(child: Text("Image not available")),
+                                  ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              image.name,
+                              style: LunarTheme.mono.copyWith(
+                                fontSize: 11,
+                                color: LunarTheme.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: onUpload,
+                            icon: const Icon(Icons.refresh, size: 14),
+                            label: const Text("Replace"),
+                            style: TextButton.styleFrom(
+                              foregroundColor: LunarTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : InkWell(
+                    onTap: onUpload,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: LunarTheme.border,
+                          width: 1,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 32,
+                            color: LunarTheme.textTertiary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Tap to select image",
+                            style: LunarTheme.mono.copyWith(
+                              fontSize: 11,
+                              color: LunarTheme.textTertiary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  if (isSelected) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.check_circle, size: 16, color: Colors.white),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                sensors,
-                style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              ResponsiveBadge(
-                label: provenance,
-                variant: BadgeVariant.subtle,
-                fontSize: 8.5,
-              ),
-            ],
           ),
-        ),
+        ],
       ),
     );
   }

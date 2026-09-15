@@ -13,6 +13,8 @@ import '../screens/failure_case_screen.dart';
 import '../screens/status_screen.dart';
 import '../screens/architecture_screen.dart';
 import '../screens/about_screen.dart';
+import '../screens/history_screen.dart';
+import '../screens/settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -29,6 +31,8 @@ class AppRoutes {
   static const String status = '/status';
   static const String architecture = '/architecture';
   static const String about = '/about';
+  static const String history = '/history';
+  static const String settings = '/settings';
 
   static Map<String, WidgetBuilder> get routes => {
         splash: (context) => const SplashScreen(),
@@ -45,5 +49,7 @@ class AppRoutes {
         status: (context) => const StatusScreen(),
         architecture: (context) => const ArchitectureScreen(),
         about: (context) => const AboutScreen(),
+        history: (context) => const HistoryScreen(),
+        settings: (context) => const SettingsScreen(),
       };
 }

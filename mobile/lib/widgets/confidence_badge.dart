@@ -25,7 +25,7 @@ class ConfidenceBadge extends StatelessWidget {
         break;
       case 'MEDIUM':
         icon = Icons.check_circle_outline;
-        border = LunarTheme.borderFocus;
+        border = LunarTheme.border;
         fg = LunarTheme.textPrimary;
         break;
       case 'LOW':

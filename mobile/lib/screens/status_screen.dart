@@ -48,8 +48,13 @@ class _StatusScreenState extends State<StatusScreen> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : ScrollView(
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,7 +83,11 @@ class _StatusScreenState extends State<StatusScreen> {
                             "LunarMatch's feature set covers the full registration pipeline: "
                             "feature detection, descriptor matching, geometric verification, "
                             "spatial balancing, and quality assessment.",
-                            style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.4),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: LunarTheme.textSecondary,
+                              height: 1.4,
+                            ),
                           ),
                         ],
                       ),
@@ -101,6 +110,7 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget _buildCapabilityCard(CapabilityItemModel item) {
+    final detail = item.notes ?? item.description ?? '';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -120,11 +130,17 @@ class _StatusScreenState extends State<StatusScreen> {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            item.notes,
-            style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
-          ),
+          if (detail.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              detail,
+              style: const TextStyle(
+                fontSize: 11,
+                color: LunarTheme.textSecondary,
+                height: 1.35,
+              ),
+            ),
+          ],
         ],
       ),
     );

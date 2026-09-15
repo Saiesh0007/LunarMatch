@@ -17,7 +17,7 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
         title: const Text("SYSTEM ARCHITECTURE"),
       ),
       body: SafeArea(
-        child:790
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -29,10 +29,10 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: LunarTheme.border),
                 ),
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Pipeline",
                       style: TextStyle(
                         fontSize: 11,
@@ -41,10 +41,14 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    SizedBox(height: 6),
+                    Text(
                       "Multi-modal ingestion through feature extraction, matching, geometric verification, and quality assessment.",
-                      style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.45),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: LunarTheme.textSecondary,
+                        height: 1.45,
+                      ),
                     ),
                   ],
                 ),
@@ -60,11 +64,18 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
 
   List<Widget> _buildPipeline() {
     final stages = [
-      ("01", "Multi-modal Ingestion", "Ingests optical (OHRC, TMC-2), hyperspectral (IIRS), and reference (LRO NAC, SELENE) imagery."),
-      ("02", "Preprocessing", "Radiometric normalization, shadow masking, and illumination correction."),
-      ("03", "Feature Extraction", "RIFT2 phase-congruency descriptors for illumination-invariant matching."),
-      ("04", "Robust Estimation", "MAGSAC++ threshold-free model fitting with automatic outlier rejection."),
-      ("05", "Sub-pixel Refinement", "Phase-correlation refinement with uniform spatial grid balancing."),
+      ("01", "Feature Extraction",
+          "RIFT2 phase-congruency descriptors for illumination-invariant feature extraction."),
+      ("02", "Feature Matching",
+          "2-NN feature matching to identify initial candidate correspondences."),
+      ("03", "Ratio Filtering",
+          "Lowe's ratio test to filter ambiguous matches."),
+      ("04", "Geometric Verification",
+          "MAGSAC++ threshold-free model fitting with automatic outlier rejection."),
+      ("05", "Spatial Balancing",
+          "Uniform spatial grid balancing to prevent crater rim clustering."),
+      ("06", "Transformation",
+          "Computes geometric transformation matrix and registers the image."),
     ];
 
     final widgets = <Widget>[];
@@ -118,7 +129,11 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
                     const SizedBox(height: 3),
                     Text(
                       desc,
-                      style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: LunarTheme.textSecondary,
+                        height: 1.35,
+                      ),
                     ),
                   ],
                 ),
@@ -133,7 +148,11 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
             child: Center(
-              child: Icon(Icons.arrow_downward, size: 14, color: LunarTheme.textTertiary),
+              child: Icon(
+                Icons.arrow_downward,
+                size: 14,
+                color: LunarTheme.textTertiary,
+              ),
             ),
           ),
         );
@@ -143,4 +162,3 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
     return widgets;
   }
 }
-

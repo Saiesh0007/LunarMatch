@@ -6,13 +6,6 @@ import '../app/routes.dart';
 import '../models/image_model.dart';
 import '../providers/pipeline_provider.dart';
 import '../providers/image_provider.dart';
-import '../widgets/confidence_badge.dart';
-import '../widgets/status_badge.dart';
-import '../widgets/metric_card.dart';
-import '../widgets/image_comparison.dart';
-import '../widgets/responsive_badge.dart';
-import '../utils/formatters.dart';
-import '../services/report_export_service.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -21,7 +14,21 @@ class ResultsScreen extends StatefulWidget {
   State<ResultsScreen> createState() => _ResultsScreenState();
 }
 
-class _ResultsScreenState extends State<ResultsScreen> {
+class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final pipeProv = context.watch<PipelineProvider>();
@@ -30,8 +37,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     if (res == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("REGISTRATION RESULT")),
-        body: const Center(child: Text("No registration results available.", style: TextStyle(color: LunarTheme.textSecondary))),
+        backgroundColor: LunarTheme.background,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: LunarTheme.primary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text("Results"),
+        ),
+        body: const Center(
+          child: Text("No registration results available.", style: TextStyle(color: LunarTheme.textSecondary)),
+        ),
       );
     }
 
@@ -41,352 +57,207 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return Scaffold(
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            const Expanded(
-              child: Text(
-                "REGISTRATION RESULT",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            StatusBadge(mode: res.executionMode),
-            const SizedBox(width: 4),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: LunarTheme.primary),
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (route) => false),
+        ),
+        title: const Text("Results"),
+        centerTitle: false,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: LunarTheme.primary,
+          labelColor: LunarTheme.primary,
+          unselectedLabelColor: LunarTheme.textTertiary,
+          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+          tabs: const [
+            Tab(text: "Overlay"),
+            Tab(text: "Match Points"),
+            Tab(text: "Heatmap"),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download_outlined, size: 20, color: Colors.white),
-            tooltip: "Export Insight Report",
-            onPressed: () => ReportExportService.showExportModal(
-              context: context,
-              response: res,
-              referenceSensor: imgProv.referenceSensor,
-              movingSensor: imgProv.movingSensor,
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Result Status Header Card: Responsive layout prevents title/badge collision
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isReliable ? Colors.white : LunarTheme.borderFocus,
-                    width: 1.2,
+        child: Column(
+          children: [
+            // Split image viewer with tabs
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverlayView(imgProv.referenceImage, res.registeredImageUrl),
+                  _buildMatchPointsView(),
+                  _buildHeatmapView(),
+                ],
+              ),
+            ),
+
+            // Metric cards grid (2x3)
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _buildMetricCard("RMSE", metrics.rmsePx?.toStringAsFixed(2) ?? "N/A", "px")),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildMetricCard("Inliers", metrics.ransacInliers.toString(), "")),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildMetricCard("Inlier Ratio", (metrics.inlierRatio * 100).toStringAsFixed(1), "%")),
+                    ],
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isReliable ? Icons.verified_outlined : Icons.error_outline,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            isReliable ? "REGISTRATION SUCCESSFUL" : "REGISTRATION NOT RELIABLE",
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.8,
-                              color: Colors.white,
-                            ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildMetricCard("Coverage", (metrics.spatialCoverage * 100).toStringAsFixed(1), "%")),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildMetricCard("Runtime", "${metrics.runtimeMs} ms", "")),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildMetricCard("Decision", isReliable ? "RELIABLE" : "UNRELIABLE", "")),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Export results
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: LunarTheme.primary,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                           ),
+                          child: const Text("Export Results"),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ConfidenceBadge(
-                      level: metrics.confidenceLevel,
-                      score: metrics.confidenceScore,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      metrics.confidenceExplanation,
-                      style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
-                    ),
-                    if (res.warnings.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        res.warnings.first,
-                        style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: LunarTheme.textTertiary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // View full resolution
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: LunarTheme.primary,
+                            side: BorderSide(color: LunarTheme.primary, width: 1),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          ),
+                          child: const Text("View Full Resolution"),
+                        ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Primary Visual Registration Viewer
-              ImageComparisonViewer(
-                referenceWidget: _buildImageWidget(imgProv.referenceImage),
-                registeredUrl: res.registeredImageUrl,
-                overlayUrl: res.overlayImageUrl,
-                differenceUrl: res.differenceImageUrl,
-              ),
-              const SizedBox(height: 16),
-
-              // Metrics Dashboard Title
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  const Text(
-                    "QUANTITATIVE METRICS",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.0,
-                      color: LunarTheme.textTertiary,
-                    ),
-                  ),
-                  ResponsiveBadge(
-                    label: metrics.metricMode == "DEMO"
-                        ? "DEMO (SEED ${metrics.simulationSeed ?? 26166})"
-                        : "MEASURED EXECUTION",
-                    variant: BadgeVariant.subtle,
-                    fontSize: 8.5,
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-
-              // Metrics Grid (Responsive 2-column or 4-column)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 500;
-                  final itemWidth = isWide ? (constraints.maxWidth - 24) / 4 : (constraints.maxWidth - 8) / 2;
-
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "KEYPOINTS",
-                          value: "${metrics.keypointsReference} / ${metrics.keypointsMoving}",
-                          subtitle: "Reference / Moving",
-                          icon: Icons.grain,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "CANDIDATE MATCHES",
-                          value: "${metrics.candidateMatches}",
-                          subtitle: "Raw 2-NN Pairs",
-                          icon: Icons.alt_route,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "FILTERED MATCHES",
-                          value: "${metrics.filteredMatches}",
-                          subtitle: "Lowe's Ratio Pass",
-                          icon: Icons.filter_alt_outlined,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "RANSAC INLIERS",
-                          value: "${metrics.ransacInliers}",
-                          subtitle: "Geometric Consensus",
-                          icon: Icons.check_circle_outline,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "INLIER RATIO",
-                          value: Formatters.formatPercentage(metrics.inlierRatio),
-                          subtitle: "Inliers / Filtered",
-                          icon: Icons.pie_chart_outline,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "SPATIAL COVERAGE",
-                          value: Formatters.formatPercentage(metrics.spatialCoverage),
-                          subtitle: "Partition Grid Fill",
-                          icon: Icons.grid_view,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "REPROJECTION RMSE",
-                          value: metrics.rmsePx != null ? Formatters.formatPixels(metrics.rmsePx) : "N/A",
-                          subtitle: metrics.rmsePx != null ? "Residual Pixel Error" : "Unreliable / Skipped",
-                          icon: Icons.straighten,
-                        ),
-                      ),
-                      SizedBox(
-                        width: itemWidth,
-                        child: MetricCard(
-                          title: "RUNTIME",
-                          value: Formatters.formatMilliseconds(metrics.runtimeMs),
-                          subtitle: "End-to-End Latency",
-                          icon: Icons.timer_outlined,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Export Insight Report Action Button
-              ElevatedButton.icon(
-                onPressed: () => ReportExportService.showExportModal(
-                  context: context,
-                  response: res,
-                  referenceSensor: imgProv.referenceSensor,
-                  movingSensor: imgProv.movingSensor,
-                ),
-                icon: const Icon(Icons.assessment_outlined, size: 18),
-                label: const Text(
-                  "EXPORT INSIGHT REPORT",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Action Navigation Buttons
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isVeryNarrow = constraints.maxWidth < 320;
-
-                  final corrBtn = OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, AppRoutes.correspondence),
-                    icon: const Icon(Icons.hub_outlined, size: 16),
-                    label: const Text("VIEW CORRESPONDENCES"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: LunarTheme.borderLight),
-                    ),
-                  );
-
-                  final gridBtn = OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, AppRoutes.spatialCoverage),
-                    icon: const Icon(Icons.grid_4x4, size: 16),
-                    label: const Text("SPATIAL GRID"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: LunarTheme.borderLight),
-                    ),
-                  );
-
-                  if (isVeryNarrow) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        corrBtn,
-                        const SizedBox(height: 8),
-                        gridBtn,
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(child: corrBtn),
-                      const SizedBox(width: 8),
-                      Expanded(child: gridBtn),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Expandable Transformation Matrix Section
-              Container(
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    title: const Text(
-                      "GEOMETRIC TRANSFORMATION MATRIX",
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      res.transformationMatrix != null ? "Computed 3x3 Projective Matrix" : "Matrix unavailable",
-                      style: const TextStyle(fontSize: 10, color: LunarTheme.textTertiary),
-                    ),
-                    iconColor: Colors.white,
-                    collapsedIconColor: LunarTheme.textTertiary,
-                    children: [
-                      if (res.transformationMatrix != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          child: Column(
-                            children: res.transformationMatrix!.map((row) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 3),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: row.map((val) {
-                                    return Expanded(
-                                      child: Text(
-                                        val.toStringAsFixed(5),
-                                        textAlign: TextAlign.center,
-                                        style: LunarTheme.mono.copyWith(fontSize: 11),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOverlayView(LunarImageModel? refImage, String? registeredUrl) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: LunarTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: LunarTheme.border),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: refImage != null
+                  ? _buildImageWidget(refImage)
+                  : const Text("No image", style: TextStyle(color: LunarTheme.textTertiary)),
+            ),
+          ),
+          Container(
+            height: 2,
+            color: LunarTheme.primary,
+          ),
+          Expanded(
+            child: Center(
+              child: registeredUrl != null
+                  ? Image.network(registeredUrl, fit: BoxFit.contain)
+                  : const Text("Registered image", style: TextStyle(color: LunarTheme.textTertiary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchPointsView() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: LunarTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: LunarTheme.border),
+      ),
+      child: const Center(
+        child: Text("Match points visualization", style: TextStyle(color: LunarTheme.textTertiary)),
+      ),
+    );
+  }
+
+  Widget _buildHeatmapView() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: LunarTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: LunarTheme.border),
+      ),
+      child: const Center(
+        child: Text("Error heatmap visualization", style: TextStyle(color: LunarTheme.textTertiary)),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, String unit) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: LunarTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: LunarTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: LunarTheme.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: LunarTheme.mono.copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: LunarTheme.textPrimary,
+            ),
+          ),
+          if (unit.isNotEmpty)
+            Text(
+              unit,
+              style: LunarTheme.mono.copyWith(fontSize: 10, color: LunarTheme.textTertiary),
+            ),
+        ],
       ),
     );
   }

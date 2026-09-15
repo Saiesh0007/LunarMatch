@@ -23,46 +23,39 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
         titleSpacing: 12,
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/icons/app_logo.png',
-              width: 24,
-              height: 24,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 6),
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: isOnline ? const Color(0xFF4CAF50) : const Color(0xFF777777),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Expanded(
-              child: Text(
-                "LUNARMATCH",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: 26,
+            height: 26,
+            fit: BoxFit.contain,
+          ),
         ),
+        title: const Text("LUNARMATCH"),
+        actions: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: isOnline ? LunarTheme.success : LunarTheme.textTertiary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings, size: 22),
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
+          ),
+        ],
       ),
       body: SafeArea(
-        child: ScrollView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Hero card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -75,21 +68,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       "Lunar Image Correspondence & Registration Engine",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
-                        color: Colors.white,
-                      ),
+                      style: LunarTheme.heading,
                     ),
                     const SizedBox(height: 6),
                     const Text(
                       "Aligns Chandrayaan-2 optical imagery (OHRC, TMC-2, IIRS) against lunar reference data across Sun angles, scales, and sensors.",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: LunarTheme.textSecondary,
-                        height: 1.45,
-                      ),
+                      style: LunarTheme.body,
                     ),
                     const SizedBox(height: 14),
                     Container(
@@ -102,15 +86,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            isOnline ? Icons.cloud_done_outlined : Icons.offline_bolt_outlined,
+                            Icons.cloud_done_outlined,
                             size: 15,
-                            color: isOnline ? const Color(0xFF4CAF50) : const Color(0xFF999999),
+                            color: LunarTheme.success,
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          const Expanded(
                             child: Text(
-                              isOnline ? "Connected" : "Offline mode",
-                              style: const TextStyle(
+                              "Connected",
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -118,8 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           IconButton(
-                            onTap: () => pipeProv.checkBackendHealth(),
-                            icon: const Icon(Icons.refresh, size: 16, color: LunarTheme.textTertiary),
+                            onPressed: () => pipeProv.checkBackendHealth(),
+                            icon: const Icon(
+                              Icons.refresh,
+                              size: 16,
+                              color: LunarTheme.textTertiary,
+                            ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -129,41 +117,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
+              // Section label
               const Text(
                 "CORE CAPABILITIES",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  color: LunarTheme.textTertiary,
-                ),
+                style: LunarTheme.label,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              _buildDashboardCard(
+              // 4 capability cards
+              _buildCapabilityCard(
                 title: "Image Registration",
                 description: "Align reference and moving images using the LunarMatch pipeline.",
                 icon: Icons.layers_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.upload),
               ),
-
-              _buildDashboardCard(
+              _buildCapabilityCard(
                 title: "Robustness Lab",
                 description: "Test registration across illumination, scale, and geometric variations.",
                 icon: Icons.science_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.robustness),
               ),
-
-              _buildDashboardCard(
+              _buildCapabilityCard(
                 title: "Engine Capabilities",
                 description: "Feature detection, matching, verification, and quality assessment.",
                 icon: Icons.verified_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.status),
               ),
-
-              _buildDashboardCard(
+              _buildCapabilityCard(
                 title: "Pipeline Architecture",
                 description: "System block diagram and processing flow.",
                 icon: Icons.schema_outlined,
@@ -176,13 +158,15 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: SafeArea(
         child: Container(
           decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: LunarTheme.border, width: 1)),
+            border: Border(
+              top: BorderSide(color: LunarTheme.border, width: 1),
+            ),
           ),
           child: NavigationBar(
             selectedIndex: _bottomNavIndex,
             backgroundColor: LunarTheme.background,
             surfaceTintColor: Colors.transparent,
-            indicatorColor: const Color(0xFF222222),
+            indicatorColor: LunarTheme.surfaceElevated,
             onDestinationSelected: (idx) {
               setState(() => _bottomNavIndex = idx);
               if (idx == 1) Navigator.pushNamed(context, AppRoutes.upload);
@@ -217,59 +201,71 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDashboardCard({
+  Widget _buildCapabilityCard({
     required String title,
     required String description,
-    required icons icon,
+    required IconData icon,
     required VoidCallback onTap,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: LunarTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: LunarTheme.borderLight),
+      color: LunarTheme.surfaceCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: LunarTheme.border, width: 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: LunarTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: LunarTheme.borderLight),
+                ),
+                child: Icon(icon, color: LunarTheme.primary, size: 20),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                      color: Colors.white,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: LunarTheme.textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: LunarTheme.textSecondary,
-                      height: 1.4,
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: LunarTheme.textSecondary,
+                        height: 1.4,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, size: 18, color: LunarTheme.textTertiary),
-          ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: LunarTheme.textTertiary,
+              ),
+            ],
+          ),
         ),
       ),
     );

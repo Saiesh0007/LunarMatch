@@ -108,7 +108,7 @@ class PipelineStageModel {
 class PipelineRunResponseModel {
   final String runId;
   final String status; // "SUCCESSFUL", "LOW_CONFIDENCE", "NOT_RELIABLE", "FAILED"
-  final String executionMode; // "LIVE BASELINE", "DEMO SIMULATION", "LOCAL FALLBACK"
+  final String executionMode; // "LIVE BASELINE", "OFFLINE"
   final List<PipelineStageModel> stages;
   final RegistrationMetricsModel metrics;
   final SpatialStatsModel? spatialStats;

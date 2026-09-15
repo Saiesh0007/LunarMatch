@@ -35,11 +35,11 @@ class ResponsiveBadge extends StatelessWidget {
         break;
       case BadgeVariant.outline:
         bg = Colors.transparent;
-        border = LunarTheme.borderFocus;
+        border = LunarTheme.border;
         text = Colors.white;
         break;
       case BadgeVariant.elevated:
-        bg = LunarTheme.surfaceHighlight;
+        bg = LunarTheme.surfaceElevated;
         border = LunarTheme.borderLight;
         text = Colors.white;
         break;

@@ -5,8 +5,6 @@ import '../app/routes.dart';
 import '../models/pipeline_model.dart';
 import '../providers/pipeline_provider.dart';
 import '../providers/image_provider.dart';
-import '../widgets/section_header.dart';
-import '../widgets/responsive_badge.dart';
 
 class ConfigureScreen extends StatefulWidget {
   const ConfigureScreen({super.key});
@@ -17,11 +15,11 @@ class ConfigureScreen extends StatefulWidget {
 
 class _ConfigureScreenState extends State<ConfigureScreen> {
   late PipelineConfigModel _config;
+  int _computeMode = 0; // 0: Fast CPU, 1: Accurate Hybrid, 2: GPU Mode (disabled)
 
   @override
   void initState() {
     super.initState();
-    // Clone config from provider
     final pipeProv = context.read<PipelineProvider>();
     _config = PipelineConfigModel(
       featureMethod: pipeProv.config.featureMethod,
@@ -51,17 +49,12 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     return Scaffold(
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
-        title: const Text("PIPELINE CONFIGURATION"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _config = PipelineConfigModel();
-              });
-            },
-            child: const Text("RESET", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: LunarTheme.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("Pipeline Configuration"),
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -69,209 +62,132 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Section 1: Feature Extraction Method
-              const SectionHeader(
-                title: "01 FEATURE EXTRACTION METHOD",
-                subtitle: "Select between baseline or advanced research models",
-              ),
-              _buildMethodRadio("SIFT", "OpenCV SIFT Baseline", "Active", isSimulated: false),
-              _buildMethodRadio("RIFT2", "Radiation-Invariant Phase Feature", "DEMO", isSimulated: true),
-              _buildMethodRadio("SuperPoint", "Deep Learned Feature Extractor", "DEMO", isSimulated: true),
-              const SizedBox(height: 16),
-
-              // Section 2: Correspondence Matcher
-              const SectionHeader(
-                title: "02 MATCHING ALGORITHM",
-                subtitle: "Select 2-NN descriptor correspondence strategy",
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildChoiceChip("BF (Brute-Force)", _config.matcher == "BF", () {
-                      setState(() => _config.matcher = "BF");
-                    }),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildChoiceChip("FLANN (KD-Tree)", _config.matcher == "FLANN", () {
-                      setState(() => _config.matcher = "FLANN");
-                    }),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Section 3: Preprocessing
-              const SectionHeader(
-                title: "03 PREPROCESSING FILTERS",
-                subtitle: "Radiometric enhancement for high-contrast lunar shadow/crest zones",
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: Column(
-                  children: [
-                    CheckboxListTile(
-                      title: const Text("Intensity Normalization", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                      subtitle: const Text("Dynamic range stretching to [0, 255]", style: TextStyle(fontSize: 10, color: LunarTheme.textTertiary)),
-                      value: _config.preprocessing.normalize,
-                      activeColor: Colors.white,
-                      checkColor: Colors.black,
-                      onChanged: (v) => setState(() => _config.preprocessing.normalize = v ?? true),
-                    ),
-                    const Divider(height: 1),
-                    CheckboxListTile(
-                      title: const Text("CLAHE (Adaptive Histogram)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                      subtitle: const Text("Reveals subtle regolith textures in deep shadows", style: TextStyle(fontSize: 10, color: LunarTheme.textTertiary)),
-                      value: _config.preprocessing.clahe,
-                      activeColor: Colors.white,
-                      checkColor: Colors.black,
-                      onChanged: (v) => setState(() => _config.preprocessing.clahe = v ?? true),
-                    ),
-                    const Divider(height: 1),
-                    CheckboxListTile(
-                      title: const Text("Edge-Preserving Denoising", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                      subtitle: const Text("Suppresses sensor noise without blurring crater rims", style: TextStyle(fontSize: 10, color: LunarTheme.textTertiary)),
-                      value: _config.preprocessing.denoise,
-                      activeColor: Colors.white,
-                      checkColor: Colors.black,
-                      onChanged: (v) => setState(() => _config.preprocessing.denoise = v ?? true),
-                    ),
+              // Segmented control
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 0, label: Text("Fast", style: TextStyle(fontSize: 12)), tooltip: "Fast CPU"),
+                    ButtonSegment(value: 1, label: Text("Accurate", style: TextStyle(fontSize: 12)), tooltip: "Accurate Hybrid"),
+                    ButtonSegment(value: 2, label: Text("GPU", style: TextStyle(fontSize: 12)), enabled: false, tooltip: "GPU Mode (disabled)"),
                   ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Section 4: Spatial Grid Balancing
-              const SectionHeader(
-                title: "04 SPATIAL BALANCING",
-                subtitle: "Eliminates crater rim clustering across N x N spatial grid",
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            "Enable Spatial Balancing",
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Switch(
-                          value: _config.spatialBalancing,
-                          activeThumbColor: Colors.white,
-                          onChanged: (v) => setState(() => _config.spatialBalancing = v),
-                        ),
-                      ],
-                    ),
-                    if (_config.spatialBalancing) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          const Text("Grid Partitioning:", style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary)),
-                          _buildGridButton(4),
-                          _buildGridButton(6),
-                          _buildGridButton(8),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Section 5: Geometric Model
-              const SectionHeader(
-                title: "05 GEOMETRIC MODEL & RANSAC",
-                subtitle: "Transformation degrees of freedom",
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildChoiceChip("HOMOGRAPHY (8-DOF)", _config.geometricModel == "homography", () {
-                      setState(() => _config.geometricModel = "homography");
+                  selected: {_computeMode},
+                  onSelectionChanged: (Set<int> newSelection) {
+                    setState(() {
+                      _computeMode = newSelection.first;
+                    });
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return LunarTheme.primary;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return LunarTheme.surfaceElevated;
+                      }
+                      return LunarTheme.surfaceCard;
                     }),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildChoiceChip("AFFINE (6-DOF)", _config.geometricModel == "affine", () {
-                      setState(() => _config.geometricModel = "affine");
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.black;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return LunarTheme.textTertiary;
+                      }
+                      return LunarTheme.textPrimary;
                     }),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Threshold sliders
-              _buildSliderRow(
-                title: "Lowe's Ratio Threshold",
-                value: _config.ratioThreshold,
-                min: 0.50,
-                max: 0.90,
-                displayStr: _config.ratioThreshold.toStringAsFixed(2),
-                onChanged: (v) => setState(() => _config.ratioThreshold = v),
-              ),
-              _buildSliderRow(
-                title: "RANSAC Inlier Threshold",
-                value: _config.ransacThreshold,
-                min: 1.0,
-                max: 8.0,
-                displayStr: "${_config.ransacThreshold.toStringAsFixed(1)} px",
-                onChanged: (v) => setState(() => _config.ransacThreshold = v),
-              ),
-              const SizedBox(height: 12),
-
-              // Fail-safe verification toggle
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _config.failSafeOverride ? Colors.white : LunarTheme.border,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Test Fail-Safe Rejection", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
-                          Text("Forces fail-safe trigger to demonstrate 'REGISTRATION NOT RELIABLE'", style: TextStyle(fontSize: 10, color: LunarTheme.textTertiary)),
-                        ],
-                      ),
+                    side: WidgetStateProperty.all(BorderSide(color: LunarTheme.border, width: 1)),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    const SizedBox(width: 8),
-                    Switch(
-                      value: _config.failSafeOverride,
-                      activeThumbColor: Colors.white,
-                      onChanged: (v) => setState(() => _config.failSafeOverride = v),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
 
-              // Run Button
-              ElevatedButton.icon(
+              // Dropdowns
+              _buildDropdownSection(
+                title: "Feature Method",
+                value: _config.featureMethod,
+                items: ["SIFT", "RIFT2", "SuperPoint"],
+                onChanged: (v) {
+                  setState(() {
+                    _config.featureMethod = v!;
+                    _config.simulationMode = (v != "SIFT");
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+
+              _buildDropdownSection(
+                title: "Matcher",
+                value: _config.matcher,
+                items: ["BF", "FLANN"],
+                onChanged: (v) => setState(() => _config.matcher = v!),
+              ),
+              const SizedBox(height: 16),
+
+              _buildDropdownSection(
+                title: "Estimator",
+                value: _config.geometricModel,
+                items: ["homography", "affine"],
+                onChanged: (v) => setState(() => _config.geometricModel = v!),
+              ),
+              const SizedBox(height: 24),
+
+              // Toggle rows
+              _buildToggleRow(
+                title: "Uniform Grid Balancing",
+                value: _config.spatialBalancing,
+                onChanged: (v) => setState(() => _config.spatialBalancing = v),
+              ),
+              const SizedBox(height: 12),
+              _buildToggleRow(
+                title: "Sub-pixel refinement",
+                value: true,
+                onChanged: (v) {},
+              ),
+              const SizedBox(height: 24),
+
+              // Advanced Parameters Collapsible
+              Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text(
+                    "Advanced Parameters",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: LunarTheme.textPrimary,
+                    ),
+                  ),
+                  iconColor: LunarTheme.textPrimary,
+                  collapsedIconColor: LunarTheme.textSecondary,
+                  children: [
+                    _buildSliderRow(
+                      title: "Lowe's Ratio Threshold",
+                      value: _config.ratioThreshold,
+                      min: 0.50,
+                      max: 0.90,
+                      displayStr: _config.ratioThreshold.toStringAsFixed(2),
+                      onChanged: (v) => setState(() => _config.ratioThreshold = v),
+                    ),
+                    _buildSliderRow(
+                      title: "RANSAC Threshold",
+                      value: _config.ransacThreshold,
+                      min: 1.0,
+                      max: 8.0,
+                      displayStr: "${_config.ransacThreshold.toStringAsFixed(1)} px",
+                      onChanged: (v) => setState(() => _config.ransacThreshold = v),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Run Registration button
+              ElevatedButton(
                 onPressed: () {
                   pipeProv.updateConfig(_config);
                   final ref = imgProv.referenceImage!;
@@ -285,13 +201,19 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                   );
                   Navigator.pushNamed(context, AppRoutes.processing);
                 },
-                icon: const Icon(Icons.rocket_launch_outlined, size: 18),
-                label: const Text("RUN LUNARMATCH PIPELINE"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.white,
+                  backgroundColor: LunarTheme.primary,
                   foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
                 ),
+                child: const Text("Run Registration"),
               ),
               const SizedBox(height: 16),
             ],
@@ -301,104 +223,91 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     );
   }
 
-  Widget _buildMethodRadio(String value, String label, String tag, {required bool isSimulated}) {
-    final isSelected = _config.featureMethod == value;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isSelected ? Colors.white : LunarTheme.border,
-          width: isSelected ? 1.2 : 1.0,
+  Widget _buildDropdownSection({
+    required String title,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: LunarTheme.textSecondary,
+          ),
         ),
-      ),
-      child: RadioListTile<String>(
-        value: value,
-        groupValue: _config.featureMethod,
-        activeColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        onChanged: (val) {
-          if (val != null) {
-            setState(() {
-              _config.featureMethod = val;
-              _config.simulationMode = (val != "SIFT");
-            });
-          }
-        },
-        title: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 6,
-          runSpacing: 4,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: LunarTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: LunarTheme.border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: double.infinity),
+              child: DropdownButton<String>(
+                value: value,
+                isExpanded: true,
+                dropdownColor: LunarTheme.surfaceElevated,
+                icon: const Icon(Icons.arrow_drop_down, color: LunarTheme.textPrimary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: LunarTheme.textPrimary,
+                  fontWeight: FontWeight.w500,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                items: items.map((e) {
+                  String label = e;
+                  if (e == 'SIFT') label = 'SIFT Baseline';
+                  if (e == 'RIFT2') label = 'RIFT2 Multiscale';
+                  if (e == 'BF') label = 'BF + Ratio Test';
+                  if (e == 'homography') label = 'MAGSAC++ (Homography)';
+                  return DropdownMenuItem(value: e, child: Text(label, overflow: TextOverflow.ellipsis));
+                }).toList(),
+                onChanged: onChanged,
+              ),
             ),
-            ResponsiveBadge(
-              label: tag,
-              variant: isSimulated ? BadgeVariant.subtle : BadgeVariant.standard,
-              fontSize: 8.5,
-            ),
-          ],
+          ),
         ),
-        subtitle: Text(label, style: const TextStyle(fontSize: 10, color: LunarTheme.textTertiary)),
-      ),
+      ],
     );
   }
 
-  Widget _buildChoiceChip(String label, bool isSelected, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : LunarTheme.surfaceCard,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected ? Colors.white : LunarTheme.border,
+  Widget _buildToggleRow({
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              color: LunarTheme.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
-            color: isSelected ? Colors.black : LunarTheme.textSecondary,
-          ),
+        const SizedBox(width: 12),
+        Switch(
+          value: value,
+          activeColor: Colors.black,
+          activeTrackColor: LunarTheme.primary,
+          inactiveThumbColor: LunarTheme.textSecondary,
+          inactiveTrackColor: LunarTheme.surfaceElevated,
+          onChanged: onChanged,
         ),
-      ),
-    );
-  }
-
-  Widget _buildGridButton(int size) {
-    final isSelected = _config.gridSize == size;
-    return InkWell(
-      onTap: () => setState(() => _config.gridSize = size),
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : LunarTheme.surfaceElevated,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: isSelected ? Colors.white : LunarTheme.border,
-          ),
-        ),
-        child: Text(
-          "$size × $size",
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: isSelected ? Colors.black : Colors.white,
-          ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -411,7 +320,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     required ValueChanged<double> onChanged,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12, top: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: LunarTheme.surfaceCard,
@@ -424,21 +333,25 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: LunarTheme.textSecondary),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: LunarTheme.textSecondary,
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(displayStr, style: LunarTheme.mono.copyWith(fontSize: 11)),
+              Text(
+                displayStr,
+                style: LunarTheme.mono.copyWith(fontSize: 12),
+              ),
             ],
           ),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.white,
-              thumbColor: Colors.white,
-              inactiveTrackColor: const Color(0xFF2E2E2E),
+              activeTrackColor: LunarTheme.primary,
+              thumbColor: LunarTheme.primary,
+              inactiveTrackColor: LunarTheme.surfaceElevated,
             ),
             child: Slider(
               value: value,

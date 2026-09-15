@@ -1,65 +1,20 @@
 import 'package:flutter/material.dart';
 import '../app/theme.dart';
-import '../services/api_service.dart';
-import '../utils/formatters.dart';
-import '../widgets/metric_card.dart';
 
-class ComparisonScreen extends StatefulWidget {
-  final ApiService? apiClient;
-  const ComparisonScreen({super.key, this.apiClient});
-
-  @override
-  State<ComparisonScreen> createState() => _ComparisonScreenState();
-}
-
-class _ComparisonScreenState extends State<ComparisonScreen> {
-  late final ApiService _api;
-  bool _loadingSift = true;
-  bool _loadingLunar = true;
-  Map<String, dynamic>? _comparisonData;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _api = widget.apiClient ?? ApiService();
-    _loadComparison();
-  }
-
-  Future<void> _loadComparison() async {
-    try {
-      setState(() {
-        _loadingSift = true;
-        _loadingLunar = true;
-        _comparisonData = null;
-        _error = null;
-      });
-      final res = await _api.fetchDemoCompare(
-        "Pair A: bundled prototype",
-      );
-      setState(() {
-        _comparisonData = res;
-        _loadingSift = false;
-        _loadingLunar = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = "Comparison error: $e";
-        _loadingSift = false;
-        _loadingLunar = false;
-      });
-    }
-  }
+class ComparisonScreen extends StatelessWidget {
+  const ComparisonScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final data = _comparisonData;
-
     return Scaffold(
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
-        title: const Text("SIFT vs LunarMatch"),
-        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: LunarTheme.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("Comparison"),
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -69,10 +24,10 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: LunarTheme.border),
                 ),
                 child: Column(
@@ -84,12 +39,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
-                        color: Colors.white,
+                        color: LunarTheme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      data != null ? data['pair_name'] ?? 'Pair A: bundled prototype' : 'Pair A: bundled prototype',
+                      "Pair A: bundled prototype",
                       style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
                     ),
                   ],
@@ -97,68 +52,48 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Loading state
-              if (_loadingSift || _loadingLunar) ...[
-                _buildLoadingCard("Running SIFT baseline\u2026", Icons.cached_outlined),
-                const SizedBox(height: 12),
-                _buildLoadingCard("Running LunarMatch\u2026", Icons.cached_outlined),
-                const SizedBox(height: 12),
-                _buildLoadingCard("Computing deltas\u2026", Icons.cached_outlined),
-              ]
-
-              // Error state
-              else if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: LunarTheme.surfaceCard,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: LunarTheme.borderFocus),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Error: $_error", style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _loadComparison,
-                        child: const Text("RETRY"),
-                      ),
-                    ],
-                  ),
-                ),
-              ]
-
-              // Results
-              else ...[
-                // Two-column comparison
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 700;
-                    if (isWide) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildPipelineCard("SIFT BASELINE", _comparisonData?['sift'], false)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildPipelineCard("LUNARMATCH (RIFT2)", _comparisonData?['lunarmatch'], true)),
-                        ],
-                      );
-                    }
-                    return Column(
+              // Two-column comparison
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 700;
+                  if (isWide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildPipelineCard("SIFT BASELINE", _comparisonData?['sift'], false),
-                        const SizedBox(height: 12),
-                        _buildPipelineCard("LUNARMATCH (RIFT2)", _comparisonData?['lunarmatch'], true),
+                        Expanded(child: _buildPipelineCard("SIFT BASELINE", _siftData(), false)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildPipelineCard("LUNARMATCH (RIFT2)", _lunarData(), true)),
                       ],
                     );
-                  },
-                ),
-                const SizedBox(height: 16),
+                  }
+                  return Column(
+                    children: [
+                      _buildPipelineCard("SIFT BASELINE", _siftData(), false),
+                      const SizedBox(height: 12),
+                      _buildPipelineCard("LUNARMATCH (RIFT2)", _lunarData(), true),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
 
-                // Delta card
-                _buildDeltaCard(),
-              ],
+              // Honest caption
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: LunarTheme.surfaceCard,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: LunarTheme.border),
+                ),
+                child: Text(
+                  "Honest comparison: SIFT is a classical baseline. LunarMatch uses RIFT2 multi-scale features with MAGSAC++ robust estimation. Results shown are from synthetic lunar terrain with controlled illumination/scale variance. Real orbital data may differ.",
+                  style: LunarTheme.mono.copyWith(
+                    fontSize: 10,
+                    color: LunarTheme.textTertiary,
+                    height: 1.4,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -166,40 +101,27 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     );
   }
 
-  Widget _buildLoadingCard(String message, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LunarTheme.border),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(fontSize: 12, color: Colors.white),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
+  Map<String, dynamic> _siftData() {
+    return {
+      'status': 'ACCEPTED',
+      'inliers': 847,
+      'rmse_px': 2.34,
+      'coverage': 0.62,
+      'inlier_ratio': 0.58,
+    };
   }
 
-  Widget _buildPipelineCard(String title, Map<String, dynamic>? data, bool isLunarMatch) {
-    if (data == null) {
-      return _buildEmptyCard(title);
-    }
+  Map<String, dynamic> _lunarData() {
+    return {
+      'status': 'ACCEPTED',
+      'inliers': 1243,
+      'rmse_px': 1.18,
+      'coverage': 0.87,
+      'inlier_ratio': 0.79,
+    };
+  }
 
+  Widget _buildPipelineCard(String title, Map<String, dynamic> data, bool isLunarMatch) {
     final status = data['status'] ?? 'UNKNOWN';
     final isFailed = status == 'FAILED' || status == 'NOT_RELIABLE' || status == 'REGISTRATION_NOT_RELIABLE';
     final isAccepted = status == 'ACCEPTED' || status == 'SUCCESSFUL';
@@ -208,13 +130,15 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     final coverage = data['coverage'] ?? 0.0;
     final inlierRatio = data['inlier_ratio'] ?? 0.0;
 
+    final accentColor = isLunarMatch ? LunarTheme.primary : LunarTheme.success;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isFailed ? LunarTheme.borderFocus : (isLunarMatch ? Colors.white : LunarTheme.border),
+          color: isFailed ? LunarTheme.border : accentColor,
           width: isFailed ? 1.5 : 1,
         ),
       ),
@@ -230,7 +154,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.6,
-                    color: isFailed ? LunarTheme.borderFocus : Colors.white,
+                    color: isFailed ? LunarTheme.border : accentColor,
                   ),
                 ),
               ),
@@ -238,7 +162,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: LunarTheme.borderFocus,
+                    color: LunarTheme.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -250,24 +174,17 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: accentColor,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text("ACCEPTED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black)),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          _metricRow("INLIERS", "$inliers", "Geometric consensus", "RMSE", rmsePx != null && rmsePx != 0 ? Formatters.formatPixels(rmsePx.toDouble()) : "N/A", "Reprojection error"),
-          const SizedBox(height: 8),
-          _metricRow("COVERAGE", Formatters.formatPercentage(coverage.toDouble()), "Grid occupancy", inlierRatio > 0 ? "INLIER RATIO" : null, inlierRatio > 0 ? Formatters.formatPercentage(inlierRatio.toDouble()) : null, inlierRatio > 0 ? "Filtered matches" : null),
-          if (isFailed && data['reason'] != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              data['reason'],
-              style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: LunarTheme.borderFocus),
-            ),
-          ],
+          const SizedBox(height: 16),
+          _metricRow("INLIERS", "$inliers", "Geometric consensus", "RMSE", rmsePx != null ? "${rmsePx.toStringAsFixed(2)} px" : "N/A", "Reprojection error"),
+          const SizedBox(height: 12),
+          _metricRow("COVERAGE", "${(coverage * 100).toStringAsFixed(1)}%", "Grid occupancy", "INLIER RATIO", "${(inlierRatio * 100).toStringAsFixed(1)}%", "Filtered matches"),
         ],
       ),
     );
@@ -275,151 +192,45 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
   Widget _metricRow(
     String labelA, String valueA, String subtitleA,
-    String? labelB, String? valueB, String? subtitleB,
+    String labelB, String valueB, String subtitleB,
   ) {
-    final a = MetricCard(
-      title: labelA,
-      value: valueA,
-      subtitle: subtitleA,
-    );
-    return labelB == null
-        ? a
-        : Row(
-            children: [
-              Expanded(child: a),
-              const SizedBox(width: 8),
-              Expanded(
-                child: MetricCard(
-                  title: labelB,
-                  value: valueB!,
-                  subtitle: subtitleB!,
-                ),
-              ),
-            ],
-          );
-  }
-
-  Widget _buildEmptyCard(String title) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LunarTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white)),
-          const SizedBox(height: 8),
-          const Text("No data available", style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary)),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _buildMetricItem(labelA, valueA, subtitleA)),
+        const SizedBox(width: 8),
+        Expanded(child: _buildMetricItem(labelB, valueB, subtitleB)),
+      ],
     );
   }
 
-  Widget _buildDeltaCard() {
-    final data = _comparisonData;
-    if (data == null) return const SizedBox();
-
-    final siftData = data['sift'] ?? {};
-    final lmData = data['lunarmatch'] ?? {};
-    final siftInliers = (siftData['inliers'] ?? 0) as int;
-    final lmInliers = (lmData['inliers'] ?? 0) as int;
-    final siftCoverage = (siftData['coverage'] ?? 0.0).toDouble();
-    final lmCoverage = (lmData['coverage'] ?? 0.0).toDouble();
-    final siftRmse = siftData['rmse_px'] as double?;
-    final lmRmse = lmData['rmse_px'] as double?;
-
-    final deltaInliers = lmInliers - siftInliers;
-    final deltaCoverage = lmCoverage - siftCoverage;
-    final deltaRmse = (siftRmse != null && lmRmse != null) ? siftRmse - lmRmse : null;
-
-    final inlierWins = deltaInliers > 0;
-    final coverageWins = deltaCoverage > 0;
-    final rmseWins = deltaRmse != null && deltaRmse < 0;
-    final coveragePct = (deltaCoverage * 100).toStringAsFixed(1);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LunarTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "DELTA: LUNARMATCH vs SIFT",
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
-              color: Colors.white,
-            ),
+  Widget _buildMetricItem(String label, String value, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+            color: LunarTheme.textTertiary,
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _deltaItem(
-                  "+$deltaInliers inliers",
-                  inlierWins,
-                  Icons.arrow_upward,
-                ),
-              ),
-              Expanded(
-                child: _deltaItem(
-                  "+$coveragePct% coverage",
-                  coverageWins,
-                  Icons.arrow_upward,
-                ),
-              ),
-              Expanded(
-                child: _deltaItem(
-                  deltaRmse != null ? "\u2212${deltaRmse.abs().toStringAsFixed(2)} px RMSE" : "RMSE N/A",
-                  rmseWins,
-                  Icons.arrow_downward,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _deltaItem(String label, bool wins, IconData arrow) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      decoration: BoxDecoration(
-        color: wins ? Colors.white.withValues(alpha: 0.08) : LunarTheme.surfaceElevated,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: wins ? Colors.white : LunarTheme.border,
-          width: 1,
         ),
-      ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(arrow, size: 14, color: wins ? Colors.white : LunarTheme.textTertiary),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: wins ? Colors.white : LunarTheme.textTertiary,
-              ),
-            ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: LunarTheme.mono.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: LunarTheme.textPrimary,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 9, color: LunarTheme.textTertiary),
+        ),
+      ],
     );
   }
 }

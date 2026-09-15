@@ -57,7 +57,7 @@ class LunarImageCard extends StatelessWidget {
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: hasImage ? Colors.white : const Color(0xFF777777),
+                          color: hasImage ? Colors.white : LunarTheme.textTertiary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -142,7 +142,7 @@ class LunarImageCard extends StatelessWidget {
             height: 170,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF0A0A0A),
+              color: LunarTheme.background,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: LunarTheme.border),
             ),
@@ -155,7 +155,7 @@ class LunarImageCard extends StatelessWidget {
                         Icon(
                           Icons.satellite_alt_outlined,
                           size: 36,
-                          color: const Color(0xFF555555),
+                          color: LunarTheme.textTertiary,
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -211,7 +211,7 @@ class LunarImageCard extends StatelessWidget {
               final demoBtn = OutlinedButton.icon(
                 onPressed: onDemoPressed,
                 icon: const Icon(Icons.auto_awesome, size: 14),
-                label: const Text("Use Demo"),
+                label: const Text("Load Sample"),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
                   foregroundColor: Colors.white,

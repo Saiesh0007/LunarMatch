@@ -104,7 +104,7 @@ class LocalDemoSimulator {
     return PipelineRunResponseModel(
       runId: "local_demo_seed26166",
       status: isRejected ? "NOT_RELIABLE" : "SUCCESSFUL",
-      executionMode: "LOCAL FALLBACK",
+      executionMode: "Offline",
       stages: stages,
       metrics: metrics,
       spatialStats: spatialStats,
@@ -114,7 +114,7 @@ class LocalDemoSimulator {
       differenceImageUrl: 'assets/demo/pair_${pairId == 'pair_b' ? 'b' : 'a'}_ref.png',
       correspondenceImageUrl: 'assets/demo/pair_${pairId == 'pair_b' ? 'b' : 'a'}_ref.png',
       warnings: [
-        "LOCAL DEMO: Running deterministic demo-result simulator using bundled assets. Backend disconnected."
+        "Offline: Running deterministic simulator using bundled assets. Backend disconnected."
       ],
       failureReason: isRejected ? "Forced fail-safe rejection in demonstration mode" : null,
       transformationMatrix: [
