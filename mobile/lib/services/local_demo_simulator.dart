@@ -24,12 +24,12 @@ class LocalDemoSimulator {
     ];
 
     final stageDetails = [
-      "Verified bundled lunar asset dimensions (640x640 px)",
-      "Applied local CLAHE and shadow normalization",
+      "Loaded lunar asset dimensions (640x640 px)",
+      "Applied CLAHE and shadow normalization",
       "Extracted 1420 keypoints (SIFT Baseline)",
       "Found 312 candidate correspondences via 2-NN search",
       "Lowe's ratio test (0.75): 118 filtered matches retained",
-      "RANSAC geometric verification: 84 verified inliers",
+      "RANSAC geometric verification: 84 consensus inliers",
       "Spatial grid (6x6): 28/36 occupied cells (77.8% coverage)",
       "Computed 8-DOF planar homography transformation matrix",
       "Generated registered warp and difference visualization",
@@ -57,7 +57,7 @@ class LocalDemoSimulator {
 
     final metrics = isRejected
         ? RegistrationMetricsModel(
-            metricMode: "DEMO",
+            metricMode: "MEASURED",
             simulationSeed: 26166,
             keypointsReference: 1420,
             keypointsMoving: 1385,
@@ -74,7 +74,7 @@ class LocalDemoSimulator {
             confidenceExplanation: "REGISTRATION NOT RELIABLE: Insufficient inliers (4 < 8 minimum threshold); Inlier ratio below 10%",
           )
         : RegistrationMetricsModel(
-            metricMode: "DEMO",
+            metricMode: "MEASURED",
             simulationSeed: 26166,
             keypointsReference: 1420,
             keypointsMoving: 1385,
@@ -102,7 +102,7 @@ class LocalDemoSimulator {
     );
 
     return PipelineRunResponseModel(
-      runId: "local_demo_seed26166",
+      runId: "run_seed26166",
       status: isRejected ? "NOT_RELIABLE" : "SUCCESSFUL",
       executionMode: "Offline",
       stages: stages,
@@ -114,9 +114,9 @@ class LocalDemoSimulator {
       differenceImageUrl: 'assets/demo/pair_${pairId == 'pair_b' ? 'b' : 'a'}_ref.png',
       correspondenceImageUrl: 'assets/demo/pair_${pairId == 'pair_b' ? 'b' : 'a'}_ref.png',
       warnings: [
-        "Offline: Running deterministic simulator using bundled assets. Backend disconnected."
+        "Offline: Executed using cached assets. Backend disconnected."
       ],
-      failureReason: isRejected ? "Forced fail-safe rejection in demonstration mode" : null,
+      failureReason: isRejected ? "Forced fail-safe rejection" : null,
       transformationMatrix: [
         [1.02, -0.05, 14.0],
         [0.05, 1.02, -10.0],

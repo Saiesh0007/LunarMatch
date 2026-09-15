@@ -170,7 +170,7 @@ class _StatusScreenState extends State<StatusScreen> {
       ),
       CapabilityItemModel(
         name: "Measured Pixel Residual Error",
-        notes: "Directly measured RMSE across inliers. Defaults to N/A if unavailable.",
+        notes: "Directly measured RMSE across inliers.",
       ),
       CapabilityItemModel(
         name: "Reproducible Pipeline",

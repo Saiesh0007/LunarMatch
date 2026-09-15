@@ -187,7 +187,7 @@ class UploadScreen extends StatelessWidget {
                                   )
                                 : const SizedBox(
                                     height: 160,
-                                    child: Center(child: Text("Image not available")),
+                                    child: Center(child: Text("No image loaded")),
                                   ),
                       ),
                       const SizedBox(height: 12),

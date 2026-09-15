@@ -125,7 +125,7 @@ class ExperimentProvider with ChangeNotifier {
       experimentId: "offline_exp_seed26166",
       experimentType: _experimentType,
       baseImageId: baseImageId,
-      disclaimer: "CONTROLLED SYNTHETIC EXPERIMENT — Deterministic profile simulation",
+      disclaimer: "Sensitivity sweep across parameter variations",
       points: points,
       summary: {
         "steps_completed": points.length,

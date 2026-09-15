@@ -59,14 +59,14 @@ class SettingsScreen extends StatelessWidget {
                   onTap: () => _showApiUrlDialog(context, pipeProv),
                 ),
                 _buildSwitchTile(
-                  title: "Force Demo Mode",
-                  subtitle: "Use local simulation when offline",
+                  title: "Offline Mode",
+                  subtitle: "Use cached data when offline",
                   value: pipeProv.forceLocalDemo,
                   onChanged: (v) => pipeProv.toggleLocalDemoMode(v),
                 ),
                 _buildSwitchTile(
                   title: "Auto-save Results",
-                  subtitle: "Persist registration history locally",
+                  subtitle: "Persist registration history",
                   value: true,
                   onChanged: (v) {},
                 ),

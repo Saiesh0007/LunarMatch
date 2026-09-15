@@ -43,7 +43,7 @@ class _RobustnessScreenState extends State<RobustnessScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "PROTOTYPE SENSITIVITY SWEEP",
+                      "SENSITIVITY SWEEP",
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,

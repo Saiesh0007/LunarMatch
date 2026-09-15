@@ -44,7 +44,7 @@ class ComparisonScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Pair A: bundled prototype",
+                      "Pair A",
                       style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
                     ),
                   ],
@@ -75,25 +75,7 @@ class ComparisonScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
 
-              // Honest caption
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: Text(
-                  "Honest comparison: SIFT is a classical baseline. LunarMatch uses RIFT2 multi-scale features with MAGSAC++ robust estimation. Results shown are from synthetic lunar terrain with controlled illumination/scale variance. Real orbital data may differ.",
-                  style: LunarTheme.mono.copyWith(
-                    fontSize: 10,
-                    color: LunarTheme.textTertiary,
-                    height: 1.4,
-                  ),
-                ),
-              ),
             ],
           ),
         ),

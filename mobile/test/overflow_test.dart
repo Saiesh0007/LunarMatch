@@ -17,8 +17,6 @@ import 'package:mobile/screens/processing_screen.dart';
 import 'package:mobile/screens/results_screen.dart';
 import 'package:mobile/screens/correspondence_screen.dart';
 import 'package:mobile/screens/spatial_coverage_screen.dart';
-import 'package:mobile/widgets/responsive_badge.dart';
-import 'package:mobile/widgets/status_badge.dart';
 
 import 'package:mobile/models/pipeline_model.dart';
 import 'package:mobile/models/metrics_model.dart';
@@ -307,7 +305,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('ResponsiveBadge never overflows on extremely narrow constraints',
+    testWidgets('SectionHeader never overflows on extremely narrow constraints',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -316,8 +314,8 @@ void main() {
             body: Center(
               child: SizedBox(
                 width: 80,
-                child: ResponsiveBadge(
-                    label: "VERY LONG BADGE TEXT THAT SHOULD WRAP"),
+                child: SectionHeader(
+                    title: "VERY LONG SECTION HEADER TEXT THAT SHOULD WRAP"),
               ),
             ),
           ),
@@ -327,7 +325,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('StatusBadge handles long labels gracefully', (tester) async {
+    testWidgets('MetricCard handles long labels gracefully', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: LunarTheme.darkTheme,
@@ -335,7 +333,11 @@ void main() {
             body: Center(
               child: SizedBox(
                 width: 120,
-                child: StatusBadge(mode: "Offline"),
+                child: MetricCard(
+                  label: "TRANSFORMATION METRIC VALUE",
+                  value: "0.1234",
+                  unit: "px",
+                ),
               ),
             ),
           ),

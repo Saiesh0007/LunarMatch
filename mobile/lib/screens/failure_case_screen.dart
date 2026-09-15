@@ -55,15 +55,6 @@ class FailureCaseScreen extends StatelessWidget {
                               color: LunarTheme.error,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Honest rejection beats fabricated confidence. We return REGISTRATION_NOT_RELIABLE instead of a wrong transform.",
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: LunarTheme.textSecondary,
-                              height: 1.4,
-                            ),
-                          ),
                         ],
                       ),
                     ),

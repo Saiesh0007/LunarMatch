@@ -26,6 +26,8 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       matcher: pipeProv.config.matcher,
       ratioThreshold: pipeProv.config.ratioThreshold,
       geometricModel: pipeProv.config.geometricModel,
+      estimatorMethod: pipeProv.config.estimatorMethod,
+      subpixelRefinement: pipeProv.config.subpixelRefinement,
       spatialBalancing: pipeProv.config.spatialBalancing,
       gridSize: pipeProv.config.gridSize,
       maxPerCell: pipeProv.config.maxPerCell,
@@ -113,7 +115,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                 onChanged: (v) {
                   setState(() {
                     _config.featureMethod = v!;
-                    _config.simulationMode = (v != "SIFT");
+                    _config.simulationMode = false;
                   });
                 },
               ),
@@ -128,14 +130,28 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               const SizedBox(height: 16),
 
               _buildDropdownSection(
-                title: "Estimator",
+                title: "Geometric Model",
                 value: _config.geometricModel,
                 items: ["homography", "affine"],
                 onChanged: (v) => setState(() => _config.geometricModel = v!),
               ),
+              const SizedBox(height: 16),
+
+              _buildDropdownSection(
+                title: "Estimator",
+                value: _config.estimatorMethod,
+                items: ["magsac", "ransac"],
+                onChanged: (v) => setState(() => _config.estimatorMethod = v!),
+              ),
               const SizedBox(height: 24),
 
               // Toggle rows
+              _buildToggleRow(
+                title: "Sub-pixel Refinement",
+                value: _config.subpixelRefinement,
+                onChanged: (v) => setState(() => _config.subpixelRefinement = v),
+              ),
+              const SizedBox(height: 12),
               _buildToggleRow(
                 title: "Uniform Grid Balancing",
                 value: _config.spatialBalancing,

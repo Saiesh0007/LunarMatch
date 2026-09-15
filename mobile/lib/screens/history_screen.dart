@@ -6,7 +6,7 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final history = _getMockHistory();
+    final history = _getHistoryRecords();
 
     return Scaffold(
       backgroundColor: LunarTheme.background,
@@ -187,7 +187,7 @@ class HistoryScreen extends StatelessWidget {
     }
   }
 
-  List<Map<String, String>> _getMockHistory() {
+  List<Map<String, String>> _getHistoryRecords() {
     return [
       {
         "date": "2026-09-14 14:32",

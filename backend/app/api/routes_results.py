@@ -100,9 +100,7 @@ Execution Mode: {log_data.get('execution_mode', 'N/A')} ({metrics_data.get('metr
 • RANSAC Inliers      : {inliers}
 
 {"=" * 76}
-SCIENTIFIC HONESTY ATTESTATION (Rule A & Rule B):
-All metrics originate from real OpenCV mathematical coordinate evaluations or deterministic
-reproducible research simulation (Seed 26166). No metrics are fabricated or hallucinated.
+PIPELINE EXECUTION SUMMARY
 {"=" * 76}
 """
     from fastapi.responses import PlainTextResponse

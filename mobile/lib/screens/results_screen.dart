@@ -6,6 +6,7 @@ import '../app/routes.dart';
 import '../models/image_model.dart';
 import '../providers/pipeline_provider.dart';
 import '../providers/image_provider.dart';
+import '../services/report_export_service.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -46,7 +47,7 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
           title: const Text("Results"),
         ),
         body: const Center(
-          child: Text("No registration results available.", style: TextStyle(color: LunarTheme.textSecondary)),
+          child: Text("No registration results.", style: TextStyle(color: LunarTheme.textSecondary)),
         ),
       );
     }
@@ -115,6 +116,33 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
                       Expanded(child: _buildMetricCard("Decision", isReliable ? "RELIABLE" : "UNRELIABLE", "")),
                     ],
                   ),
+                  if (res.subpixelDiagnostics != null && res.subpixelDiagnostics!.enabled) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildMetricCard("Subpixel Residual", res.subpixelDiagnostics!.medianResidualPx != null ? res.subpixelDiagnostics!.medianResidualPx!.toStringAsFixed(3) : "N/A", "px")),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildMetricCard("Refined", res.subpixelDiagnostics!.nRefined.toString(), "")),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildMetricCard("P95 Residual", res.subpixelDiagnostics!.p95ResidualPx != null ? res.subpixelDiagnostics!.p95ResidualPx!.toStringAsFixed(3) : "N/A", "px")),
+                      ],
+                    ),
+                  ],
+                  if (res.routingConfig != null && res.routingConfig!.rationale.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: LunarTheme.surfaceCard,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: LunarTheme.border),
+                      ),
+                      child: Text(
+                        res.routingConfig!.rationale,
+                        style: const TextStyle(fontSize: 10, color: LunarTheme.textSecondary),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   // Action buttons
@@ -123,7 +151,12 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Export results
+                            ReportExportService.showExportModal(
+                              context: context,
+                              response: res,
+                              referenceSensor: imgProv.referenceSensor,
+                              movingSensor: imgProv.movingSensor,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: LunarTheme.primary,

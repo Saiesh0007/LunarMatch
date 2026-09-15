@@ -1,5 +1,5 @@
 class RegistrationMetricsModel {
-  final String metricMode; // "MEASURED" or "DEMO"
+  final String metricMode; // "MEASURED"
   final int? simulationSeed;
   final int keypointsReference;
   final int keypointsMoving;

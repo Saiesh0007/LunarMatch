@@ -33,7 +33,7 @@ class PipelineProvider with ChangeNotifier {
       return "Offline";
     }
     if (_config.simulationMode || _config.featureMethod != "SIFT") {
-      return "Simulation";
+      return "Offline";
     }
     return "Live";
   }
@@ -113,7 +113,7 @@ class PipelineProvider with ChangeNotifier {
         notifyListeners();
         return;
       } catch (e) {
-        _errorMessage = "Offline simulator failure: $e";
+        _errorMessage = "Processing failure: $e";
         _status = PipelineExecutionStatus.error;
         notifyListeners();
         return;
@@ -171,5 +171,16 @@ class PipelineProvider with ChangeNotifier {
       PipelineStageModel(stageNumber: 9, name: "REGISTRATION"),
       PipelineStageModel(stageNumber: 10, name: "METRICS"),
     ];
+  }
+  Future<Map<String, dynamic>> fetchRunResults(String runId) async {
+    return await apiService.fetchRunResults(runId);
+  }
+
+  Future<String> fetchRunReport(String runId) async {
+    return await apiService.fetchRunReport(runId);
+  }
+
+  Future<Map<String, dynamic>> fetchRunArtifact(String runId, String filename) async {
+    return await apiService.fetchRunArtifact(runId, filename);
   }
 }

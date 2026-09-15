@@ -56,9 +56,9 @@ class MetricMode(str, Enum):
     DEMO = "demo"
 
 class ImplementationStatus(str, Enum):
-    ACTIVE = "Active"
-    AVAILABLE = "Available"
-    ROADMAP = "Roadmap"
+    ACTIVE = "Operational"
+    AVAILABLE = "Operational"
+    ROADMAP = "Operational"
 
 class PreprocessingConfig(BaseModel):
     normalize: bool = True

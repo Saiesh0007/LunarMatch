@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../app/theme.dart';
-import '../providers/pipeline_provider.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final pipeProv = context.watch<PipelineProvider>();
 
     return Scaffold(
       backgroundColor: LunarTheme.background,
@@ -102,7 +99,6 @@ class AboutScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     _buildCreditRow("Algorithms", "SIFT, RIFT2, MAGSAC++, FLANN"),
                     _buildCreditRow("Libraries", "OpenCV, NumPy, SciPy, fl_chart"),
-                    _buildCreditRow("Demo Data", "Procedural lunar terrain synthesis"),
                   ],
                 ),
               ),
@@ -116,14 +112,6 @@ class AboutScreen extends StatelessWidget {
                     style: LunarTheme.mono.copyWith(
                       fontSize: 11,
                       color: LunarTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "LunarMatch is a research prototype. Not for flight use.",
-                    style: LunarTheme.mono.copyWith(
-                      fontSize: 9,
-                      color: LunarTheme.textTertiary,
                     ),
                   ),
                 ],

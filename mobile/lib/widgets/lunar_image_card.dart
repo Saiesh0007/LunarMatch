@@ -11,7 +11,7 @@ class LunarImageCard extends StatelessWidget {
   final String currentSensor;
   final ValueChanged<String> onSensorChanged;
   final VoidCallback onUploadPressed;
-  final VoidCallback onDemoPressed;
+  final VoidCallback? onDemoPressed;
   final Color roleColor;
 
   const LunarImageCard({
@@ -22,7 +22,7 @@ class LunarImageCard extends StatelessWidget {
     required this.currentSensor,
     required this.onSensorChanged,
     required this.onUploadPressed,
-    required this.onDemoPressed,
+    this.onDemoPressed,
     this.roleColor = Colors.white,
   });
 
@@ -193,51 +193,18 @@ class LunarImageCard extends StatelessWidget {
           ],
 
           // Buttons Row
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isVeryNarrow = constraints.maxWidth < 220;
-
-              final uploadBtn = ElevatedButton.icon(
-                onPressed: onUploadPressed,
-                icon: const Icon(Icons.file_upload_outlined, size: 15),
-                label: Text(image == null ? "Upload Image" : "Replace"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                ),
-              );
-
-              final demoBtn = OutlinedButton.icon(
-                onPressed: onDemoPressed,
-                icon: const Icon(Icons.auto_awesome, size: 14),
-                label: const Text("Load Sample"),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: LunarTheme.borderLight),
-                ),
-              );
-
-              if (isVeryNarrow) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    uploadBtn,
-                    const SizedBox(height: 8),
-                    demoBtn,
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: uploadBtn),
-                  const SizedBox(width: 8),
-                  Expanded(child: demoBtn),
-                ],
-              );
-            },
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onUploadPressed,
+              icon: const Icon(Icons.file_upload_outlined, size: 15),
+              label: Text(image == null ? "Upload Image" : "Replace"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+            ),
           ),
         ],
       ),
@@ -254,6 +221,6 @@ class LunarImageCard extends StatelessWidget {
     if (img.localPath != null) {
       return Image.file(File(img.localPath!), fit: BoxFit.cover);
     }
-    return const Center(child: Text("Image preview error"));
+    return const Center(child: Text("Failed to load image"));
   }
 }

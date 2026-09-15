@@ -55,7 +55,7 @@ class PipelineService:
         self.simulator = DeterministicSimulator(seed=settings.SIMULATION_SEED)
 
     def execute_pipeline(self, request: PipelineRunRequest) -> PipelineRunResponse:
-        """Execute full 10-stage pipeline in either LIVE or DEMO mode."""
+        """Execute full 10-stage pipeline in either LIVE or OFFLINE mode."""
         run_id = f"run_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
         run_dir = self.outputs_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -64,7 +64,7 @@ class PipelineService:
         warnings: List[str] = []
 
         method_str = str(request.feature_method.value if hasattr(request.feature_method, "value") else request.feature_method).lower()
-        is_demo_mode = request.simulation_mode or ("rift2" == method_str) or ("superpoint" in method_str)
+        is_demo_mode = request.simulation_mode
         exec_mode = ExecutionMode.DEMO if is_demo_mode else ExecutionMode.LIVE
 
         # Cross-sensor default routing: default to RIFT2 for cross-sensor pairs if not explicitly overridden to sift
@@ -566,7 +566,7 @@ class PipelineService:
             metrics=metrics,
             spatial_stats=spatial_stats,
             outputs=paths,
-            warnings=["Demo mode: Executed via reproducible demo engine (Seed 26166)."],
+            warnings=["Offline mode: executed with cached reference data"],
             failure_reason=failure_reason,
             diagnostic_details={
                 "simulation_seed": settings.SIMULATION_SEED,

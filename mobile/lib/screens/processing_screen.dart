@@ -174,7 +174,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerPr
     final steps = [
       {"name": "Preprocessing", "icon": Icons.check, "status": "done"},
       {"name": "Feature Extraction", "icon": Icons.check, "status": "done"},
-      {"name": "Matching", "icon": Icons.radio_button_unchecked, "status": isRunning ? "active" : "pending"},
+      {"name": "Matching", "icon": Icons.radio_button_unchecked, "status": isRunning ? "running" : "pending"},
       {"name": "Estimation", "icon": Icons.radio_button_unchecked, "status": "pending"},
     ];
 
@@ -215,7 +215,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerPr
         bgColor = LunarTheme.success;
         iconColor = Colors.black;
         break;
-      case "active":
+      case "running":
         bgColor = LunarTheme.primary;
         iconColor = Colors.black;
         break;
@@ -237,7 +237,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerPr
       child: Icon(icon, color: iconColor, size: 16),
     );
 
-    if (status == "active" && pulse) {
+    if (status == "running" && pulse) {
       return AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {

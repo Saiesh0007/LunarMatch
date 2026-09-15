@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildCapabilityCard(
                 title: "Engine Capabilities",
                 description: "Feature detection, matching, verification, and quality assessment.",
-                icon: Icons.verified_outlined,
+                icon: Icons.tune_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.status),
               ),
               _buildCapabilityCard(

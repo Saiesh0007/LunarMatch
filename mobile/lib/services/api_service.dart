@@ -49,7 +49,7 @@ class ApiService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => DemoPairModel.fromJson(e)).toList();
     }
-    throw Exception("Failed to fetch demo pairs: ${response.statusCode}");
+    throw Exception("Failed to fetch pairs: ${response.statusCode}");
   }
 
   Future<Map<String, dynamic>> uploadImageBytes(
@@ -147,7 +147,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw Exception("Demo compare failed (${response.statusCode}): ${response.body}");
+    throw Exception("Compare failed (${response.statusCode}): ${response.body}");
   }
 
   Future<Map<String, dynamic>> fetchFailureCase() async {
@@ -159,6 +159,33 @@ class ApiService {
       return jsonDecode(response.body);
     }
     throw Exception("Failure case fetch failed (${response.statusCode}): ${response.body}");
+  }
+
+  Future<Map<String, dynamic>> fetchRunResults(String runId) async {
+    final uri = Uri.parse('/api/v1/results/');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch run results: ');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> fetchRunArtifact(String runId, String filename) async {
+    final uri = Uri.parse('/api/v1/results//artifact/');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch artifact: ');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<String> fetchRunReport(String runId) async {
+    final uri = Uri.parse('/api/v1/results//report');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch report: ');
+    }
+    return response.body;
   }
 
   String resolveFullUrl(String? endpointOrPath) {

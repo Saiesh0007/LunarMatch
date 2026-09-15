@@ -46,7 +46,7 @@ class ReportExportService {
     buffer.writeln("-" * 76);
     buffer.writeln("• REPROJECTION RMSE      : ${m.rmsePx != null ? Formatters.formatPixels(m.rmsePx) : 'N/A (Rejected / Unreliable)'}");
     buffer.writeln("• RANSAC INLIER RATIO    : ${Formatters.formatPercentage(m.inlierRatio)}");
-    buffer.writeln("• RANSAC INLIER COUNT    : ${m.ransacInliers} verified geometric consensus tie-points");
+    buffer.writeln("• RANSAC INLIER COUNT    : ${m.ransacInliers} consensus tie-points");
     buffer.writeln("• SPATIAL COVERAGE (POST): ${Formatters.formatPercentage(m.spatialCoverage)}");
     buffer.writeln("• SPATIAL COVERAGE (PRE) : ${Formatters.formatPercentage(m.spatialCoverageBefore)}");
     final coverageGain = (m.spatialCoverage - m.spatialCoverageBefore).clamp(0.0, 100.0);
@@ -60,7 +60,7 @@ class ReportExportService {
     buffer.writeln("• Moving Keypoints Extracted    : ${m.keypointsMoving}");
     buffer.writeln("• Raw 2-NN Candidate Pairs      : ${m.candidateMatches}");
     buffer.writeln("• Lowe's Ratio Filtered Pairs   : ${m.filteredMatches}");
-    buffer.writeln("• Geometrically Verified Inliers: ${m.ransacInliers}");
+    buffer.writeln("• Consensus Inliers: ${m.ransacInliers}");
     if (stats != null) {
       buffer.writeln("• Spatial Partition Grid        : ${stats.gridSize} × ${stats.gridSize} (${stats.totalCells} uniform cells)");
       buffer.writeln("• Occupied Grid Cells (Before)  : ${stats.occupiedBefore} / ${stats.totalCells} cells");
@@ -87,9 +87,7 @@ class ReportExportService {
     }
 
     buffer.writeln("=" * 76);
-    buffer.writeln("SCIENTIFIC HONESTY ATTESTATION (Rule A & Rule B):");
-    buffer.writeln("All metrics originate from real OpenCV mathematical coordinate evaluations or deterministic");
-    buffer.writeln("reproducible research simulation (Seed 26166). No metrics are fabricated or hallucinated.");
+    buffer.writeln("PIPELINE EXECUTION SUMMARY");
     buffer.writeln("=" * 76);
 
     return buffer.toString();

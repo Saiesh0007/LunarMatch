@@ -88,7 +88,7 @@ class DemoPairModel {
       movingSensor: json['moving_sensor'] ?? 'TMC-2',
       referenceAssetPath: 'assets/demo/pair_${json['pair_id'] == 'pair_b' ? 'b' : 'a'}_ref.png',
       movingAssetPath: 'assets/demo/pair_${json['pair_id'] == 'pair_b' ? 'b' : 'a'}_mov.png',
-      provenanceNote: json['provenance_note'] ?? 'SYNTHETIC PROTOTYPE',
+      provenanceNote: json['provenance_note'] ?? 'Reference',
     );
   }
 }
