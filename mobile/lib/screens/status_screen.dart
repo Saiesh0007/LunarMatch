@@ -110,7 +110,7 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget _buildCapabilityCard(CapabilityItemModel item) {
-    final detail = item.notes ?? item.description ?? '';
+    final detail = item.notes;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),

@@ -43,7 +43,7 @@ class PipelineStepWidget extends StatelessWidget {
           width: 6,
           height: 6,
           decoration: const BoxDecoration(
-            color: LunarTheme.border,
+            color: LunarTheme.borderFocus,
             shape: BoxShape.circle,
           ),
         );

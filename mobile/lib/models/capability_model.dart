@@ -1,35 +1,25 @@
 class CapabilityItemModel {
   final String name;
-  final String? category;
-  final String? description;
-  final String? notes;
-  final bool active;
+  final String category;
+  final String status;
+  final bool verified;
+  final String notes;
 
   const CapabilityItemModel({
     required this.name,
-    this.category,
-    this.description,
-    this.notes,
-    this.active = true,
+    this.category = '',
+    this.status = 'Operational',
+    this.verified = true,
+    this.notes = '',
   });
 
   factory CapabilityItemModel.fromJson(Map<String, dynamic> json) {
     return CapabilityItemModel(
-      name: (json['name'] ?? '') as String,
-      category: json['category'] as String?,
-      description: json['description'] as String?,
-      notes: json['notes'] as String?,
-      active: (json['active'] as bool?) ?? true,
+      name: json['name'] ?? '',
+      category: json['category'] ?? '',
+      status: json['status'] ?? 'Operational',
+      verified: json['verified'] ?? false,
+      notes: json['notes'] ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      if (category != null) 'category': category,
-      if (description != null) 'description': description,
-      if (notes != null) 'notes': notes,
-      'active': active,
-    };
   }
 }

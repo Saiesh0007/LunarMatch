@@ -3,71 +3,30 @@ import 'package:provider/provider.dart';
 import '../app/theme.dart';
 import '../app/routes.dart';
 import '../providers/pipeline_provider.dart';
+import '../widgets/pipeline_step.dart';
 
-class ProcessingScreen extends StatefulWidget {
+class ProcessingScreen extends StatelessWidget {
   const ProcessingScreen({super.key});
-
-  @override
-  State<ProcessingScreen> createState() => _ProcessingScreenState();
-}
-
-class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late List<String> _logs;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _logs = [
-      "[14:32:01] Initializing pipeline...",
-      "[14:32:01] Loading reference image (OHRC, 2048x2048)",
-      "[14:32:02] Loading moving image (TMC-2, 2048x2048)",
-      "[14:32:02] Preprocessing: Normalizing histograms",
-      "[14:32:03] Preprocessing: Applying CLAHE",
-      "[14:32:03] Preprocessing complete ✓",
-      "[14:32:04] Feature extraction: Detecting SIFT keypoints",
-      "[14:32:05] Found 2,847 keypoints in reference",
-      "[14:32:05] Found 2,612 keypoints in moving",
-      "[14:32:06] Feature extraction complete ✓",
-      "[14:32:06] Matching: Building FLANN index",
-      "[14:32:07] Matching: Ratio test filtering (0.75)",
-      "[14:32:08] Matching in progress ●",
-    ];
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final pipeProv = context.watch<PipelineProvider>();
-    final isDone = pipeProv.status.name == 'completed';
-    final isError = pipeProv.status.name == 'error';
-    final isRunning = pipeProv.status.name == 'running';
+    final stages = pipeProv.currentStages;
+
+    final completedCount = stages.where((s) => s.status == "COMPLETED").length;
+    final totalCount = stages.isEmpty ? 10 : stages.length;
+    final progressFraction = completedCount / totalCount;
+
+    final isDone = pipeProv.status == PipelineExecutionStatus.completed;
+    final isError = pipeProv.status == PipelineExecutionStatus.error;
 
     return PopScope(
       canPop: isDone || isError,
       child: Scaffold(
         backgroundColor: LunarTheme.background,
         appBar: AppBar(
-          leading: isDone || isError
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close, color: LunarTheme.primary),
-                  onPressed: () {
-                    pipeProv.cancel();
-                    Navigator.pop(context);
-                  },
-                ),
-          title: const Text("Processing"),
-          centerTitle: false,
+          title: const Text("PIPELINE EXECUTION"),
+          automaticallyImplyLeading: isDone || isError,
         ),
         body: SafeArea(
           child: Padding(
@@ -75,31 +34,84 @@ class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 4-step progress indicator
-                _buildStepProgress(isRunning, isDone, isError),
-                const SizedBox(height: 16),
-
-                // Log stream
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: LunarTheme.surfaceCard,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: LunarTheme.border),
+                // Header Progress Status Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: LunarTheme.surfaceCard,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDone ? Colors.white : (isError ? LunarTheme.borderFocus : LunarTheme.border),
                     ),
-                    child: ListView.builder(
-                      itemCount: _logs.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text(
-                            _logs[index],
-                            style: LunarTheme.mono.copyWith(
-                              fontSize: 10,
-                              color: LunarTheme.textSecondary,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              isDone
+                                  ? "PIPELINE COMPLETED"
+                                  : (isError ? "EXECUTION FAILED" : "PROCESSING LUNAR IMAGES..."),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${(progressFraction * 100).toInt()}%",
+                            style: LunarTheme.mono.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progressFraction,
+                          minHeight: 5,
+                          backgroundColor: LunarTheme.surfaceElevated,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isDone
+                            ? "Registration telemetry ready for inspection."
+                            : (isError
+                                ? (pipeProv.errorMessage ?? "Pipeline encountered an error")
+                                : "Executing coordinate alignment and spatial balancing stages..."),
+                        style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Stages List
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: LunarTheme.surfaceCard,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: LunarTheme.border),
+                    ),
+                    child: ListView.separated(
+                      itemCount: stages.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, idx) {
+                        return PipelineStepWidget(
+                          stage: stages[idx],
+                          isLast: idx == stages.length - 1,
                         );
                       },
                     ),
@@ -107,166 +119,35 @@ class _ProcessingScreenState extends State<ProcessingScreen> with SingleTickerPr
                 ),
                 const SizedBox(height: 16),
 
-                // Cancel button
-                if (!isDone && !isError)
-                  OutlinedButton(
-                    onPressed: () {
-                      pipeProv.cancel();
-                      Navigator.pop(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: LunarTheme.error,
-                      side: BorderSide(color: LunarTheme.error, width: 1),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "Cancel",
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                  )
-                else if (isDone)
-                  ElevatedButton(
+                // Action Button
+                if (isDone)
+                  ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, AppRoutes.results);
                     },
+                    icon: const Icon(Icons.analytics_outlined, size: 18),
+                    label: const Text("VIEW REGISTRATION RESULT"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LunarTheme.primary,
-                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                     ),
-                    child: const Text("View Results"),
                   )
                 else if (isError)
-                  OutlinedButton(
+                  OutlinedButton.icon(
                     onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back, size: 16),
+                    label: const Text("BACK TO CONFIGURATION"),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: LunarTheme.textPrimary,
-                      side: BorderSide(color: LunarTheme.border, width: 1),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "Back to Configuration",
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: LunarTheme.borderLight),
                     ),
                   ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStepProgress(bool isRunning, bool isDone, bool isError) {
-    final steps = [
-      {"name": "Preprocessing", "icon": Icons.check, "status": "done"},
-      {"name": "Feature Extraction", "icon": Icons.check, "status": "done"},
-      {"name": "Matching", "icon": Icons.radio_button_unchecked, "status": isRunning ? "running" : "pending"},
-      {"name": "Estimation", "icon": Icons.radio_button_unchecked, "status": "pending"},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: LunarTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LunarTheme.border),
-      ),
-      child: Row(
-        children: steps.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final step = entry.value;
-          final isLast = idx == steps.length - 1;
-
-          return Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildStepCircle(step["status"] as String, step["icon"] as IconData, idx == 2),
-                if (!isLast) _buildConnector(idx < 2 ? "done" : "pending"),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildStepCircle(String status, IconData icon, bool pulse) {
-    Color bgColor;
-    Color iconColor;
-    double size = 28;
-
-    switch (status) {
-      case "done":
-        bgColor = LunarTheme.success;
-        iconColor = Colors.black;
-        break;
-      case "running":
-        bgColor = LunarTheme.primary;
-        iconColor = Colors.black;
-        break;
-      case "pending":
-      default:
-        bgColor = LunarTheme.surfaceElevated;
-        iconColor = LunarTheme.textTertiary;
-        break;
-    }
-
-    Widget circle = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: bgColor,
-        shape: BoxShape.circle,
-        border: Border.all(color: LunarTheme.border, width: 1),
-      ),
-      child: Icon(icon, color: iconColor, size: 16),
-    );
-
-    if (status == "running" && pulse) {
-      return AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, child) {
-          return Container(
-            width: size + 8,
-            height: size + 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: LunarTheme.primary.withOpacity(0.3 * _pulseController.value),
-                width: 2,
-              ),
-            ),
-            child: Center(child: circle),
-          );
-        },
-      );
-    }
-
-    return circle;
-  }
-
-  Widget _buildConnector(String status) {
-    Color color = status == "done" ? LunarTheme.success : LunarTheme.border;
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        color: color,
       ),
     );
   }

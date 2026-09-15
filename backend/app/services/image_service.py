@@ -30,7 +30,7 @@ class ImageService:
 
         # Generate Demo Pair A (Moderate rotation + translation, sun azimuth 45 vs 55)
         if not pair_a_ref.exists() or not pair_a_mov.exists():
-            logger.info("Generating Pair A — Lunar Surface imagery...")
+            logger.info("Generating Demo Pair A — Lunar Prototype imagery...")
             ref_a = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=45.0, seed=26166)
             mov_a, _ = apply_controlled_variation(
                 ref_a, scale=1.03, rotation_deg=3.5, tx_px=14.0, ty_px=-10.0,
@@ -41,7 +41,7 @@ class ImageService:
 
         # Generate Demo Pair B (Challenging illumination gradient: sun azimuth 40 vs 110 degrees)
         if not pair_b_ref.exists() or not pair_b_mov.exists():
-            logger.info("Generating Pair B — High Illumination Gradient...")
+            logger.info("Generating Demo Pair B — High Illumination Delta Prototype...")
             ref_b = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=40.0, seed=38291)
             # Different sun azimuth simulates high multi-temporal illumination shift
             mov_b_base = generate_lunar_crater_surface(width=640, height=640, sun_azimuth_deg=100.0, seed=38291)
@@ -122,7 +122,7 @@ class ImageService:
         return [
             DemoPairInfo(
                 pair_id="pair_a",
-                name="Pair A — Lunar Surface",
+                name="Demo Pair A — Lunar Prototype",
                 description="OHRC Optical vs TMC-2 Stereo alignment over impact crater basin.",
                 reference_image_id="demo_pair_a_ref",
                 moving_image_id="demo_pair_a_mov",
@@ -130,11 +130,11 @@ class ImageService:
                 moving_sensor="TMC-2",
                 reference_preview_url="/api/v1/images/demo_pair_a_ref/preview",
                 moving_preview_url="/api/v1/images/demo_pair_a_mov/preview",
-                provenance_note="SYNTHETIC SOURCE: Procedurally rendered crater terrain with known affine perturbation.",
+                provenance_note="SYNTHETIC PROTOTYPE: Procedurally rendered crater terrain with known affine perturbation.",
             ),
             DemoPairInfo(
                 pair_id="pair_b",
-                name="Pair B — High Illumination Gradient",
+                name="Demo Pair B — High Illumination Delta Prototype",
                 description="LRO NAC vs IIRS Hyperspectral alignment with steep 60° solar illumination delta.",
                 reference_image_id="demo_pair_b_ref",
                 moving_image_id="demo_pair_b_mov",
@@ -142,7 +142,7 @@ class ImageService:
                 moving_sensor="IIRS",
                 reference_preview_url="/api/v1/images/demo_pair_b_ref/preview",
                 moving_preview_url="/api/v1/images/demo_pair_b_mov/preview",
-                provenance_note="SYNTHETIC SOURCE: High shadow variation designed to stress-test feature descriptor robustness.",
+                provenance_note="SYNTHETIC PROTOTYPE: High shadow variation designed to stress-test feature descriptor robustness.",
             ),
         ]
 

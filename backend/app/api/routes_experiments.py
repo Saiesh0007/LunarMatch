@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1/experiments", tags=["Experiments"])
 @router.post("/robustness", response_model=RobustnessExperimentResponse)
 def run_robustness_experiment(request: RobustnessExperimentRequest):
     """
-    Execute controlled robustness experiment.
+    Execute controlled prototype robustness experiment.
     Evaluates inlier count, ratio, coverage, and RMSE across synthetic parameter sweeps
     (illumination delta, scale, rotation, translation).
     """

@@ -23,31 +23,41 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
         titleSpacing: 12,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Image.asset(
-            'assets/images/logo.png',
-            width: 26,
-            height: 26,
-            fit: BoxFit.contain,
-          ),
-        ),
-        title: const Text("LUNARMATCH"),
-        actions: [
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: isOnline ? LunarTheme.success : LunarTheme.textTertiary,
-              shape: BoxShape.circle,
+        title: Row(
+          children: [
+            // Logo displayed cleanly on black background without white circular container
+            Image.asset(
+              'assets/icons/app_logo.png',
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, size: 22),
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: isOnline ? Colors.white : const Color(0xFF777777),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Expanded(
+              child: Text(
+                "LUNARMATCH",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+          ],
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -55,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero card
+              // Mission Control Banner
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -66,16 +76,54 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: const [
+                        Text(
+                          "ISRO — PROBLEM STATEMENT 26166",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          "SIH 2026",
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            color: LunarTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     const Text(
                       "Lunar Image Correspondence & Registration Engine",
-                      style: LunarTheme.heading,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      "Aligns Chandrayaan-2 optical imagery (OHRC, TMC-2, IIRS) against lunar reference data across Sun angles, scales, and sensors.",
-                      style: LunarTheme.body,
+                      "Aligns heterogeneous multi-modal lunar observation sets under extreme illumination variations, scale differentials, and spatial crater clustering.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: LunarTheme.textSecondary,
+                        height: 1.45,
+                      ),
                     ),
                     const SizedBox(height: 14),
+
+                    // Backend Connectivity Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
@@ -86,30 +134,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.cloud_done_outlined,
+                            isOnline ? Icons.cloud_done_outlined : Icons.offline_bolt_outlined,
                             size: 15,
-                            color: LunarTheme.success,
+                            color: isOnline ? Colors.white : const Color(0xFF999999),
                           ),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Connected",
-                              style: TextStyle(
+                              isOnline ? "Backend: ONLINE" : "Backend: OFFLINE",
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
                               ),
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => pipeProv.checkBackendHealth(),
-                            icon: const Icon(
-                              Icons.refresh,
-                              size: 16,
-                              color: LunarTheme.textTertiary,
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () => pipeProv.checkBackendHealth(),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF222222),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: LunarTheme.borderLight),
+                              ),
+                              child: const Text(
+                                "CHECK",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
                           ),
                         ],
                       ),
@@ -117,37 +176,44 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Section label
+              // Action Cards Title
               const Text(
                 "CORE CAPABILITIES",
-                style: LunarTheme.label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: LunarTheme.textTertiary,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // 4 capability cards
-              _buildCapabilityCard(
-                title: "Image Registration",
-                description: "Align reference and moving images using the LunarMatch pipeline.",
+              _buildDashboardCard(
+                title: "IMAGE REGISTRATION",
+                subtitle: "Select Reference (Fixed) and Moving images, configure preprocessing, and run registration pipeline.",
                 icon: Icons.layers_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.upload),
               ),
-              _buildCapabilityCard(
-                title: "Robustness Lab",
-                description: "Test registration across illumination, scale, and geometric variations.",
+
+              _buildDashboardCard(
+                title: "ROBUSTNESS LABORATORY",
+                subtitle: "Execute robustness evaluations across illumination, scale variation, and geometric transformations.",
                 icon: Icons.science_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.robustness),
               ),
-              _buildCapabilityCard(
-                title: "Engine Capabilities",
-                description: "Feature detection, matching, verification, and quality assessment.",
+
+              _buildDashboardCard(
+                title: "ENGINE CAPABILITIES",
+                subtitle: "Feature detection, matching, verification, and registration quality metrics.",
                 icon: Icons.tune_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.status),
               ),
-              _buildCapabilityCard(
-                title: "Pipeline Architecture",
-                description: "System block diagram and processing flow.",
+
+              _buildDashboardCard(
+                title: "PIPELINE ARCHITECTURE",
+                subtitle: "Interactive pipeline block diagrams and stage specifications.",
                 icon: Icons.schema_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.architecture),
               ),
@@ -158,15 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: SafeArea(
         child: Container(
           decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: LunarTheme.border, width: 1),
-            ),
+            border: Border(top: BorderSide(color: LunarTheme.border, width: 1)),
           ),
           child: NavigationBar(
             selectedIndex: _bottomNavIndex,
             backgroundColor: LunarTheme.background,
             surfaceTintColor: Colors.transparent,
-            indicatorColor: LunarTheme.surfaceElevated,
+            indicatorColor: const Color(0xFF222222),
             onDestinationSelected: (idx) {
               setState(() => _bottomNavIndex = idx);
               if (idx == 1) Navigator.pushNamed(context, AppRoutes.upload);
@@ -201,19 +265,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCapabilityCard({
+  /// Responsive dashboard card:
+  /// Places badge neatly below the title to completely prevent horizontal clipping/overflow.
+  Widget _buildDashboardCard({
     required String title,
-    required String description,
+    required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: LunarTheme.surfaceCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: LunarTheme.border, width: 1),
-      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -230,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: LunarTheme.borderLight),
                 ),
-                child: Icon(icon, color: LunarTheme.primary, size: 20),
+                child: Icon(icon, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -243,12 +304,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.6,
-                        color: LunarTheme.textPrimary,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      description,
+                      subtitle,
                       style: const TextStyle(
                         fontSize: 11,
                         color: LunarTheme.textSecondary,
@@ -259,11 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: LunarTheme.textTertiary,
-              ),
+              const Icon(Icons.chevron_right, size: 18, color: LunarTheme.textTertiary),
             ],
           ),
         ),

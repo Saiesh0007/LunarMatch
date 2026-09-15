@@ -12,7 +12,7 @@ from ..utils.logging import logger
 
 class MetricsCalculator:
     """
-    Computes rigorous quantitative metrics and transparent confidence ratings.
+    Computes rigorous quantitative metrics and transparent prototype confidence ratings.
     Never uses hardcoded figures; all numbers are calculated from inliers and geometry.
     """
 
@@ -110,7 +110,7 @@ class MetricsCalculator:
             c_cov = min(1.0, spatial_coverage / 60.0)
             c_rmse = max(0.0, 1.0 - (rmse / 5.0)) if rmse is not None else 0.5
             
-            # Weighted confidence score (quality index)
+            # Weighted confidence score (prototype quality index)
             confidence_score = round(0.35 * c_inliers + 0.25 * c_ratio + 0.25 * c_cov + 0.15 * c_rmse, 3)
 
             if confidence_score >= 0.70 and inlier_count >= 25 and (rmse is None or rmse <= 3.5):

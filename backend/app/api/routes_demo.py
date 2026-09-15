@@ -16,7 +16,7 @@ from fastapi import APIRouter, Body, HTTPException
 from ..config import settings
 from ..utils.file_utils import load_json, to_json_serializable
 
-router = APIRouter(tags=["Tools"])
+router = APIRouter(tags=["Demo"])
 
 
 def sanitize_for_json(obj: Any) -> Any:
@@ -55,7 +55,7 @@ def _latest_run() -> Path:
         reverse=True,
     )
     if not runs:
-        raise HTTPException(status_code=404, detail="No comparison result available")
+        raise HTTPException(status_code=404, detail="No completed demo run is available")
     return runs[0]
 
 
@@ -102,7 +102,7 @@ def compare_pipelines(payload: dict = Body(...)):
     The response reflects actual measured metrics — no hard-coded values.
     """
     cache = _cached_compare_result()
-    pair_name = payload.get("pair_name") or cache.get("pair_name", "Pair A: bundled data")
+    pair_name = payload.get("pair_name") or cache.get("pair_name", "Pair A: bundled prototype")
     return sanitize_for_json({
         "pair_name": pair_name,
         "provenance": cache.get("provenance", "Measured — both methods run on the same demo pair"),

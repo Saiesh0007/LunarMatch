@@ -83,7 +83,7 @@ class _MatchVisualizationWidgetState extends State<MatchVisualizationWidget> {
         Container(
           height: 280,
           decoration: BoxDecoration(
-            color: LunarTheme.background,
+            color: const Color(0xFF070707),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
             border: Border.all(color: LunarTheme.border),
           ),
@@ -236,7 +236,7 @@ class MatchLinesPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final outlierPaint = Paint()
-      ..color = LunarTheme.border.withOpacity(0.40)
+      ..color = const Color(0xFF555555).withOpacity(0.40)
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
 

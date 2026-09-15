@@ -8,13 +8,9 @@ import '../screens/results_screen.dart';
 import '../screens/correspondence_screen.dart';
 import '../screens/spatial_coverage_screen.dart';
 import '../screens/robustness_screen.dart';
-import '../screens/comparison_screen.dart';
-import '../screens/failure_case_screen.dart';
 import '../screens/status_screen.dart';
 import '../screens/architecture_screen.dart';
 import '../screens/about_screen.dart';
-import '../screens/history_screen.dart';
-import '../screens/settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -26,13 +22,9 @@ class AppRoutes {
   static const String correspondence = '/correspondence';
   static const String spatialCoverage = '/spatial-coverage';
   static const String robustness = '/robustness';
-  static const String comparison = '/comparison';
-  static const String failureCase = '/failure-case';
   static const String status = '/status';
   static const String architecture = '/architecture';
   static const String about = '/about';
-  static const String history = '/history';
-  static const String settings = '/settings';
 
   static Map<String, WidgetBuilder> get routes => {
         splash: (context) => const SplashScreen(),
@@ -44,12 +36,8 @@ class AppRoutes {
         correspondence: (context) => const CorrespondenceScreen(),
         spatialCoverage: (context) => const SpatialCoverageScreen(),
         robustness: (context) => const RobustnessScreen(),
-        comparison: (context) => const ComparisonScreen(),
-        failureCase: (context) => const FailureCaseScreen(),
         status: (context) => const StatusScreen(),
         architecture: (context) => const ArchitectureScreen(),
         about: (context) => const AboutScreen(),
-        history: (context) => const HistoryScreen(),
-        settings: (context) => const SettingsScreen(),
       };
 }

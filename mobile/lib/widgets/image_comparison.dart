@@ -77,7 +77,7 @@ class _ImageComparisonViewerState extends State<ImageComparisonViewer> {
         Container(
           height: 320,
           decoration: BoxDecoration(
-            color: LunarTheme.background,
+            color: const Color(0xFF070707),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
             border: Border.all(color: LunarTheme.border),
           ),

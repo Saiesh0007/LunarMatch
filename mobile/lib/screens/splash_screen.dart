@@ -12,7 +12,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animController;
-  late Animation<double> _progressAnim;
+  late Animation<double> _fadeAnim;
   Timer? _navTimer;
 
   @override
@@ -20,12 +20,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 1000),
     );
-    _progressAnim = CurvedAnimation(parent: _animController, curve: Curves.easeInOut);
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeIn);
     _animController.forward();
 
-    _navTimer = Timer(const Duration(milliseconds: 2500), () {
+    _navTimer = Timer(const Duration(milliseconds: 2000), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
@@ -44,91 +44,84 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: LunarTheme.background,
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _progressAnim,
-          builder: (context, child) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo
-                    Image.asset(
-                      'assets/images/logo.png',
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 24),
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Space research emblem - LunarMatch App Logo on pure black background
+                  Image.asset(
+                    'assets/icons/app_logo.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 24),
 
-                    // App Title
-                    const Text(
-                      "LunarMatch",
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: LunarTheme.primary,
-                      ),
+                  // App Title
+                  const Text(
+                    "LUNARMATCH",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4.0,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 8),
+                  ),
+                  const SizedBox(height: 8),
 
-                    // Subtitle
-                    const Text(
-                      "Multi-Modal Lunar Registration",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: LunarTheme.textPrimary,
-                      ),
+                  // Subtitle
+                  const Text(
+                    "MULTI-MODAL LUNAR CORRESPONDENCE & REGISTRATION",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      height: 1.5,
+                      color: LunarTheme.textSecondary,
                     ),
-                    const SizedBox(height: 48),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Bottom meta row
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 16,
-                      children: [
-                        Text(
-                          "ISRO SIH 2026 · PS 26166",
-                          style: LunarTheme.mono.copyWith(
-                            fontSize: 11,
-                            color: LunarTheme.textTertiary,
-                          ),
-                        ),
-                        Text(
-                          "For a Brighter Bharat",
-                          style: LunarTheme.mono.copyWith(
-                            fontSize: 11,
-                            color: LunarTheme.primary,
-                          ),
-                        ),
-                      ],
+                  const Text(
+                    "ISRO • SIH 2026 • PS 26166",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.0,
+                      color: LunarTheme.textTertiary,
                     ),
-                    const SizedBox(height: 32),
+                  ),
+                  const SizedBox(height: 44),
 
-                    // Thin saffron progress ring
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            value: _progressAnim.value,
-                            strokeWidth: 2,
-                            backgroundColor: LunarTheme.borderLight,
-                            valueColor: const AlwaysStoppedAnimation<Color>(LunarTheme.primary),
-                          ),
-                        ],
-                      ),
+                  // Loading indicator
+                  const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "INITIALIZING TELEMETRY ENGINE...",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: LunarTheme.textTertiary,
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );

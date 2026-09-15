@@ -20,6 +20,8 @@ import 'package:mobile/screens/spatial_coverage_screen.dart';
 
 import 'package:mobile/models/pipeline_model.dart';
 import 'package:mobile/models/metrics_model.dart';
+import 'package:mobile/widgets/section_header.dart';
+import 'package:mobile/widgets/metric_card.dart';
 
 Widget _wrapWithProviders(
   Widget child, {
@@ -156,7 +158,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('LunarMatch'), findsOneWidget);
+      expect(find.text('LUNARMATCH'), findsOneWidget);
     });
 
     testWidgets('ProcessingScreen renders without overflow on 360px viewport',
@@ -334,9 +336,8 @@ void main() {
               child: SizedBox(
                 width: 120,
                 child: MetricCard(
-                  label: "TRANSFORMATION METRIC VALUE",
-                  value: "0.1234",
-                  unit: "px",
+                  title: "TRANSFORMATION METRIC VALUE",
+                  value: "0.1234 px",
                 ),
               ),
             ),
