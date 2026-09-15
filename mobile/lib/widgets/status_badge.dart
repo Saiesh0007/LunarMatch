@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/theme.dart';
 
 class StatusBadge extends StatelessWidget {
-  final String mode; // "LIVE", "DEMO", "LOCAL DEMO"
+  final String mode;
 
   const StatusBadge({
     super.key,
@@ -11,14 +11,13 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine friendly label if mode string is long
-    String displayMode = mode.toUpperCase();
-    if (displayMode == "LOCAL FALLBACK" || displayMode == "LOCAL DEMO") {
-      displayMode = "LOCAL DEMO";
-    } else if (displayMode == "LIVE" || displayMode == "LIVE BASELINE") {
-      displayMode = "LIVE";
-    } else if (displayMode.contains("DEMO")) {
-      displayMode = "DEMO";
+    String displayMode = mode;
+    if (displayMode.toUpperCase().contains("OFFLINE")) {
+      displayMode = "Offline";
+    } else if (displayMode.toUpperCase().contains("SIMULATION")) {
+      displayMode = "Simulation";
+    } else if (displayMode.toUpperCase().contains("LIVE")) {
+      displayMode = "Live";
     }
 
     return Container(

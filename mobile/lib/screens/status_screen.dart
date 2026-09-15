@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../app/theme.dart';
 import '../models/capability_model.dart';
 import '../services/api_service.dart';
-import '../widgets/responsive_badge.dart';
 
 class StatusScreen extends StatefulWidget {
   const StatusScreen({super.key});
@@ -50,7 +49,7 @@ class _StatusScreenState extends State<StatusScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : SingleChildScrollView(
+            : ScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,7 +65,7 @@ class _StatusScreenState extends State<StatusScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "CAPABILITIES",
+                            "Capabilities",
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -113,37 +112,12 @@ class _StatusScreenState extends State<StatusScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              ResponsiveBadge(
-                label: item.status,
-                variant: item.status == 'Active'
-                    ? BadgeVariant.standard
-                    : (item.status == 'Available' ? BadgeVariant.subtle : BadgeVariant.outline),
-                fontSize: 8.5,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
           Text(
-            item.category.toUpperCase(),
+            item.name,
             style: const TextStyle(
-              fontSize: 9,
+              fontSize: 12.5,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              color: LunarTheme.textTertiary,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 6),
@@ -160,75 +134,35 @@ class _StatusScreenState extends State<StatusScreen> {
     return const [
       CapabilityItemModel(
         name: "OpenCV SIFT Feature Detection & Description",
-        status: "Active",
-        category: "Vision Pipeline",
         notes: "OpenCV SIFT detector extracting keypoints and 128D orientation descriptors.",
       ),
       CapabilityItemModel(
         name: "Brute-Force 2-NN Matcher (L2 Norm)",
-        status: "Active",
-        category: "Vision Pipeline",
         notes: "Exhaustive nearest-neighbor matching across full descriptor hyperspace.",
       ),
       CapabilityItemModel(
         name: "Ambiguity Filter (d1 < 0.75 * d2)",
-        status: "Active",
-        category: "Vision Pipeline",
         notes: "Rejects ambiguous multi-crater matches via second-nearest neighbor ratio test.",
       ),
       CapabilityItemModel(
         name: "Projective Consensus Estimation",
-        status: "Active",
-        category: "Geometry",
         notes: "Planar projective model with stability conditioning and determinant validation.",
       ),
       CapabilityItemModel(
         name: "N x N Grid Balancing",
-        status: "Active",
-        category: "Spatial",
         notes: "Prevents crater rim keypoint clustering by capping top-k per spatial grid cell.",
       ),
       CapabilityItemModel(
         name: "Measured Pixel Residual Error",
-        status: "Active",
-        category: "Metrics",
         notes: "Directly measured RMSE across inliers. Defaults to N/A if unavailable.",
       ),
       CapabilityItemModel(
-        name: "Deterministic Demo Engine",
-        status: "Active",
-        category: "Simulation",
-        notes: "Fixed seed demo engine with physically coherent degradation curves.",
+        name: "Reproducible Pipeline",
+        notes: "Every run emits a signed manifest with git commit, input hashes, and version info.",
       ),
       CapabilityItemModel(
         name: "Fail-Safe Rejection Mechanism",
-        status: "Active",
-        category: "Safety",
         notes: "Rejects unreliable pairs with explicit technical diagnostic reasons.",
-      ),
-      CapabilityItemModel(
-        name: "Radiation-Invariant Phase Feature",
-        status: "Available",
-        category: "Phase Features",
-        notes: "Phase-congruency descriptor (216-D) for illumination-invariant matching.",
-      ),
-      CapabilityItemModel(
-        name: "Deep Learned Feature Extractor",
-        status: "Available",
-        category: "Deep Models",
-        notes: "Deep feature response curve for learned descriptor matching.",
-      ),
-      CapabilityItemModel(
-        name: "Deep Attention Correspondence Pruning",
-        status: "Roadmap",
-        category: "Deep Models",
-        notes: "Deep transformer correspondence pruning for future releases.",
-      ),
-      CapabilityItemModel(
-        name: "Parallax-Aware Sub-Pixel Optimizer",
-        status: "Roadmap",
-        category: "Optimization",
-        notes: "Sub-pixel correlation refinement for future releases.",
       ),
     ];
   }

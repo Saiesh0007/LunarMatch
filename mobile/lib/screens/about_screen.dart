@@ -95,7 +95,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     _buildMetaRow("Lead Organization", "ISRO (Indian Space Research Organisation)"),
                     _buildMetaRow("Development Team", "Team LunarMatch"),
                     _buildMetaRow("Domain", "Space Technology"),
-                    _buildMetaRow("Architecture Version", "v1.0.0-mvp (Baseline + Simulation)"),
+                    _buildMetaRow("Architecture Version", "v1.0.0"),
                   ],
                 ),
               ),

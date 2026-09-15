@@ -28,12 +28,12 @@ class PipelineProvider with ChangeNotifier {
 
   String get currentExecutionModeLabel {
     if (_forceLocalDemo || !_isBackendConnected) {
-      return "LOCAL DEMO";
+      return "Offline";
     }
     if (_config.simulationMode || _config.featureMethod != "SIFT") {
-      return "DEMO MODE";
+      return "Simulation";
     }
-    return "LIVE";
+    return "Live";
   }
 
   PipelineProvider() {

@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../app/theme.dart';
 import '../app/routes.dart';
 import '../providers/pipeline_provider.dart';
-import '../widgets/status_badge.dart';
-import '../widgets/responsive_badge.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
         titleSpacing: 12,
         title: Row(
           children: [
-            // Logo displayed cleanly on black background without white circular container
             Image.asset(
               'assets/icons/app_logo.png',
               width: 24,
@@ -39,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 6,
               height: 6,
               decoration: BoxDecoration(
-                color: isOnline ? Colors.white : const Color(0xFF777777),
+                color: isOnline ? const Color(0xFF4CAF50) : const Color(0xFF777777),
                 shape: BoxShape.circle,
               ),
             ),
@@ -57,18 +54,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            StatusBadge(mode: pipeProv.currentExecutionModeLabel),
           ],
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Mission Control Banner
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -79,29 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: const [
-                        Text(
-                          "ISRO — PROBLEM STATEMENT 26166",
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: Colors.white,
-                          ),
-                        ),
-                        ResponsiveBadge(
-                          label: "TEAM LUNARMATCH",
-                          variant: BadgeVariant.subtle,
-                          fontSize: 8.5,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
                     const Text(
                       "Lunar Image Correspondence & Registration Engine",
                       style: TextStyle(
@@ -113,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      "Aligns heterogeneous multi-modal lunar observation sets under extreme illumination variations, scale differentials, and spatial crater clustering.",
+                      "Aligns Chandrayaan-2 optical imagery (OHRC, TMC-2, IIRS) against lunar reference data across Sun angles, scales, and sensors.",
                       style: TextStyle(
                         fontSize: 12,
                         color: LunarTheme.textSecondary,
@@ -121,8 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
-                    // Backend Connectivity Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
@@ -135,12 +104,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(
                             isOnline ? Icons.cloud_done_outlined : Icons.offline_bolt_outlined,
                             size: 15,
-                            color: isOnline ? Colors.white : const Color(0xFF999999),
+                            color: isOnline ? const Color(0xFF4CAF50) : const Color(0xFF999999),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              isOnline ? "Backend: FASTAPI ONLINE" : "Backend: LOCAL FALLBACK",
+                              isOnline ? "Connected" : "Offline mode",
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -148,26 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          InkWell(
+                          IconButton(
                             onTap: () => pipeProv.checkBackendHealth(),
-                            borderRadius: BorderRadius.circular(4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF222222),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: LunarTheme.borderLight),
-                              ),
-                              child: const Text(
-                                "CHECK",
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                            icon: const Icon(Icons.refresh, size: 16, color: LunarTheme.textTertiary),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ],
                       ),
@@ -177,7 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Action Cards Title
               const Text(
                 "CORE CAPABILITIES",
                 style: TextStyle(
@@ -190,50 +143,30 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 10),
 
               _buildDashboardCard(
-                title: "COMPARE SIFT vs LUNARMATCH",
-                subtitle: "Side-by-side comparison of SIFT baseline vs LunarMatch RIFT2 on the same input pair with delta metrics.",
-                icon: Icons.compare_outlined,
-                badgeText: "DEMO SCREEN",
-                onTap: () => Navigator.pushNamed(context, AppRoutes.comparison),
-              ),
-
-              _buildDashboardCard(
-                title: "SEE FAILURE DETECTION",
-                subtitle: "When LunarMatch says NO: rejection criteria, honest diagnostics, and trustworthiness metrics.",
-                icon: Icons.error_outline,
-                badgeText: "HONESTY DEMO",
-                onTap: () => Navigator.pushNamed(context, AppRoutes.failureCase),
-              ),
-
-              _buildDashboardCard(
-                title: "IMAGE REGISTRATION",
-                subtitle: "Select Reference (Fixed) and Moving images, configure preprocessing, and run registration pipeline.",
+                title: "Image Registration",
+                description: "Align reference and moving images using the LunarMatch pipeline.",
                 icon: Icons.layers_outlined,
-                badgeText: "PRIMARY WORKFLOW",
                 onTap: () => Navigator.pushNamed(context, AppRoutes.upload),
               ),
 
               _buildDashboardCard(
-                title: "ROBUSTNESS LABORATORY",
-                subtitle: "Execute controlled prototype experiments: sweep illumination delta, scale variation, and geometric transformations.",
+                title: "Robustness Lab",
+                description: "Test registration across illumination, scale, and geometric variations.",
                 icon: Icons.science_outlined,
-                badgeText: "PROFILING STUDIO",
                 onTap: () => Navigator.pushNamed(context, AppRoutes.robustness),
               ),
 
               _buildDashboardCard(
-                title: "ENGINE CAPABILITIES",
-                subtitle: "Full feature list: detection, matching, verification, and quality assessment.",
+                title: "Engine Capabilities",
+                description: "Feature detection, matching, verification, and quality assessment.",
                 icon: Icons.verified_outlined,
-                badgeText: "TECHNICAL AUDIT",
                 onTap: () => Navigator.pushNamed(context, AppRoutes.status),
               ),
 
               _buildDashboardCard(
-                title: "PIPELINE ARCHITECTURE",
-                subtitle: "Interactive block diagram comparing the Current MVP baseline with the Target Research Architecture.",
+                title: "Pipeline Architecture",
+                description: "System block diagram and processing flow.",
                 icon: Icons.schema_outlined,
-                badgeText: "SPECIFICATION",
                 onTap: () => Navigator.pushNamed(context, AppRoutes.architecture),
               ),
             ],
@@ -284,74 +217,59 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Responsive dashboard card:
-  /// Places badge neatly below the title to completely prevent horizontal clipping/overflow.
   Widget _buildDashboardCard({
     required String title,
-    required String subtitle,
-    required IconData icon,
-    required String badgeText,
+    required String description,
+    required icons icon,
     required VoidCallback onTap,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon container with clean monochrome styling
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: LunarTheme.borderLight),
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
+      shape: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: LunarTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: LunarTheme.borderLight),
               ),
-              const SizedBox(width: 14),
-
-              // Text content and badge
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: Colors.white,
-                      ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 4),
-                    ResponsiveBadge(
-                      label: badgeText,
-                      variant: BadgeVariant.standard,
-                      fontSize: 8.5,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: LunarTheme.textSecondary,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: LunarTheme.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, size: 18, color: LunarTheme.textTertiary),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, size: 18, color: LunarTheme.textTertiary),
+          ],
         ),
       ),
     );
