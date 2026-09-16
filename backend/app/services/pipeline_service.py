@@ -37,6 +37,7 @@ from ..evaluation.manifest import build_run_manifest
 from ..evaluation.quality import evaluate_registration
 from .router import select_pipeline_config
 from ..vision.matcher import FeatureMatcher
+from ..vision.superglue_matcher import SuperGlueMatcher
 from ..vision.geometry import GeometricVerification, magsac_plus_plus
 from ..vision.spatial import SpatialBalancing
 from ..vision.registration import ImageRegistration
@@ -64,7 +65,7 @@ class PipelineService:
         warnings: List[str] = []
 
         method_str = str(request.feature_method.value if hasattr(request.feature_method, "value") else request.feature_method).lower()
-        is_demo_mode = request.simulation_mode or ("rift2" == method_str) or ("superpoint" in method_str)
+        is_demo_mode = request.simulation_mode or ("rift2" == method_str) or ("superpoint" in method_str) or ("superglue" in method_str)
         exec_mode = ExecutionMode.DEMO if is_demo_mode else ExecutionMode.LIVE
 
         # Cross-sensor default routing: default to RIFT2 for cross-sensor pairs if not explicitly overridden to sift
@@ -743,6 +744,11 @@ class PipelineService:
             elif len(kps_s) > 0:
                 return kps_s, desc_s, "RIFT2+SIFT(SIFT-Fallback)", None
             return kps_r, desc_r, "RIFT2+SIFT", None
+        elif "superglue" in method_str:
+            # SuperGlue uses SIFT keypoints; Sinkhorn matching happens in demo routing
+            ext = SIFTExtractor(nfeatures=max_features)
+            kps, desc = ext.extract(img)
+            return kps, desc, "SuperGlue(SIFT+Sinkhorn)", None
         else:
             ext = SIFTExtractor(nfeatures=max_features)
             kps, desc = ext.extract(img)

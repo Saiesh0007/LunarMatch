@@ -21,6 +21,7 @@ class FeatureMethod(str, Enum):
     SIFT_UPPER = "SIFT"
     RIFT2_UPPER = "RIFT2"
     SUPERPOINT = "SuperPoint"
+    SUPERGLUE = "superglue"
 
 class MatcherType(str, Enum):
     BF = "BF"
