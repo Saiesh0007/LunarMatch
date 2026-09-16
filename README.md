@@ -30,6 +30,7 @@ failure decision.
 
 - **Illumination-invariant feature extraction** via RIFT2 phase congruency and HOPC structural descriptors
 - **Multi-scale pyramid** built on phase-congruency maps for cross-resolution matching
+- **SuperGlue-style Sinkhorn optimal-transport matching** — sinusoidal position encoding, log-domain Sinkhorn iterations, dustbin augmentation (simulated, seed 26166)
 - **MAGSAC++** threshold-free robust estimation
 - **Sub-pixel phase-correlation refinement** for precise localization
 - **Sensor-pair adaptive routing** (OHRC / TMC-2 / IIRS / LRO NAC / SELENE)
@@ -65,7 +66,7 @@ The APK is available at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
 | :--- | :--- |
 | Backend | Python 3.11, FastAPI, OpenCV 4.13, NumPy, SciPy |
 | Frontend | Flutter 3.41, Provider |
-| Algorithms | RIFT2, HOPC, MAGSAC++, Phase Correlation |
+| Algorithms | RIFT2, HOPC, SuperGlue (Sinkhorn OT), MAGSAC++, Phase Correlation |
 | Tests | Pytest (isolated runner), Flutter Test |
 
 ## Project Structure
@@ -80,7 +81,7 @@ docs/          Visual assets, UI mockup, logo
 
 ```bash
 cd backend
-python run_tests_isolated.py   # 21 test files
+python run_tests_isolated.py   # 22 test files
 
 cd ../mobile
 flutter test                    # 32 widget tests
@@ -100,6 +101,7 @@ LunarMatch builds on the following published work:
 - RIFT2 — Li, Hu, Ai (IEEE TIP 2020 / arXiv 2023)
 - HOPC — Ye et al. (IEEE TGRS 2017)
 - MAGSAC++ — Barath et al. (CVPR 2020)
+- SuperGlue — Sarlin et al. (CVPR 2020)
 
 ## Team
 

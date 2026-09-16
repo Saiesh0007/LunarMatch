@@ -8,7 +8,15 @@
 The demonstration MVP must provide an ultra-reliable presentation experience that does not crash or stall in zero-network environments, while strictly adhering to scientific honesty.
 Rather than training a deep neural network or claiming untested sub-pixel capabilities, LunarMatch incorporates a **deterministic simulation engine**.
 
-## 2. Core Operational Rules
+## 3. Simulated Algorithms
+
+| Algorithm | Reference | What Is Simulated |
+| :--- | :--- | :--- |
+| **RIFT2** | Li et al. (IEEE TIP 2020) | Phase-congruency feature extraction via deterministic engine |
+| **SuperPoint** | DeTone et al. (CVPRW 2018) | Self-supervised deep keypoint detector via deterministic engine |
+| **SuperGlue** | Sarlin et al. (CVPR 2020) | Full Sinkhorn OT matcher: sinusoidal position encoding of (x, y, scale, angle), cosine score matrix scaled by temperature τ = 0.1, dustbin augmentation, 100-iteration log-domain Sinkhorn iterations, mutual-nearest-neighbour hard assignment. Pure NumPy — no PyTorch or pretrained weights. |
+
+All simulated algorithms route through `DeterministicSimulator` and are tagged `metric_mode: SIMULATED`, `simulation_seed: 26166`.
 1. **Never Present Simulation as Real Model Execution:**
    - Any run executed under simulation is tagged with `metric_mode: "SIMULATED"` and `simulation_seed: 26166`.
    - The UI prominently displays `SIMULATED PIPELINE` or `LOCAL DEMO`.
