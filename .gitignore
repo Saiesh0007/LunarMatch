@@ -1,3 +1,29 @@
+# Data directories (raw, processed, downloaded imagery & datasets)
+data/
+data/*
+DATA/
+DATA/*
+!data/.gitkeep
+!data/**/.gitkeep
+!data/examples/
+!data/examples/.gitkeep
+
+# Large imagery and satellite data formats
+*.tif
+*.tiff
+*.TIF
+*.TIFF
+*.img
+*.IMG
+*.lbl
+*.LBL
+*.fits
+*.FITS
+*.hdf5
+*.h5
+*.nc
+np
+
 # Python
 __pycache__/
 *.py[cod]

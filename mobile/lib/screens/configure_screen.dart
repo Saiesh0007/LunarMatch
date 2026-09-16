@@ -78,6 +78,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               _buildMethodRadio("SIFT", "OpenCV SIFT Baseline"),
               _buildMethodRadio("RIFT2", "Radiation-Invariant Phase Feature"),
               _buildMethodRadio("SuperPoint", "Learned Deep Feature Extractor"),
+              _buildMethodRadio("superglue", "Sinkhorn Optimal-Transport Matcher"),
               const SizedBox(height: 16),
 
               // Section 2: Correspondence Matcher

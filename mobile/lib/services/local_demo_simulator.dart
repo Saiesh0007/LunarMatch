@@ -26,8 +26,12 @@ class LocalDemoSimulator {
     final stageDetails = [
       "Loaded lunar asset dimensions (640x640 px)",
       "Applied CLAHE and shadow normalization",
-      "Extracted 1420 keypoints (SIFT Baseline)",
-      "Found 312 candidate correspondences via 2-NN search",
+      config.featureMethod.toLowerCase().contains("superglue")
+          ? "Extracted 1420 keypoints (SuperGlue SIFT front-end)"
+          : "Extracted 1420 keypoints (SIFT Baseline)",
+      config.featureMethod.toLowerCase().contains("superglue")
+          ? "Sinkhorn OT + dustbin matching: 312 candidate correspondences"
+          : "Found 312 candidate correspondences via 2-NN search",
       "Lowe's ratio test (0.75): 118 filtered matches retained",
       "RANSAC geometric verification: 84 consensus inliers",
       "Spatial grid (6x6): 28/36 occupied cells (77.8% coverage)",
