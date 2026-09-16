@@ -106,6 +106,12 @@ def get_capabilities():
             status=ImplementationStatus.ACTIVE,
             notes="Automatic feature/method selection optimized per sensor-pair combination.",
         ),
+        CapabilityItem(
+            name="SuperGlue Sinkhorn OT Matcher",
+            category="Advanced Matching",
+            status=ImplementationStatus.AVAILABLE,
+            notes="Deterministic Sinkhorn optimal-transport matching (Simulated). Sinusoidal position encoding, dustbin augmentation, 100-iteration log-domain Sinkhorn, MNN assignment. Seed 26166. Pure NumPy — no PyTorch.",
+        ),
     ]
 
     return CapabilitiesResponse(
