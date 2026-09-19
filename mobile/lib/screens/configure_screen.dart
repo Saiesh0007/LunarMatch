@@ -84,6 +84,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                   _buildMethodRadio("SIFT", "OpenCV SIFT Baseline"),
                   _buildMethodRadio("RIFT2", "Radiation-Invariant Phase Feature    [DEFAULT]"),
                   _buildMethodRadio("SuperPoint", "Learned Deep Feature Extractor"),
+                  _buildMethodRadio("superglue", "Sinkhorn Optimal-Transport Matcher"),
                   if (_config.featureMethod == "SuperPoint")
                     _buildWarningBanner(
                       "Warning: SuperPoint extraction on CPU takes 3-5 seconds per "

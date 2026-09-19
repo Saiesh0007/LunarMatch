@@ -74,7 +74,7 @@ LunarMatch exposes three clearly delineated execution modes:
   10. Measured reprojection RMSE calculation over inliers
 
 ### Mode 2: DEMO SIMULATION (`metric_mode: SIMULATED`, `seed: 26166`)
-- Deterministic simulation engine for advanced/future research algorithms (RIFT, SuperPoint).
+- Deterministic simulation engine for advanced/future research algorithms (RIFT, SuperPoint, SuperGlue).
 - Visibly displays `SIMULATED PIPELINE`.
 - Never claims that neural networks or unvalidated research models actually executed.
 - Seed `26166` guarantees identical reproducible presentation outputs for identical inputs.

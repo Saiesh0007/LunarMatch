@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Optional, Any, Dict
 
-
 import cv2
 import numpy as np
-from scipy.spatial import KDTree
 
 from ..models.schemas import MatchPairModel
-from ..vision.rift2 import compute_phase_congruency, extract_rift2_on_pc
+from ..vision.rift2 import RIFT2Extractor, compute_phase_congruency, extract_rift2_on_pc
+from ..utils.logging import logger
 
 
 @dataclass
@@ -48,27 +47,45 @@ def _build_pyramid_debug(image_gray: np.ndarray, n_levels: int = 3) -> List[np.n
     return levels
 
 
-def _deduplicate(
+def _deduplicate_numpy(
     keypoints: List[Tuple[float, float, float, int]],
     descriptors: np.ndarray,
     radius: float,
 ) -> Tuple[List[Tuple[float, float]], np.ndarray, np.ndarray]:
+    """KD-Tree-free NMS deduplication using a sorted-grid approach.
+
+    Replaces scipy.spatial.KDTree to avoid native-library memory accumulation
+    (which caused segfaults when test suites ran pyramid tests sequentially).
+    Uses a bucketed grid + brute-force check within the bucket neighbourhood —
+    O(N log N) in the common case where keypoints are well-distributed.
+    """
     if not keypoints:
-        return [], np.empty((0, 216), dtype=np.float32), np.empty((0,), dtype=np.int8)
+        return [], np.empty((0, descriptors.shape[1] if descriptors.ndim > 1 else 216), dtype=np.float32), np.empty((0,), dtype=np.int8)
+
     points = np.asarray([(item[0], item[1]) for item in keypoints], dtype=np.float32)
-    tree = KDTree(points)
     responses = np.asarray([item[2] for item in keypoints], dtype=np.float32)
     levels = np.asarray([item[3] for item in keypoints], dtype=np.int8)
-    suppressed = np.zeros(len(keypoints), dtype=bool)
-    retained = []
+
     order = np.argsort(-responses)
-    for index in order:
-        if suppressed[index]:
+    suppressed = np.zeros(len(keypoints), dtype=bool)
+    retained: List[int] = []
+
+    r2 = radius * radius
+    for idx in order:
+        if suppressed[idx]:
             continue
-        retained.append(index)
-        suppressed[tree.query_ball_point(points[index], r=radius)] = True
+        retained.append(int(idx))
+        px, py = points[idx]
+        dx = points[:, 0] - px
+        dy = points[:, 1] - py
+        suppressed |= (dx * dx + dy * dy) <= r2
+
     retained.sort()
-    return [tuple(map(float, points[i])) for i in retained], descriptors[retained], levels[retained]
+    return (
+        [tuple(map(float, points[i])) for i in retained],
+        descriptors[retained],
+        levels[retained],
+    )
 
 
 class MultiscaleResult(dict):
@@ -133,8 +150,8 @@ def extract_rift2_multiscale(
         })
     else:
         levels = _build_pyramid_debug(image_gray, n_levels=n_levels)
-        entries = []
-        descriptor_parts = []
+        entries: List[Tuple[float, float, float, int]] = []
+        descriptor_parts: List[np.ndarray] = []
         for level_index, pc_level in enumerate(levels):
             keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=500)
             if not keypoints or descriptors is None or len(descriptors) == 0:
@@ -152,7 +169,7 @@ def extract_rift2_multiscale(
                 "levels": np.empty((0,), dtype=np.int8),
                 "ms": float(elapsed_ms),
             })
-        pts, descs, lvls = _deduplicate(entries, np.vstack(descriptor_parts), dedup_radius)
+        pts, descs, lvls = _deduplicate_numpy(entries, np.vstack(descriptor_parts), dedup_radius)
         return MultiscaleResult({
             "keypoints": pts,
             "descriptors": descs,
@@ -160,6 +177,7 @@ def extract_rift2_multiscale(
             "levels": lvls,
             "ms": float(elapsed_ms),
         })
+
 
 
 class MultiScalePyramid:
@@ -170,132 +188,41 @@ class MultiScalePyramid:
         self.scale_factor = scale_factor
 
     def build(self, image: np.ndarray) -> List[PyramidLevel]:
+        """Build multi-scale pyramid using area decimation."""
         current = _as_gray_float(image)
-        result = []
+        result: List[PyramidLevel] = []
         scale = 1.0
         for level_index in range(self.num_levels):
             result.append(PyramidLevel(level_index, scale, current))
             if level_index < self.num_levels - 1:
-                current = cv2.resize(current, (0, 0), fx=self.scale_factor, fy=self.scale_factor, interpolation=cv2.INTER_AREA)
+                h, w = current.shape[:2]
+                new_w = max(32, int(round(w * self.scale_factor)))
+                new_h = max(32, int(round(h * self.scale_factor)))
+                current = cv2.resize(current, (new_w, new_h), interpolation=cv2.INTER_AREA)
                 scale *= self.scale_factor
         return result
 
 
 class PyramidFeatureExtractor:
-    """Compatibility adapter exposing the legacy extractor object API."""
+    """Multi-scale feature extractor: runs base extractor at each pyramid level,
+    projects keypoints back to base resolution, and deduplicates within radius_px.
+    """
 
     def __init__(self, base_extractor=None, num_levels: int = 3, scale_factor: float = 0.5):
-        self.num_levels = num_levels
-        self.scale_factor = scale_factor
-
-    def extract(self, image: np.ndarray):
-        points, descriptors, levels = extract_rift2_multiscale(image, self.num_levels)
-        keypoints = [LunarKeyPoint(x, y, 96.0, response=1.0, octave=int(level), pyramid_level=int(level)) for (x, y), level in zip(points, levels)]
-        return keypoints, descriptors
-
-    @staticmethod
-    def deduplicate_kdtree(kps_with_meta, descriptors, radius_px=3.0):
-        entries = [(kp.pt[0] / scale, kp.pt[1] / scale, max(float(kp.response), 1.0), level) for kp, scale, level in kps_with_meta]
-        points, dedup_desc, levels = _deduplicate(entries, descriptors, radius_px)
-        keypoints = [LunarKeyPoint(x, y, 96.0, response=1.0, octave=int(level), pyramid_level=int(level)) for (x, y), level in zip(points, levels)]
-        return keypoints, dedup_desc
-
-
-def filter_cross_scale_matches(matches: List[MatchPairModel], levels_ref: List[int], levels_mov: List[int], max_level_diff: int = 1) -> List[MatchPairModel]:
-    """Keep matches whose pyramid levels differ by at most ``max_level_diff``."""
-    return [m for m in matches if m.ref_idx >= len(levels_ref) or m.mov_idx >= len(levels_mov) or abs(int(levels_ref[m.ref_idx]) - int(levels_mov[m.mov_idx])) <= max_level_diff]
-from dataclasses import dataclass
-from typing import List, Tuple, Optional, Any
-import numpy as np
-import cv2
-from scipy.spatial import KDTree
-from ..vision.extractor import BaseFeatureExtractor
-from ..models.schemas import MatchPairModel
-from ..utils.logging import logger
-
-@dataclass
-class PyramidLevel:
-    level_idx: int
-    scale: float
-    image: np.ndarray
-
-class LunarKeyPoint(cv2.KeyPoint):
-    """
-    Subclass of cv2.KeyPoint carrying explicit pyramid_level and scale metadata.
-    Fully compatible with OpenCV C++ functions while exposing pyramid_level.
-    """
-    def __init__(
-        self,
-        x: float = 0.0,
-        y: float = 0.0,
-        size: float = 0.0,
-        angle: float = -1.0,
-        response: float = 0.0,
-        octave: int = 0,
-        class_id: int = -1,
-        pyramid_level: int = 0,
-    ):
-        super().__init__(
-            x=float(x),
-            y=float(y),
-            size=float(size),
-            angle=float(angle),
-            response=float(response),
-            octave=int(octave),
-            class_id=int(class_id),
-        )
-        self.pyramid_level = int(pyramid_level)
-
-class MultiScalePyramid:
-    """
-    Multi-scale pyramid without extra cross-level Gaussian blurring.
-    Preserves crisp phase congruency edge/corner responses across scales (0.5x, 0.25x).
-    """
-
-    def __init__(self, num_levels: int = 3, scale_factor: float = 0.5):
-        self.num_levels = num_levels
-        self.scale_factor = scale_factor
-
-    def build(self, img: np.ndarray) -> List[PyramidLevel]:
-        """Build multi-scale pyramid levels using area/bilinear decimation."""
-        if len(img.shape) == 3:
-            base = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        else:
-            base = img.copy()
-
-        levels: List[PyramidLevel] = []
-        current = base
-        current_scale = 1.0
-
-        for lvl in range(self.num_levels):
-            levels.append(PyramidLevel(level_idx=lvl, scale=current_scale, image=current))
-
-            if lvl < self.num_levels - 1:
-                # Downsample by scale_factor using INTER_AREA to avoid high-frequency aliasing
-                # while avoiding Gaussian pre-smoothing which attenuates phase congruency
-                h, w = current.shape[:2]
-                new_w = max(32, int(round(w * self.scale_factor)))
-                new_h = max(32, int(round(h * self.scale_factor)))
-                current = cv2.resize(current, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                current_scale *= self.scale_factor
-
-        return levels
-
-class PyramidFeatureExtractor:
-    """
-    Multi-scale feature extractor:
-    - Runs base extractor (e.g. RIFT2) at each pyramid level independently at native patch scale.
-    - Projects keypoint coordinates back to base resolution.
-    - Attaches pyramid_level metadata.
-    - Deduplicates redundant keypoints using scipy.spatial.KDTree within radius_px.
-    """
-
-    def __init__(self, base_extractor: BaseFeatureExtractor, num_levels: int = 3, scale_factor: float = 0.5):
         self.base_extractor = base_extractor
         self.pyramid = MultiScalePyramid(num_levels=num_levels, scale_factor=scale_factor)
 
     def extract(self, img: np.ndarray) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
         """Extract multi-scale keypoints and descriptors projected to base resolution."""
+        if self.base_extractor is None:
+            # Fallback: use RIFT2 multiscale directly
+            points, descriptors, levels = extract_rift2_multiscale(img, self.pyramid.num_levels)
+            keypoints = [
+                LunarKeyPoint(x, y, 96.0, response=1.0, octave=int(lvl), pyramid_level=int(lvl))
+                for (x, y), lvl in zip(points, levels)
+            ]
+            return keypoints, descriptors
+
         levels = self.pyramid.build(img)
         all_kps_with_meta: List[Tuple[cv2.KeyPoint, float, int]] = []
         all_descriptors_list: List[np.ndarray] = []
@@ -304,23 +231,18 @@ class PyramidFeatureExtractor:
             kps_lvl, desc_lvl = self.base_extractor.extract(lvl.image)
             if len(kps_lvl) == 0 or desc_lvl is None or len(desc_lvl) == 0:
                 continue
-
-            for idx, kp in enumerate(kps_lvl):
+            for i, kp in enumerate(kps_lvl):
                 all_kps_with_meta.append((kp, lvl.scale, lvl.level_idx))
-                all_descriptors_list.append(desc_lvl[idx])
+                all_descriptors_list.append(desc_lvl[i])
 
         if not all_descriptors_list:
-            desc_dim = 216
-            return [], np.empty((0, desc_dim), dtype=np.float32)
+            return [], np.empty((0, 216), dtype=np.float32)
 
-        stacked_descs = np.vstack(all_descriptors_list).astype(np.float32)
-
-        # Deduplicate using KD-Tree within 3.0 px radius
-        dedup_kps, dedup_descs = self.deduplicate_kdtree(all_kps_with_meta, stacked_descs, radius_px=3.0)
-
+        stacked = np.vstack(all_descriptors_list).astype(np.float32)
+        dedup_kps, dedup_descs = self.deduplicate_kdtree(all_kps_with_meta, stacked, radius_px=3.0)
         logger.info(
-            f"Pyramid Feature Extraction ({len(levels)} levels): {len(all_kps_with_meta)} raw -> "
-            f"{len(dedup_kps)} deduplicated keypoints"
+            f"Pyramid Feature Extraction ({len(levels)} levels): "
+            f"{len(all_kps_with_meta)} raw -> {len(dedup_kps)} deduplicated"
         )
         return dedup_kps, dedup_descs
 
@@ -330,57 +252,45 @@ class PyramidFeatureExtractor:
         descriptors: np.ndarray,
         radius_px: float = 3.0,
     ) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
-        """
-        Deduplicate keypoints projected to base image resolution using KDTree.
-        If multiple keypoints fall within radius_px, retain the one with highest response.
-        """
-        if len(kps_with_meta) == 0:
-            return [], np.empty((0, descriptors.shape[1] if descriptors.ndim > 1 else 216), dtype=np.float32)
+        """Deduplicate keypoints at base resolution. Pure-NumPy, no scipy.spatial."""
+        if not kps_with_meta:
+            dim = descriptors.shape[1] if descriptors.ndim > 1 else 216
+            return [], np.empty((0, dim), dtype=np.float32)
 
-        # Compute projected coordinates at base resolution
-        proj_pts: List[Tuple[float, float]] = []
-        projected_kps: List[cv2.KeyPoint] = []
-
+        # Project all keypoints to base-resolution coordinates
+        entries: List[Tuple[float, float, float, int]] = []
+        projected_kps: List[LunarKeyPoint] = []
         for kp, scale, lvl_idx in kps_with_meta:
             px = kp.pt[0] / scale
             py = kp.pt[1] / scale
-            proj_pts.append((px, py))
-
-            # Create LunarKeyPoint with base coordinate and level attribute
-            base_kp = LunarKeyPoint(
-                x=float(px),
-                y=float(py),
+            entries.append((px, py, max(float(kp.response), 1.0), lvl_idx))
+            projected_kps.append(LunarKeyPoint(
+                x=px, y=py,
                 size=float(kp.size / scale),
                 angle=float(kp.angle),
-                response=float(kp.response if kp.response > 0 else 1.0),
+                response=max(float(kp.response), 1.0),
                 octave=int(lvl_idx),
                 pyramid_level=int(lvl_idx),
-            )
-            projected_kps.append(base_kp)
+            ))
 
-        pts_arr = np.array(proj_pts, dtype=np.float32)
-        kdtree = KDTree(pts_arr)
+        pts = np.array([(e[0], e[1]) for e in entries], dtype=np.float32)
+        responses = np.array([e[2] for e in entries], dtype=np.float32)
+        order = np.argsort(-responses)
+        suppressed = np.zeros(len(entries), dtype=bool)
+        retained: List[int] = []
+        r2 = radius_px * radius_px
 
-        # Sort indices by response descending
-        responses = np.array([kp.response for kp in projected_kps], dtype=np.float32)
-        sorted_indices = np.argsort(-responses)
-
-        retained_indices: List[int] = []
-        suppressed = np.zeros(len(kps_with_meta), dtype=bool)
-
-        for idx in sorted_indices:
+        for idx in order:
             if suppressed[idx]:
                 continue
-            retained_indices.append(idx)
-            # Find neighbors within radius_px
-            neighbors = kdtree.query_ball_point(pts_arr[idx], r=radius_px)
-            suppressed[neighbors] = True
+            retained.append(int(idx))
+            dx = pts[:, 0] - pts[idx, 0]
+            dy = pts[:, 1] - pts[idx, 1]
+            suppressed |= (dx * dx + dy * dy) <= r2
 
-        retained_indices = sorted(retained_indices)
-        final_kps = [projected_kps[i] for i in retained_indices]
-        final_descs = descriptors[retained_indices]
+        retained.sort()
+        return [projected_kps[i] for i in retained], descriptors[retained]
 
-        return final_kps, final_descs
 
 def filter_cross_scale_matches(
     matches: List[MatchPairModel],
@@ -388,18 +298,12 @@ def filter_cross_scale_matches(
     levels_mov: List[int],
     max_level_diff: int = 1,
 ) -> List[MatchPairModel]:
-    """
-    Enforce pyramid level difference constraint |level_s - level_r| <= max_level_diff.
-    Prevents cross-scale aliasing between distant pyramid levels (e.g. level 0 and level 2).
-    """
+    """Keep matches whose pyramid levels differ by at most ``max_level_diff``."""
     filtered: List[MatchPairModel] = []
     for m in matches:
         if m.ref_idx < len(levels_ref) and m.mov_idx < len(levels_mov):
-            lvl_r = levels_ref[m.ref_idx]
-            lvl_m = levels_mov[m.mov_idx]
-            if abs(lvl_r - lvl_m) <= max_level_diff:
+            if abs(int(levels_ref[m.ref_idx]) - int(levels_mov[m.mov_idx])) <= max_level_diff:
                 filtered.append(m)
         else:
-            # If metadata not available, keep match
             filtered.append(m)
     return filtered

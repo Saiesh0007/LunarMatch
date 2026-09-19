@@ -1,6 +1,6 @@
 # LunarMatch — Implementation & Verification Status
 
-**Audit Date:** 2026-09-06 | **Architecture Version:** 1.0.0-mvp | **Verified By:** Automated Test Suite & Live Pipeline Execution
+**Audit Date:** 2026-09-16 | **Architecture Version:** 1.1.0 | **Verified By:** Automated Test Suite & Live Pipeline Execution
 
 ---
 
@@ -24,7 +24,8 @@
 | **Robustness Lab Engine** | `IMPLEMENTED` | **YES** | Synthetic illumination/scale/rotation parameter sweeps with live curves. |
 | **RIFT (Phase Congruency)** | `SIMULATED` | **YES** | Simulated via deterministic engine (Seed 26166). Advanced model planned for Phase 2. |
 | **SuperPoint Deep Extractor**| `SIMULATED` | **YES** | Simulated via deterministic engine (Seed 26166). Neural weights planned for Phase 2. |
-| **LightGlue Graph Matcher**| `PLANNED` | **NO** | Interface contract outlined; deep attention weights not trained. |
+| **SuperGlue Matcher**       | `SIMULATED` | **YES** | Pure-NumPy Sinkhorn OT simulation (Sarlin et al., CVPR 2020). Sinusoidal position encoding, dustbin augmentation, 100-iteration log-domain Sinkhorn, MNN hard assignment. Seed 26166. Verified in `test_superglue.py` (24 tests). |
+| **LightGlue Graph Matcher** | `PLANNED`   | **NO**  | Interface contract outlined; deep attention weights not trained. |
 | **RANSAC++ Spatial Prior** | `PLANNED` | **NO** | Interface contract outlined; topographic DEM priors scheduled. |
 | **Sub-Pixel Refinement** | `PLANNED` | **NO** | Module stub present in `vision/refinement.py`; scientific validation planned. |
 

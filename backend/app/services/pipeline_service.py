@@ -38,6 +38,7 @@ from ..evaluation.manifest import build_run_manifest
 from ..evaluation.quality import evaluate_registration
 from .router import select_pipeline_config
 from ..vision.matcher import FeatureMatcher
+from ..vision.superglue_matcher import SuperGlueMatcher
 from ..vision.geometry import GeometricVerification, magsac_plus_plus
 from ..vision.spatial import SpatialBalancing
 from ..vision.registration import ImageRegistration
@@ -1794,6 +1795,11 @@ class PipelineService:
             elif len(kps_s) > 0:
                 return kps_s, desc_s, "RIFT2+SIFT(SIFT-Fallback)", None
             return kps_r, desc_r, "RIFT2+SIFT", None
+        elif "superglue" in method_str:
+            # SuperGlue uses SIFT keypoints; Sinkhorn matching happens in demo routing
+            ext = SIFTExtractor(nfeatures=max_features)
+            kps, desc = ext.extract(img)
+            return kps, desc, "SuperGlue(SIFT+Sinkhorn)", None
         else:
             ext = SIFTExtractor(nfeatures=max_features)
             kps, desc = ext.extract(img)

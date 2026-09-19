@@ -177,6 +177,10 @@ class _StatusScreenState extends State<StatusScreen> {
         notes: "Every run emits a signed manifest with git commit, input hashes, and version info.",
       ),
       CapabilityItemModel(
+        name: "SuperGlue Sinkhorn OT Matcher (Simulated)",
+        notes: "Deterministic Sinkhorn optimal-transport matching with sinusoidal position encoding and dustbin rejection (Seed 26166).",
+      ),
+      CapabilityItemModel(
         name: "Fail-Safe Rejection Mechanism",
         notes: "Rejects unreliable pairs with explicit technical diagnostic reasons.",
       ),
