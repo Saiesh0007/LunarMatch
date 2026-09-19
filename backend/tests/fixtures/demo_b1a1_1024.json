@@ -1,0 +1,18 @@
+{
+  "source": "canonical demo pair A (seed 26166), upscaled 640->1024 via INTER_CUBIC",
+  "purpose": "R6 timing benchmark fixture at 1024x1024",
+  "ref_shape": [
+    1024,
+    1024
+  ],
+  "mov_shape": [
+    1024,
+    1024
+  ],
+  "dem_fixture": "demo_b1a1_1024_dem.tif",
+  "dem_seed": 26166,
+  "dem_range_m": [
+    1,
+    5000
+  ]
+}

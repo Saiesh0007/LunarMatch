@@ -25,8 +25,8 @@ def test_manifest_measured_mode(tmp_path):
 
 def test_manifest_synthetic_mode(tmp_path):
     ref, moving = files(tmp_path)
-    manifest = build_run_manifest("run-1", str(ref), str(moving), {}, synthetic_validation=True, seed=26166)
-    assert manifest["mode"] == "synthetic_validation"
+    manifest = build_run_manifest("run-1", str(ref), str(moving), {}, offline_validation=True, seed=26166)
+    assert manifest["mode"] == "deterministic_validation"
     assert manifest["seed"] == 26166
 
 

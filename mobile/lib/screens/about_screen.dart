@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../app/theme.dart';
 import '../providers/pipeline_provider.dart';
 import '../services/api_service.dart';
+import '../utils/animation_utils.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -29,6 +31,7 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     final pipeProv = context.watch<PipelineProvider>();
+    final animTarget = AnimationUtils.targetFor(context);
 
     return Scaffold(
       backgroundColor: LunarTheme.background,
@@ -65,11 +68,11 @@ class _AboutScreenState extends State<AboutScreen> {
                           child: const Icon(Icons.satellite_alt_outlined, color: Colors.white, size: 22),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 "LUNARMATCH",
                                 style: TextStyle(
                                   fontSize: 16,
@@ -77,8 +80,10 @@ class _AboutScreenState extends State<AboutScreen> {
                                   letterSpacing: 1.5,
                                   color: Colors.white,
                                 ),
-                              ),
-                              Text(
+                              )
+                                  .animate(target: animTarget)
+                                  .slideX(begin: -0.2, end: 0, duration: 350.ms, curve: Curves.easeOut),
+                              const Text(
                                 "Multi-Modal Lunar Correspondence & Registration Engine",
                                 style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary),
                               ),
@@ -98,10 +103,10 @@ class _AboutScreenState extends State<AboutScreen> {
                     _buildMetaRow("Architecture Version", "v1.0.0"),
                   ],
                 ),
-              ),
+              )
+                  .animate(target: animTarget)
+                  .fadeIn(duration: 400.ms, curve: Curves.easeOut),
               const SizedBox(height: 16),
-
-
 
               // API Configuration Card
               Container(
@@ -122,7 +127,9 @@ class _AboutScreenState extends State<AboutScreen> {
                         letterSpacing: 1.0,
                         color: Colors.white,
                       ),
-                    ),
+                    )
+                        .animate(target: animTarget, delay: 100.ms)
+                        .slideX(begin: -0.2, end: 0, duration: 350.ms, curve: Curves.easeOut),
                     const SizedBox(height: 8),
                     const Text(
                       "Configure FastAPI backend host URL. Useful when connecting physical Android devices via WiFi / LAN.",

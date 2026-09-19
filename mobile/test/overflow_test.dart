@@ -17,6 +17,7 @@ import 'package:mobile/screens/processing_screen.dart';
 import 'package:mobile/screens/results_screen.dart';
 import 'package:mobile/screens/correspondence_screen.dart';
 import 'package:mobile/screens/spatial_coverage_screen.dart';
+import 'package:mobile/screens/pipeline_details_screen.dart';
 
 import 'package:mobile/models/pipeline_model.dart';
 import 'package:mobile/models/metrics_model.dart';
@@ -67,7 +68,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const HomeScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(find.text('LUNARMATCH'), findsOneWidget);
@@ -81,7 +82,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const UploadScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -93,7 +94,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const ConfigureScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -118,7 +119,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const ArchitectureScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(find.text('SYSTEM ARCHITECTURE'), findsOneWidget);
@@ -131,7 +132,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const AboutScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -143,7 +144,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const RobustnessScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -168,7 +169,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const ProcessingScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -181,7 +182,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const ResultsScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -233,7 +234,7 @@ void main() {
       await tester.pumpWidget(
         _wrapWithProviders(const ResultsScreen(), pipelineProvider: pipeProv),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -276,7 +277,7 @@ void main() {
       await tester.pumpWidget(
         _wrapWithProviders(const ResultsScreen(), pipelineProvider: pipeProv),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -288,7 +289,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(_wrapWithProviders(const CorrespondenceScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });
@@ -302,7 +303,21 @@ void main() {
       await tester.pumpWidget(
         _wrapWithProviders(const SpatialCoverageScreen()),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('PipelineDetailsScreen renders without overflow on 360px viewport',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrapWithProviders(const PipelineDetailsScreen()),
+      );
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });

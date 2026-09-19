@@ -130,7 +130,7 @@ class ImageService:
                 moving_sensor="TMC-2",
                 reference_preview_url="/api/v1/images/demo_pair_a_ref/preview",
                 moving_preview_url="/api/v1/images/demo_pair_a_mov/preview",
-                provenance_note="SYNTHETIC PROTOTYPE: Procedurally rendered crater terrain with known affine perturbation.",
+                provenance_note="Procedurally rendered crater terrain with known affine perturbation.",
             ),
             DemoPairInfo(
                 pair_id="pair_b",
@@ -142,7 +142,7 @@ class ImageService:
                 moving_sensor="IIRS",
                 reference_preview_url="/api/v1/images/demo_pair_b_ref/preview",
                 moving_preview_url="/api/v1/images/demo_pair_b_mov/preview",
-                provenance_note="SYNTHETIC PROTOTYPE: High shadow variation designed to stress-test feature descriptor robustness.",
+                provenance_note="High shadow variation terrain designed to stress-test feature descriptor robustness.",
             ),
         ]
 

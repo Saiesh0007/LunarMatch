@@ -68,3 +68,43 @@ def test_iirs_reduction_falls_back_to_band_mean(tmp_path):
 def test_routing_rationale_is_populated():
     for pair in EXPECTED:
         assert select_pipeline_config({"sensor": pair[0]}, {"sensor": pair[1]}).rationale
+
+
+def test_router_sensors_differ():
+    cfg_same = select_pipeline_config("optical_optical")
+    assert cfg_same.sensors_differ is False
+    assert cfg_same.get("sensors_differ") is False
+
+    cfg_diff1 = select_pipeline_config("ohrc_vs_tmc2")
+    assert cfg_diff1.sensors_differ is True
+    assert cfg_diff1.get("sensors_differ") is True
+
+    cfg_diff2 = select_pipeline_config("optical_sar")
+    assert cfg_diff2.sensors_differ is True
+    assert cfg_diff2.get("sensors_differ") is True
+
+
+def test_router_use_hypnet():
+    cfg_opt = select_pipeline_config("optical_optical")
+    assert cfg_opt.use_hypnet is True
+    assert cfg_opt.get("use_hypnet") is True
+
+    cfg_cross = select_pipeline_config("ohrc_vs_tmc2")
+    assert cfg_cross.use_hypnet is True
+    assert cfg_cross.get("use_hypnet") is True
+
+    cfg_sar = select_pipeline_config("optical_sar")
+    assert cfg_sar.use_hypnet is False
+    assert cfg_sar.get("use_hypnet") is False
+
+
+def test_router_use_tps():
+    cfg_opt = select_pipeline_config("optical_optical")
+    assert cfg_opt.use_tps is True
+    assert cfg_opt.get("use_tps") is True
+
+    cfg_cross = select_pipeline_config("ohrc_vs_tmc2")
+    assert cfg_cross.use_tps is True
+    assert cfg_cross.get("use_tps") is True
+
+

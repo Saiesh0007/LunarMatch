@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Any, Dict
+
 
 import cv2
 import numpy as np
@@ -19,9 +20,11 @@ class PyramidLevel:
 class LunarKeyPoint(cv2.KeyPoint):
     """OpenCV keypoint carrying the source pyramid level."""
 
-    def __init__(self, x=0.0, y=0.0, size=0.0, angle=-1.0, response=0.0, octave=0, class_id=-1, pyramid_level=0):
+    def __init__(self, x=0.0, y=0.0, size=0.0, angle=-1.0, response=0.0, octave=0, class_id=-1, pyramid_level=0, sublevel=0, scale=1.0):
         super().__init__(x=float(x), y=float(y), size=float(size), angle=float(angle), response=float(response), octave=int(octave), class_id=int(class_id))
         self.pyramid_level = int(pyramid_level)
+        self.sublevel = int(sublevel)
+        self.scale = float(scale)
 
 
 def _as_gray_float(image_gray: np.ndarray) -> np.ndarray:
@@ -58,47 +61,105 @@ def _deduplicate(
     levels = np.asarray([item[3] for item in keypoints], dtype=np.int8)
     suppressed = np.zeros(len(keypoints), dtype=bool)
     retained = []
-    for index in np.argsort(-responses):
+    order = np.argsort(-responses)
+    for index in order:
         if suppressed[index]:
             continue
-        retained.append(int(index))
+        retained.append(index)
         suppressed[tree.query_ball_point(points[index], r=radius)] = True
     retained.sort()
     return [tuple(map(float, points[i])) for i in retained], descriptors[retained], levels[retained]
 
 
+class MultiscaleResult(dict):
+    """Backward-compatible result dict that unpacks to (keypoints, descriptors, levels)."""
+
+    def __iter__(self):
+        return iter([self["keypoints"], self["descriptors"], self.get("levels", [])])
+
+
 def extract_rift2_multiscale(
     image_gray: np.ndarray,
+    config: Optional[object] = None,
+    request: Optional[object] = None,
     n_levels: int = 3,
     dedup_radius: float = 3.0,
-) -> Tuple[List[Tuple[float, float]], np.ndarray, np.ndarray]:
-    """Extract RIFT2 features from a phase-congruency pyramid.
+    **kwargs,
+) -> MultiscaleResult:
+    """Extract RIFT2 features from a phase-congruency pyramid or scale space.
 
     Args:
         image_gray: Grayscale image, uint8 or float32.
-        n_levels: Number of pyramid levels.
+        config: Optional configuration dictionary or PipelineConfig.
+        request: Optional PipelineRunRequest.
+        n_levels: Number of pyramid levels (when scale space disabled).
         dedup_radius: Base-resolution suppression radius in pixels.
     Returns:
-        Base-resolution keypoint coordinates, descriptors, and int8 levels.
-    Raises:
-        ValueError: If the image or pyramid arguments are invalid.
+        MultiscaleResult dict with keypoints, descriptors, octaves_used, ms, levels.
     """
-    if image_gray.ndim not in (2, 3) or n_levels < 1 or dedup_radius <= 0:
-        raise ValueError("invalid image, n_levels, or dedup_radius")
-    levels = _build_pyramid_debug(image_gray, n_levels=n_levels)
-    entries = []
-    descriptor_parts = []
-    for level_index, pc_level in enumerate(levels):
-        keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=500)
-        if not keypoints or descriptors is None or len(descriptors) == 0:
-            continue
-        scale = 2.0 ** level_index
-        for keypoint in keypoints:
-            entries.append((keypoint.pt[0] * scale, keypoint.pt[1] * scale, max(float(keypoint.response), 1.0), level_index))
-        descriptor_parts.append(descriptors.astype(np.float32))
-    if not descriptor_parts:
-        return [], np.empty((0, 216), dtype=np.float32), np.empty((0,), dtype=np.int8)
-    return _deduplicate(entries, np.vstack(descriptor_parts), dedup_radius)
+    import time
+    if isinstance(config, int):
+        n_levels = config
+        config = None
+
+    if dedup_radius <= 0:
+        raise ValueError("invalid dedup_radius")
+
+    t0 = time.perf_counter()
+    use_scale_space = False
+    if isinstance(config, dict) and config.get("use_scale_space"):
+        use_scale_space = True
+    elif hasattr(config, "use_scale_space") and getattr(config, "use_scale_space"):
+        use_scale_space = True
+
+    if use_scale_space:
+        cfg_ext = {"use_scale_space": True}
+        if isinstance(config, dict):
+            cfg_ext.update(config)
+        elif hasattr(config, "max_keypoints_per_octave"):
+            cfg_ext["max_keypoints_per_octave"] = getattr(config, "max_keypoints_per_octave")
+        ext = RIFT2Extractor(config=cfg_ext)
+        kps, descs = ext.extract(image_gray)
+        pts = [(float(kp.pt[0]), float(kp.pt[1])) for kp in kps]
+        octaves_used = sorted(list(set(getattr(kp, "octave", 0) for kp in kps)))
+        levels = np.array([getattr(kp, "octave", 0) for kp in kps], dtype=np.int8)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return MultiscaleResult({
+            "keypoints": pts,
+            "descriptors": descs,
+            "octaves_used": octaves_used,
+            "levels": levels,
+            "ms": float(elapsed_ms),
+        })
+    else:
+        levels = _build_pyramid_debug(image_gray, n_levels=n_levels)
+        entries = []
+        descriptor_parts = []
+        for level_index, pc_level in enumerate(levels):
+            keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=500)
+            if not keypoints or descriptors is None or len(descriptors) == 0:
+                continue
+            scale = 2.0 ** level_index
+            for keypoint in keypoints:
+                entries.append((keypoint.pt[0] * scale, keypoint.pt[1] * scale, max(float(keypoint.response), 1.0), level_index))
+            descriptor_parts.append(descriptors.astype(np.float32))
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if not descriptor_parts:
+            return MultiscaleResult({
+                "keypoints": [],
+                "descriptors": np.empty((0, 216), dtype=np.float32),
+                "octaves_used": [],
+                "levels": np.empty((0,), dtype=np.int8),
+                "ms": float(elapsed_ms),
+            })
+        pts, descs, lvls = _deduplicate(entries, np.vstack(descriptor_parts), dedup_radius)
+        return MultiscaleResult({
+            "keypoints": pts,
+            "descriptors": descs,
+            "octaves_used": [],
+            "levels": lvls,
+            "ms": float(elapsed_ms),
+        })
 
 
 class MultiScalePyramid:

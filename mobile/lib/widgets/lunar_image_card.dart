@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/image_model.dart';
 import '../app/theme.dart';
 import '../utils/constants.dart';
+import '../utils/animation_utils.dart';
 
 class LunarImageCard extends StatelessWidget {
   final String roleTitle; // "REFERENCE IMAGE" or "MOVING IMAGE"
@@ -112,7 +114,9 @@ class LunarImageCard extends StatelessWidget {
                     },
                   ),
                 ),
-              );
+              )
+                  .animate(target: AnimationUtils.targetFor(context))
+                  .slideX(begin: 0.2, end: 0, duration: 300.ms, curve: Curves.easeOut);
 
               if (isVeryNarrow) {
                 return Column(
@@ -147,25 +151,34 @@ class LunarImageCard extends StatelessWidget {
               border: Border.all(color: LunarTheme.border),
             ),
             clipBehavior: Clip.antiAlias,
-            child: image == null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.satellite_alt_outlined,
-                          size: 36,
-                          color: LunarTheme.textTertiary,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "No lunar image selected",
-                          style: TextStyle(fontSize: 12, color: LunarTheme.textTertiary),
-                        ),
-                      ],
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              child: image == null
+                  ? Center(
+                      key: const ValueKey("empty_placeholder"),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.satellite_alt_outlined,
+                            size: 36,
+                            color: LunarTheme.textTertiary,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "No lunar image selected",
+                            style: TextStyle(fontSize: 12, color: LunarTheme.textTertiary),
+                          ),
+                        ],
+                      ),
+                    )
+                  : KeyedSubtree(
+                      key: ValueKey("img_${image!.id}_${image!.name}"),
+                      child: _buildImageWidget(image!),
                     ),
-                  )
-                : _buildImageWidget(image!),
+            ),
           ),
           const SizedBox(height: 12),
 

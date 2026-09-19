@@ -320,7 +320,9 @@ class PipelineRunResponseModel {
       status: json['status'] ?? 'FAILED',
       executionMode: json['execution_mode'] ?? 'LIVE',
       stages: stagesList,
-      metrics: RegistrationMetricsModel.fromJson(json['metrics'] ?? {}),
+      metrics: RegistrationMetricsModel.fromJson(
+        json['metrics'] as Map<String, dynamic>? ?? json,
+      ),
       spatialStats: json['spatial_stats'] != null
           ? SpatialStatsModel.fromJson(json['spatial_stats'])
           : null,
@@ -339,3 +341,96 @@ class PipelineRunResponseModel {
     );
   }
 }
+
+/// A single stage-level entry from match_decisions.jsonl.
+/// Uses an [extras] map for stage-specific fields to keep the schema
+/// stable as new stages or fields are added upstream.
+class StageDetailModel {
+  final String stage;
+  final double? ms;
+  final bool? fallback;
+  final String? reason;
+  final Map<String, dynamic> extras;
+
+  const StageDetailModel({
+    required this.stage,
+    this.ms,
+    this.fallback,
+    this.reason,
+    this.extras = const {},
+  });
+
+  factory StageDetailModel.fromJson(Map<String, dynamic> json) {
+    const reserved = {'stage', 'ms', 'fallback', 'reason'};
+    return StageDetailModel(
+      stage: json['stage'] as String? ?? '',
+      ms: (json['ms'] as num?)?.toDouble(),
+      fallback: json['fallback'] as bool?,
+      reason: json['reason'] as String?,
+      extras: Map<String, dynamic>.fromEntries(
+        json.entries.where((e) => !reserved.contains(e.key)),
+      ),
+    );
+  }
+
+  /// Whether this stage passed (true), failed (false), or is unknown (null).
+  bool? get ok => extras['ok'] as bool?;
+}
+
+/// Benchmark comparison between matchers (read from matcher_benchmark.json).
+class MatcherBenchmarkModel {
+  final int pairsTested;
+  final String timestamp;
+  final List<MatcherResultModel> matchers;
+
+  const MatcherBenchmarkModel({
+    required this.pairsTested,
+    required this.timestamp,
+    required this.matchers,
+  });
+
+  factory MatcherBenchmarkModel.fromJson(Map<String, dynamic> json) {
+    return MatcherBenchmarkModel(
+      pairsTested: json['pairs_tested'] as int? ?? 0,
+      timestamp: json['timestamp'] as String? ?? '',
+      matchers: (json['matchers'] as List<dynamic>?)
+              ?.map((e) => MatcherResultModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+/// Individual matcher result within a benchmark comparison.
+class MatcherResultModel {
+  final String name;
+  final double? successRate;
+  final double? meanRmsePx;
+  final double? meanTimeMs;
+  final String? notes;
+  final bool skipped;
+  final String? reason;
+
+  const MatcherResultModel({
+    required this.name,
+    this.successRate,
+    this.meanRmsePx,
+    this.meanTimeMs,
+    this.notes,
+    this.skipped = false,
+    this.reason,
+  });
+
+  factory MatcherResultModel.fromJson(Map<String, dynamic> json) {
+    return MatcherResultModel(
+      name: json['name'] as String? ?? '',
+      successRate: (json['success_rate'] as num?)?.toDouble(),
+      meanRmsePx: (json['mean_rmse_px'] as num?)?.toDouble(),
+      meanTimeMs: (json['mean_time_ms'] as num?)?.toDouble(),
+      notes: json['notes'] as String?,
+      skipped: json['skipped'] as bool? ?? false,
+      reason: json['reason'] as String?,
+    );
+  }
+}
+

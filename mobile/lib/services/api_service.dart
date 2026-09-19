@@ -162,28 +162,34 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> fetchRunResults(String runId) async {
-    final uri = Uri.parse('/api/v1/results/');
-    final response = await http.get(uri);
+    final uri = Uri.parse('$_baseUrl/api/v1/results/$runId');
+    final response = await http
+        .get(uri)
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch run results: ');
+      throw Exception('Failed to fetch run results: ${response.statusCode}');
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> fetchRunArtifact(String runId, String filename) async {
-    final uri = Uri.parse('/api/v1/results//artifact/');
-    final response = await http.get(uri);
+    final uri = Uri.parse('$_baseUrl/api/v1/results/$runId/artifact/$filename');
+    final response = await http
+        .get(uri)
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch artifact: ');
+      throw Exception('Failed to fetch artifact: ${response.statusCode}');
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   Future<String> fetchRunReport(String runId) async {
-    final uri = Uri.parse('/api/v1/results//report');
-    final response = await http.get(uri);
+    final uri = Uri.parse('$_baseUrl/api/v1/results/$runId/report');
+    final response = await http
+        .get(uri)
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch report: ');
+      throw Exception('Failed to fetch report: ${response.statusCode}');
     }
     return response.body;
   }

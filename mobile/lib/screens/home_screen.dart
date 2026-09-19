@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../app/theme.dart';
 import '../app/routes.dart';
 import '../providers/pipeline_provider.dart';
+import '../utils/animation_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final pipeProv = context.watch<PipelineProvider>();
     final isOnline = pipeProv.isBackendConnected;
+    final animTarget = AnimationUtils.targetFor(context);
 
     return Scaffold(
       backgroundColor: LunarTheme.background,
@@ -175,7 +178,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-              ),
+              )
+                  .animate(target: animTarget)
+                  .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                  .slideY(begin: -0.15, end: 0, duration: 400.ms, curve: Curves.easeOut),
               const SizedBox(height: 20),
 
               // Action Cards Title
@@ -191,13 +197,16 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 10),
 
               _buildDashboardCard(
+                index: 0,
                 title: "IMAGE REGISTRATION",
                 subtitle: "Select Reference (Fixed) and Moving images, configure preprocessing, and run registration pipeline.",
                 icon: Icons.layers_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.upload),
+                isPrimary: true,
               ),
 
               _buildDashboardCard(
+                index: 1,
                 title: "ROBUSTNESS LABORATORY",
                 subtitle: "Execute robustness evaluations across illumination, scale variation, and geometric transformations.",
                 icon: Icons.science_outlined,
@@ -205,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               _buildDashboardCard(
+                index: 2,
                 title: "ENGINE CAPABILITIES",
                 subtitle: "Feature detection, matching, verification, and registration quality metrics.",
                 icon: Icons.tune_outlined,
@@ -212,6 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               _buildDashboardCard(
+                index: 3,
                 title: "PIPELINE ARCHITECTURE",
                 subtitle: "Interactive pipeline block diagrams and stage specifications.",
                 icon: Icons.schema_outlined,
@@ -268,12 +279,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Responsive dashboard card:
   /// Places badge neatly below the title to completely prevent horizontal clipping/overflow.
   Widget _buildDashboardCard({
+    required int index,
     required String title,
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    bool isPrimary = false,
   }) {
-    return Card(
+    final animTarget = AnimationUtils.targetFor(context);
+    Widget card = Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
@@ -326,5 +340,30 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+
+    card = card
+        .animate(target: animTarget, delay: (index * 100).ms)
+        .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+        .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut);
+
+    if (isPrimary) {
+      card = card
+          .animate(
+            target: animTarget,
+            onPlay: (controller) {
+              if (!AnimationUtils.isRunningInTest && !AnimationUtils.isReducedMotion(context)) {
+                controller.repeat(reverse: true);
+              }
+            },
+          )
+          .scale(
+            begin: const Offset(1.0, 1.0),
+            end: const Offset(1.02, 1.02),
+            duration: 1500.ms,
+            curve: Curves.easeInOut,
+          );
+    }
+
+    return card;
   }
 }

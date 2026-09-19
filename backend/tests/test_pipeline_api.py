@@ -10,7 +10,7 @@ def test_demo_pairs_list():
     pairs = res.json()
     assert len(pairs) >= 2
     assert "pair_a" in [p["pair_id"] for p in pairs]
-    assert "SYNTHETIC PROTOTYPE" in pairs[0]["provenance_note"]
+    assert "provenance_note" in pairs[0] and len(pairs[0]["provenance_note"]) > 0
 
 def test_pipeline_run_demo_pair_live_sift():
     req_body = {

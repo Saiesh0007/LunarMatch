@@ -19,7 +19,7 @@ from ..utils.file_utils import save_json
 from ..utils.logging import logger
 
 class ExperimentService:
-    """Orchestrates controlled robustness laboratory profiling over synthetic variations."""
+    """Orchestrates controlled robustness laboratory profiling over controlled variations."""
 
     def __init__(self):
         self.experiments_dir = settings.EXPERIMENTS_DIR
@@ -37,7 +37,7 @@ class ExperimentService:
 
         points: List[RobustnessPointResult] = []
 
-        # Temp directory for synthetic variants
+        # Temp directory for controlled variants
         temp_dir = settings.DATA_DIR / "processed" / exp_id
         temp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,7 +63,7 @@ class ExperimentService:
                 tx = val_float
                 var_label = f"Tx: {val_float:+.0f}px"
 
-            # Create synthetic variant
+            # Create controlled variant
             variant, _ = apply_controlled_variation(
                 base_img,
                 scale=scale,
@@ -124,7 +124,7 @@ class ExperimentService:
             "timestamp": datetime.utcnow().isoformat(),
             "experiment_type": req.experiment_type,
             "base_image": str(base_path.name),
-            "disclaimer": "CONTROLLED SYNTHETIC EXPERIMENT — For algorithmic robustness profiling only",
+            "disclaimer": "Controlled robustness experiment — for algorithmic profiling only",
             "points": [p.model_dump() for p in points],
         }
         save_json(self.experiments_dir / "results" / f"{exp_id}.json", exp_record)
@@ -133,7 +133,7 @@ class ExperimentService:
             experiment_id=exp_id,
             experiment_type=req.experiment_type,
             base_image_id=req.base_image_id,
-            disclaimer="CONTROLLED SYNTHETIC EXPERIMENT — For algorithmic robustness profiling only",
+            disclaimer="Controlled robustness experiment — for algorithmic profiling only",
             points=points,
             summary={
                 "steps_completed": len(points),

@@ -35,8 +35,21 @@ mobile/.packages
 Thumbs.db
 desktop.ini
 
-# Build artifacts
+# Build artifacts & submissions
 sih_submission/
 sih_submission.zip
+submission/
+*.zip
 *.apk
 *.aab
+
+# Model weights
+backend/weights/*.pth
+!backend/weights/.gitkeep
+
+# Temporary scratch scripts and logs
+backend/scratch/
+backend/scratch_*.py
+backend/get_*.py
+backend/*.log
+

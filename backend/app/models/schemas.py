@@ -21,10 +21,15 @@ class FeatureMethod(str, Enum):
     SIFT_UPPER = "SIFT"
     RIFT2_UPPER = "RIFT2"
     SUPERPOINT = "SuperPoint"
+    SUPERPOINT_LOWER = "superpoint"
 
 class MatcherType(str, Enum):
     BF = "BF"
     FLANN = "FLANN"
+    SUPERGLUE = "superglue"
+    SUPERGLUE_TITLE = "SuperGlue"
+    LIGHTGLUE = "lightglue"
+    LIGHTGLUE_TITLE = "LightGlue"
 
 class GeometricModel(str, Enum):
     AFFINE = "affine"
@@ -108,3 +113,7 @@ class RegistrationMetrics(BaseModel):
     confidence_level: ConfidenceLevel
     confidence_score: float       # normalized score 0.0 - 1.0 (derived quality indicator)
     confidence_explanation: str
+
+class PipelineRequestConfig(BaseModel):
+    lock_to_default: bool = False
+

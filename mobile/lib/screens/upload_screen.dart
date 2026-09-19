@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../app/theme.dart';
 import '../app/routes.dart';
 import '../models/image_model.dart';
 import '../providers/image_provider.dart';
 import '../services/image_service.dart';
 import '../widgets/lunar_image_card.dart';
+import '../utils/animation_utils.dart';
 
 class UploadScreen extends StatelessWidget {
   const UploadScreen({super.key});
@@ -13,6 +15,7 @@ class UploadScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imgProv = context.watch<LunarImageProvider>();
+    final animTarget = AnimationUtils.targetFor(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -52,7 +55,9 @@ class UploadScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
+              )
+                  .animate(target: animTarget)
+                  .fadeIn(duration: 300.ms, curve: Curves.easeOut),
               const SizedBox(height: 16),
 
               // Reference Image Card
@@ -76,7 +81,10 @@ class UploadScreen extends StatelessWidget {
                   );
                   imgProv.setReferenceImage(img);
                 },
-              ),
+              )
+                  .animate(target: animTarget)
+                  .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut),
               const SizedBox(height: 12),
 
               // Swap Button
@@ -91,7 +99,9 @@ class UploadScreen extends StatelessWidget {
                     side: const BorderSide(color: LunarTheme.borderLight),
                   ),
                 ),
-              ),
+              )
+                  .animate(target: animTarget, delay: 50.ms)
+                  .fadeIn(duration: 250.ms),
               const SizedBox(height: 12),
 
               // Moving Image Card
@@ -115,7 +125,10 @@ class UploadScreen extends StatelessWidget {
                   );
                   imgProv.setMovingImage(img);
                 },
-              ),
+              )
+                  .animate(target: animTarget, delay: 100.ms)
+                  .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+                  .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut),
               const SizedBox(height: 20),
 
               // Demo Pairs Quick Load

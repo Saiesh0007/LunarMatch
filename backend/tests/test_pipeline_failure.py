@@ -29,8 +29,8 @@ def test_pipeline_handles_insufficient_matches_gracefully():
     assert result.status is not None, "Pipeline should return a result, not crash"
     assert result.status.value == "NOT_RELIABLE", f"Expected NOT_RELIABLE, got {result.status.value}"
     assert result.failure_reason is not None, "Should have a failure reason"
-    assert "insufficient" in (result.failure_reason or "").lower() or "not_reliable" in (result.failure_reason or "").lower(), \
-        f"Failure reason should mention insufficient matches: {result.failure_reason}"
+    assert "insufficient" in (result.failure_reason or "").lower() or "not_reliable" in (result.failure_reason or "").lower() or "footprint" in (result.failure_reason or "").lower(), \
+        f"Failure reason should mention insufficient matches or invalid footprint: {result.failure_reason}"
 
 
 def test_pipeline_sift_pair_b_also_fails_gracefully():

@@ -26,4 +26,6 @@ from .responses import (
     RobustnessExperimentResponse,
     CapabilityItem,
     CapabilitiesResponse,
+    MatcherBenchmarkResult,
+    MatcherBenchmarkResponse,
 )

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../app/theme.dart';
 import '../app/routes.dart';
+import '../models/pipeline_model.dart';
 import '../providers/pipeline_provider.dart';
 import '../widgets/pipeline_step.dart';
+import '../utils/animation_utils.dart';
 
 class ProcessingScreen extends StatelessWidget {
   const ProcessingScreen({super.key});
@@ -19,6 +22,22 @@ class ProcessingScreen extends StatelessWidget {
 
     final isDone = pipeProv.status == PipelineExecutionStatus.completed;
     final isError = pipeProv.status == PipelineExecutionStatus.error;
+    final animTarget = AnimationUtils.targetFor(context);
+
+    // Identify current active or latest stage
+    final activeStage = stages.cast<PipelineStageModel?>().firstWhere(
+          (s) => s?.status == "RUNNING",
+          orElse: () => stages.cast<PipelineStageModel?>().lastWhere(
+                (s) => s?.status == "COMPLETED",
+                orElse: () => stages.isNotEmpty ? stages.first : null,
+              ),
+        );
+
+    final stageTitle = isDone
+        ? "PIPELINE COMPLETED"
+        : (isError
+            ? "EXECUTION FAILED"
+            : (activeStage != null ? "STAGE: ${activeStage.name.toUpperCase()}" : "PROCESSING LUNAR IMAGES..."));
 
     return PopScope(
       canPop: isDone || isError,
@@ -50,18 +69,33 @@ class ProcessingScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          if (isDone) ...[
+                            const Icon(Icons.check_circle, color: Colors.white, size: 20)
+                                .animate(target: animTarget)
+                                .scale(
+                                  begin: const Offset(0.2, 0.2),
+                                  end: const Offset(1.0, 1.0),
+                                  duration: 300.ms,
+                                  curve: Curves.easeOut,
+                                ),
+                            const SizedBox(width: 8),
+                          ],
                           Expanded(
-                            child: Text(
-                              isDone
-                                  ? "PIPELINE COMPLETED"
-                                  : (isError ? "EXECUTION FAILED" : "PROCESSING LUNAR IMAGES..."),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                                color: Colors.white,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(opacity: animation, child: child),
+                              child: Text(
+                                stageTitle,
+                                key: ValueKey(stageTitle),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -75,11 +109,16 @@ class ProcessingScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: progressFraction,
-                          minHeight: 5,
-                          backgroundColor: LunarTheme.surfaceElevated,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0.0, end: progressFraction),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                          builder: (context, value, _) => LinearProgressIndicator(
+                            value: value,
+                            minHeight: 5,
+                            backgroundColor: LunarTheme.surfaceElevated,
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -133,6 +172,9 @@ class ProcessingScreen extends StatelessWidget {
                       foregroundColor: Colors.black,
                     ),
                   )
+                      .animate(target: animTarget)
+                      .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+                      .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut)
                 else if (isError)
                   OutlinedButton.icon(
                     onPressed: () => Navigator.pop(context),

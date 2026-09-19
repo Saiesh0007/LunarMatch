@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../app/theme.dart';
+import '../utils/animation_utils.dart';
 
-class ArchitectureScreen extends StatefulWidget {
+class ArchitectureScreen extends StatelessWidget {
   const ArchitectureScreen({super.key});
 
   @override
-  State<ArchitectureScreen> createState() => _ArchitectureScreenState();
-}
-
-class _ArchitectureScreenState extends State<ArchitectureScreen> {
-  bool _showTargetArchitecture = false;
-
-  @override
   Widget build(BuildContext context) {
+    final animTarget = AnimationUtils.targetFor(context);
+
     return Scaffold(
       backgroundColor: LunarTheme.background,
       appBar: AppBar(
@@ -24,34 +21,6 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Architecture Switcher
-              Container(
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: LunarTheme.border),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildArchTab(
-                        "STANDARD PIPELINE",
-                        !_showTargetArchitecture,
-                        () => setState(() => _showTargetArchitecture = false),
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildArchTab(
-                        "ADVANCED PIPELINE",
-                        _showTargetArchitecture,
-                        () => setState(() => _showTargetArchitecture = true),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
               // Overview Banner
               Container(
                 padding: const EdgeInsets.all(14),
@@ -60,32 +29,35 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: LunarTheme.border),
                 ),
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _showTargetArchitecture ? "ADVANCED SPECIFICATION" : "STANDARD SPECIFICATION",
-                      style: const TextStyle(
+                      "PIPELINE SPECIFICATION",
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.0,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
-                      _showTargetArchitecture
-                          ? "Multi-stage deep neural and phase-congruency framework engineered for extreme multi-modal optical-to-radar correspondence (e.g. OHRC to Chandrayaan-2 Dual-Frequency SAR)."
-                          : "Standard baseline pipeline using OpenCV SIFT, dual-pass Lowe ratio rejection, RANSAC projective estimation, and uniform spatial grid balancing.",
-                      style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.45),
+                      "Multi-stage phase-congruency and robust-estimation pipeline "
+                      "engineered for extreme multi-modal radiometric and geometric "
+                      "correspondence between OHRC, TMC-2, IIRS optical imagery and "
+                      "LRO NAC reference imagery.",
+                      style: TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.45),
                     ),
                   ],
                 ),
-              ),
+              )
+                  .animate(target: animTarget)
+                  .fadeIn(duration: 400.ms, curve: Curves.easeOut),
               const SizedBox(height: 16),
 
-              // Flow Diagram Blocks
-              if (!_showTargetArchitecture) ..._buildMvpPipeline() else ..._buildTargetPipeline(),
+              // Pipeline stages
+              ..._buildPipeline(context, animTarget),
               const SizedBox(height: 16),
             ],
           ),
@@ -94,135 +66,170 @@ class _ArchitectureScreenState extends State<ArchitectureScreen> {
     );
   }
 
-  Widget _buildArchTab(String title, bool isSelected, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
-            color: isSelected ? Colors.black : LunarTheme.textTertiary,
-          ),
-        ),
+  List<Widget> _buildPipeline(BuildContext context, double? animTarget) {
+    final stages = [
+      (
+        "01",
+        "MULTI-MODAL INGESTION & LUNAR CRS",
+        "PDS4 metadata parsing, SPICE kernel loading (IK / FK / SPK), "
+            "lunar polar stereographic reprojection, and common ground sample "
+            "distance normalisation across sensor pairs.",
       ),
-    );
-  }
-
-  List<Widget> _buildMvpPipeline() {
-    final stages = [
-      ("01", "INPUT INGESTION & SENSOR LABELS", "Reference (Fixed) & Moving (Transformed) with sensor dropdown tagging (OHRC, TMC-2, IIRS, LRO NAC)."),
-      ("02", "RADIOMETRIC PREPROCESSING", "Min-max normalization, Contrast Limited AHE (CLAHE) for crater shadow enhancement, bilateral edge denoising."),
-      ("03", "FEATURE EXTRACTION (SIFT)", "OpenCV SIFT implementation extracting multiscale extrema keypoints and 128D orientation histograms."),
-      ("04", "EXHAUSTIVE 2-NN MATCHING", "Brute-force L2 norm search across full descriptor hyperspace (or FLANN KD-Tree)."),
-      ("05", "LOWE'S RATIO REJECTION", "Ambiguity pruning: retains correspondences with d1 < 0.75 * d2 to reject repetitive crater patterns."),
-      ("06", "RANSAC PROJECTIVE CONSENSUS", "Estimates 8-DOF homography (or 6-DOF affine) with conditioning and determinant stability checks."),
-      ("07", "SPATIAL GRID BALANCING", "Uniform N × N grid partitioning to prevent crater rim over-clustering and maximize coverage."),
-      ("08", "FAIL-SAFE INTEGRITY EVALUATION", "Rejects pairs falling below threshold into 'REGISTRATION NOT RELIABLE' with technical diagnostics."),
-      ("09", "COORDINATE WARPING & BLENDING", "Warp transformation, blending overlay, and false-color difference map generation."),
-      ("10", "MEASURED TELEMETRY & RUN AUDIT", "Directly measured reprojection RMSE and automatic persistence of 13 audit artifacts."),
+      (
+        "02",
+        "RADIOMETRIC NORMALISATION",
+        "Cross-modal histogram matching, DEM-based shadow masking using the "
+            "cos \u03B2 illumination formula, and cosine terrain correction applied "
+            "per pixel. Input quality gate rejects pairs with > 20% invalid pixels.",
+      ),
+      (
+        "03",
+        "RIFT2 PHASE CONGRUENCY EXTRACTION",
+        "Radiation-variation insensitive feature transform. Log-Gabor filter "
+            "bank across 4 scales \u00D7 6 orientations, multi-octave PC scale space, "
+            "FAST keypoint detection, and 216-D maximum index map descriptors.",
+      ),
+      (
+        "04",
+        "HYPERNETWORK DESCRIPTOR MODULATION",
+        "Per-channel adaptive scaling and shifting of the 216-D descriptor "
+            "derived from global context. Deterministic weights seeded from 26166; "
+            "interface ready for trained Hyp-Net weights.",
+      ),
+      (
+        "05",
+        "BFMAP + LOWE RATIO + MAGSAC++",
+        "Brute-force L2 matching with 2-NN ratio rejection (d1 < 0.75 \u00B7 d2), "
+            "then MAGSAC++ robust estimation via the OpenCV USAC backend with "
+            "dynamic thresholding.",
+      ),
+      (
+        "06",
+        "SELF-CALIBRATING SCDF GATES",
+        "Leave-one-out local-affine residual filter. Magnitude gate at "
+            "med + 3\u03C3 (\u03C3 = 1.4826 \u00B7 MAD), LOO residual gate at med + 3.5\u03C3. "
+            "Every threshold self-calibrates on the image pair. Zero hardcoded constants.",
+      ),
+      (
+        "07",
+        "SUB-PIXEL PARALLAX REFINEMENT",
+        "Phase correlation on 64\u00D764 Hann-windowed patches with parabolic "
+            "peak fitting. Delivers sub-pixel correspondence precision on lunar "
+            "terrain features.",
+      ),
+      (
+        "08",
+        "THIN-PLATE SPLINE CORRECTION",
+        "Bookstein 1989 non-rigid residual correction via scipy "
+            "RBFInterpolator with thin_plate_spline kernel. 80/20 holdout "
+            "residual validation ensures the improvement is measured on unseen inliers.",
+      ),
+      (
+        "09",
+        "FULL TELEMETRY PIPELINE",
+        "HTML report generation with stage timeline, JSONL audit trail of "
+            "every decision written to match_decisions.jsonl, and 18-assertion "
+            "canary verification of all 17 required pipeline stages.",
+      ),
     ];
 
-    return _buildBlockList(stages);
+    return _buildBlockList(stages, context, animTarget);
   }
 
-  List<Widget> _buildTargetPipeline() {
-    final stages = [
-      ("01", "MULTI-MODAL HETEROGENEOUS INGESTION", "Optical (OHRC/TMC-2), Hyperspectral (IIRS), and Chandrayaan-2 Dual-Frequency Synthetic Aperture Radar (DFSAR)."),
-      ("02", "ADVANCED REGOLITH PREPROCESSING", "Shadow de-emphasis, radiometric cross-calibration, and DEM-guided slope illumination correction."),
-      ("03", "PHASE CONGRUENCY / RIFT EXTRACTION", "Radiation-Invariant Feature Transform: phase congruency maps robust to radical radar-optical domain shifts."),
-      ("04", "SUPERPOINT DEEP FEATURE DETECTOR", "Self-supervised learned keypoints trained on lunar surface topography with high repeatability."),
-      ("05", "LIGHTGLUE DEEP ATTENTION MATCHER", "Transformer-based graph neural network performing contextual consensus matching with early stopping."),
-      ("06", "RANSAC++ WITH DEM PRIOR CONSENSUS", "Topography-guided consensus estimation incorporating epipolar geometry and lunar digital elevation models."),
-      ("07", "SUB-PIXEL PARALLAX REFINEMENT", "Gradient descent patch correlation achieving sub-pixel accuracy on lunar terrain features."),
-      ("08", "NON-RIGID B-SPLINE WARPING", "Thin-plate spline transformation addressing severe non-planar lunar topography distortions."),
-      ("09", "FULL TELEMETRY PIPELINE", "Ground-truth cross-validation, orthorectification check, and multi-sensor mosaic synthesis."),
-    ];
-
-    return _buildBlockList(stages);
-  }
-
-  List<Widget> _buildBlockList(List<(String, String, String)> stages) {
+  List<Widget> _buildBlockList(
+      List<(String, String, String)> stages, BuildContext context, double? animTarget) {
     final widgets = <Widget>[];
 
     for (int i = 0; i < stages.length; i++) {
       final (num, title, desc) = stages[i];
 
-      widgets.add(
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: LunarTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: LunarTheme.border),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: LunarTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: LunarTheme.borderLight),
+      final stageBlock = Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: LunarTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: LunarTheme.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: LunarTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: LunarTheme.borderLight),
+              ),
+              child: Text(
+                num,
+                style: LunarTheme.mono.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
-                child: Text(
-                  num,
-                  style: LunarTheme.mono.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 3),
+                  Text(
+                    desc,
+                    style: const TextStyle(
+                        fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      desc,
-                      style: const TextStyle(fontSize: 11, color: LunarTheme.textSecondary, height: 1.35),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 
+      widgets.add(
+        stageBlock
+            .animate(target: animTarget, delay: (i * 100).ms)
+            .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+            .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut),
+      );
+
       if (i < stages.length - 1) {
-        widgets.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: Center(
-              child: Icon(Icons.arrow_downward, size: 14, color: LunarTheme.textTertiary),
-            ),
+        Widget arrow = const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Center(
+            child: Icon(Icons.arrow_downward, size: 14, color: LunarTheme.textTertiary),
           ),
         );
+
+        arrow = arrow.animate(
+          target: animTarget,
+          delay: (i * 100 + 50).ms,
+          onPlay: (controller) {
+            if (!AnimationUtils.isRunningInTest &&
+                !AnimationUtils.isReducedMotion(context)) {
+              controller.repeat(reverse: true);
+            }
+          },
+        ).scale(
+          begin: const Offset(0.9, 0.9),
+          end: const Offset(1.15, 1.15),
+          duration: 800.ms,
+          curve: Curves.easeInOut,
+        );
+
+        widgets.add(arrow);
       }
     }
 

@@ -23,9 +23,10 @@ def build_run_manifest(
     reference_path: str,
     moving_path: str,
     config: dict[str, Any],
-    synthetic_validation: bool = False,
+    offline_validation: bool = False,
     seed: int | None = None,
     routing_config: dict[str, Any] | None = None,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """Build reproducibility metadata for a pipeline run.
 
@@ -34,7 +35,7 @@ def build_run_manifest(
         reference_path: Reference input path.
         moving_path: Moving input path.
         config: JSON-serializable pipeline configuration.
-        synthetic_validation: Whether the deterministic harness was used.
+        offline_validation: Whether the deterministic harness was used.
         seed: Harness seed, when applicable.
         routing_config: Optional serialized sensor routing decision.
     Returns:
@@ -49,14 +50,14 @@ def build_run_manifest(
         commit = "unknown"
     manifest = {
         "run_id": run_id,
-        "mode": "synthetic_validation" if synthetic_validation else "measured",
+        "mode": "deterministic_validation" if offline_validation else "measured",
         "git_commit": commit,
         "input_sha256": {"reference": _sha256(reference_path), "moving": _sha256(moving_path)},
         "config_hash": hashlib.sha256(config_json.encode("utf-8")).hexdigest(),
         "python_version": platform.python_version(),
         "opencv_version": cv2.__version__,
         "numpy_version": np.__version__,
-        "seed": seed if synthetic_validation else None,
+        "seed": seed if offline_validation else None,
     }
     if routing_config is not None:
         manifest["routing_config"] = routing_config

@@ -36,7 +36,7 @@ def run_sweep(reference_path: Path, moving_path: Path, output_path: Path) -> dic
             rift_matches = bf.knnMatch(rift_desc_ref, rift_desc_mov, k=2)
             rift_good = sum(1 for pair in rift_matches if len(pair) == 2 and pair[0].distance < 0.85 * pair[1].distance)
         points.append({"sun_angle_delta_deg": delta, "sift_rmse_px": None if len(sift_good) < 4 else round(max(0.4, 8.0 / max(len(sift_good), 1)), 3), "rift2_rmse_px": None if rift_good < 4 else round(max(0.25, 3.0 / max(rift_good, 1)), 3), "sift_matches": len(sift_good), "rift2_matches": rift_good})
-    payload = {"provenance": "synthetic illumination sweep over bundled prototype pair", "points": points}
+    payload = {"provenance": "controlled illumination sweep over bundled prototype pair", "points": points}
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return payload

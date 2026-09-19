@@ -19,10 +19,19 @@ class PipelineRunRequest(BaseModel):
     ratio_threshold: float = Field(0.75, ge=0.4, le=0.95, description="Lowe's ratio test threshold")
     geometric_model: GeometricModel = Field(GeometricModel.HOMOGRAPHY, description="Transformation geometry")
     estimator_method: EstimatorMethod = Field(EstimatorMethod.MAGSAC, description="Robust estimator")
+    use_scdf_gates: bool = Field(True, description="Enable self-calibrating SCDF gates outlier filtering")
+    use_tps: bool = Field(True, description="Enable Thin-Plate Spline non-rigid residual correction")
     subpixel_refinement: bool = Field(True, description="Enable phase-correlation subpixel refinement")
     subpixel_patch_size: int = Field(64, ge=16, le=128, description="Subpixel refinement patch size")
     subpixel_peak_threshold: float = Field(0.2, ge=0.2, le=1.0, description="Minimum subpixel peak response")
     gsd_meters_per_pixel: Optional[float] = Field(None, gt=0.0, description="Ground sample distance for metric residuals")
+    solar_elevation_deg: Optional[float] = Field(None, description="Solar elevation in degrees")
+    solar_azimuth_deg: Optional[float] = Field(None, description="Solar azimuth in degrees")
+    pds_metadata: Optional[Dict[str, Any]] = Field(None, description="PDS metadata dictionary")
+    pds_label_path: Optional[str] = Field(None, description="Path to PDS4 XML label")
+    reference_pds_label: Optional[str] = Field(None, description="Path to reference image PDS4 XML label")
+    moving_pds_label: Optional[str] = Field(None, description="Path to moving image PDS4 XML label")
+    disable_spice: bool = Field(False, description="Force SPICE failure to test PDS fallback illumination")
     forced_config: Optional[str] = Field(None, description="Optional sensor-routing configuration override")
     spatial_balancing: bool = Field(True, description="Enable spatial grid distribution filter")
     grid_size: int = Field(6, ge=2, le=16, description="NxN grid dimension for spatial balancing")
@@ -31,7 +40,11 @@ class PipelineRunRequest(BaseModel):
     max_features: int = Field(2000, ge=100, le=10000, description="Max keypoints to extract")
     preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
     simulation_mode: bool = Field(False, description="Run deterministic simulation engine instead of live CV")
+    is_demo_mode: bool = Field(False, description="Explicit demo execution mode")
     fail_safe_override: bool = Field(False, description="For testing: force fail-safe trigger")
+    lock_to_default: bool = Field(False, description="Force fast working default path RIFT2 + BF")
+
+    model_config = {"extra": "allow"}
 
 class RobustnessExperimentRequest(BaseModel):
     base_image_id: str = Field(..., description="Image ID to apply controlled variations to")

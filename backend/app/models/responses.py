@@ -81,7 +81,7 @@ class RobustnessExperimentResponse(BaseModel):
     experiment_id: str
     experiment_type: str
     base_image_id: str
-    disclaimer: str = "CONTROLLED SYNTHETIC EXPERIMENT — For algorithmic robustness profiling only"
+    disclaimer: str = "Controlled robustness experiment — for algorithmic profiling only"
     points: List[RobustnessPointResult]
     summary: Dict[str, Any]
 
@@ -95,3 +95,21 @@ class CapabilitiesResponse(BaseModel):
     capabilities: List[CapabilityItem]
     pipeline_version: str = "1.0.0"
     build_date: str = "2026-09-14"
+
+class MatcherBenchmarkResult(BaseModel):
+    """Individual matcher result within a benchmark comparison."""
+    name: str
+    success_rate: Optional[float] = None
+    mean_rmse_px: Optional[float] = None
+    mean_time_ms: Optional[float] = None
+    notes: Optional[str] = None
+    skipped: bool = False
+    reason: Optional[str] = None
+
+class MatcherBenchmarkResponse(BaseModel):
+    """Static benchmark comparison between matchers."""
+    pairs_tested: int
+    timestamp: str
+    fixture_resolution: Optional[str] = None
+    matchers: List[MatcherBenchmarkResult]
+

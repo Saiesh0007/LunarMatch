@@ -137,16 +137,23 @@ class _ImageComparisonViewerState extends State<ImageComparisonViewer> {
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: LunarTheme.textSecondary),
                 ),
                 Expanded(
-                  child: Slider(
-                    value: _overlayAlpha,
-                    min: 0.0,
-                    max: 1.0,
-                    activeColor: Colors.white,
-                    inactiveColor: LunarTheme.border,
-                    thumbColor: Colors.white,
-                    onChanged: (val) {
-                      setState(() => _overlayAlpha = val);
-                    },
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: Colors.white,
+                      inactiveTrackColor: LunarTheme.border,
+                      thumbColor: Colors.white,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7, elevation: 2),
+                      overlayColor: Colors.white.withOpacity(0.12),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    ),
+                    child: Slider(
+                      value: _overlayAlpha,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: (val) {
+                        setState(() => _overlayAlpha = val);
+                      },
+                    ),
                   ),
                 ),
                 const Text(

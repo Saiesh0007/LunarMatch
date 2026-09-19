@@ -17,6 +17,9 @@ class Settings:
     OUTPUTS_DIR: Path = BASE_DIR / "outputs"
     EXPERIMENTS_DIR: Path = BASE_DIR / "experiments"
     
+    DEM_DIR_ENV = os.environ.get("LM_DEM_DIR")
+    DEM_DIR: Path | None = Path(DEM_DIR_ENV) if DEM_DIR_ENV else None
+    
     CORS_ORIGINS: List[str] = ["*"]
     SIMULATION_SEED: int = 26166
 
