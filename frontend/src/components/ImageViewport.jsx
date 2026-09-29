@@ -1,16 +1,24 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Icon } from './ui/Icon.jsx';
 import { Button } from './ui/Button.jsx';
+import { apiClient } from '../api/client.js';
 
 export function ImageViewport({ file, roleId, label, onUpload }) {
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!file) {
       setImagePreview(null);
+    } else if (file.imageId) {
+      // If we loaded a sample or have an id, we can fetch the preview
+      // URL.createObjectURL might not exist if it's from server
+      if (!imagePreview) {
+        setImagePreview(apiClient.getPreviewUrl(file.imageId));
+      }
     }
-  }, [file]);
+  }, [file, imagePreview]);
 
   const handleUploadClick = () => {
     if (fileInputRef.current) {
@@ -18,20 +26,31 @@ export function ImageViewport({ file, roleId, label, onUpload }) {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
     const objectUrl = URL.createObjectURL(selectedFile);
     setImagePreview(objectUrl);
 
-    if (onUpload) {
-      const sizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
-      onUpload({
-        name: selectedFile.name,
-        size: `${sizeInMB} MB`,
-        rawFile: selectedFile // Keep the actual file just in case
-      });
+    try {
+      setIsUploading(true);
+      const data = await apiClient.uploadImage(selectedFile);
+
+      if (onUpload) {
+        const sizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+        onUpload({
+          name: selectedFile.name,
+          size: `${sizeInMB} MB`,
+          rawFile: selectedFile,
+          imageId: data.image_id
+        });
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload image to the server.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -80,7 +99,16 @@ export function ImageViewport({ file, roleId, label, onUpload }) {
              style={{ backgroundImage: 'linear-gradient(#222 1px, transparent 1px), linear-gradient(90deg, #222 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
         </div>
       )}
-      
+
+      {isUploading && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
+          <div className="animate-spin text-primary mb-4 p-2 rounded-full border border-surface-container-highest">
+            <Icon name="progress_activity" size="24px" />
+          </div>
+          <div className="font-mono text-xs text-primary uppercase tracking-widest">Uploading to Pipeline...</div>
+        </div>
+      )}
+
       {/* Target Crosshair */}
       <div className="absolute flex items-center justify-center z-10 text-primary opacity-30 pointer-events-none mix-blend-difference">
         <div className="w-[1px] h-[400px] bg-primary/40 absolute" />
