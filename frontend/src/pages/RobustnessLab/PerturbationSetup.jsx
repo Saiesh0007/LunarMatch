@@ -44,7 +44,7 @@ export function PerturbationSetup({
         <div className="font-label-sm tracking-widest text-outline uppercase mb-3">Sweep Step Granularity</div>
         <div className="flex bg-surface-container-lowest p-1 rounded-lg border border-surface-container-high">
           {['3', '5', '7'].map(step => (
-             <Chip 
+             <Chip layoutId="sweep-step-group" 
                key={step} 
                label={`${step} Steps`} 
                active={stepsGranularity === step} 

@@ -24,10 +24,11 @@ export function AlgorithmConfig({
       <div className="grid lg:grid-cols-2 gap-8">
         <div>
           <div className="font-label-sm text-outline tracking-widest uppercase mb-3">Feature Extraction Engine</div>
-          <div className="flex bg-surface-container-lowest p-1 rounded-lg border border-surface-container-high relative">
+          <div className="flex bg-surface-container-lowest p-1 rounded border border-surface-container-high relative">
             {engines.map(e => (
               <Chip 
                 key={e.id}
+                layoutId="engine-group"
                 label={e.label} 
                 active={selectedEngine === e.id}
                 onClick={() => setSelectedEngine(e.id)} 
@@ -38,10 +39,11 @@ export function AlgorithmConfig({
         
         <div>
           <div className="font-label-sm text-outline tracking-widest uppercase mb-3">Geometric Model</div>
-          <div className="flex bg-surface-container-lowest p-1 rounded-lg border border-surface-container-high relative">
+          <div className="flex bg-surface-container-lowest p-1 rounded border border-surface-container-high relative">
             {models.map(m => (
               <Chip 
                 key={m.id}
+                layoutId="model-group"
                 label={m.label} 
                 active={selectedModel === m.id}
                 onClick={() => setSelectedModel(m.id)} 

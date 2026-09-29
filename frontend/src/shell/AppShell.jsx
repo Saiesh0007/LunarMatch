@@ -1,12 +1,12 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { useLocation, useOutlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from './Sidebar.jsx';
 import { TopHeader } from './TopHeader.jsx';
-import { useLocation } from 'react-router-dom';
 
 export default function AppShell() {
   const location = useLocation();
+  const outlet = useOutlet();
 
   return (
     <div className="flex min-h-screen font-body-lg">
@@ -23,9 +23,9 @@ export default function AppShell() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="h-full"
+              className="h-full w-full"
             >
-              <Outlet />
+              {outlet}
             </motion.div>
           </AnimatePresence>
         </main>
