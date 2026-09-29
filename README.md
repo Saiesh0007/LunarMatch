@@ -39,7 +39,7 @@ failure decision.
 
 ## Quick Start
 
-### Backend
+### Backend (FastAPI Engine)
 
 ```bash
 cd backend
@@ -49,7 +49,21 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 API documentation is available at `http://127.0.0.1:8000/docs`.
 
-### Frontend
+### Web Workstation (React + Vite)
+
+The primary browser-based mission control interface for telemetry and robust pipeline configuration.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The workstation will be live at `http://localhost:3000`.
+
+### Mobile (Flutter App)
+
+The alternate cross-platform mobile view for operators.
 
 ```bash
 cd mobile
@@ -58,22 +72,21 @@ flutter run -d windows       # or: flutter run -d chrome
 flutter build apk --release  # produces app-release.apk
 ```
 
-The APK is available at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
-
 ## Technology Stack
 
 | Layer | Technology |
 | :--- | :--- |
 | Backend | Python 3.11, FastAPI, OpenCV 4.13, NumPy, SciPy |
-| Frontend | Flutter 3.41, Provider |
+| Web Frontend | React 19, Vite, Tailwind CSS 4, Zustand, Framer Motion |
+| Mobile | Flutter 3.41, Provider |
 | Algorithms | RIFT2, HOPC, SuperGlue (Sinkhorn OT), MAGSAC++, Phase Correlation |
-| Tests | Pytest (isolated runner), Flutter Test |
 
 ## Project Structure
 
 ```
-backend/       FastAPI service, computer-vision pipeline, tests
-mobile/        Flutter application, 12 screens
+backend/       FastAPI service, computer-vision engine, tests
+frontend/      React + Vite web workstation (Mission Control Data Dashboard)
+mobile/        Flutter application, 12 mobile screens
 docs/          Visual assets, UI mockup, logo
 ```
 
@@ -84,15 +97,14 @@ cd backend
 python run_tests_isolated.py   # 22 test files
 
 cd ../mobile
-flutter test                    # 32 widget tests
+flutter test                   # 32 widget tests
 ```
 
 ## Application Interface
 
-![LunarMatch — 12 Screens](docs/ui_mockup.png)
+![LunarMatch — UI](docs/ui_mockup.png)
 
-*LunarMatch's mission-control interface. Upload Chandrayaan-2 imagery, configure
-the pipeline, monitor registration, and inspect results — all within a single app.*
+*LunarMatch's interfaces support telemetry, configuration, and structural robustness sweeps entirely within the application clients.*
 
 ## Attribution
 
