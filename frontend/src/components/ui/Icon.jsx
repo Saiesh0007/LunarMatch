@@ -1,5 +1,5 @@
 import React from 'react';
-import { clsx, typeClassValue } from 'clsx';
+import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function Icon({ name, className, size = '20px' }) {
