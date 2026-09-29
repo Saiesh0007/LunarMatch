@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-low":"#1b1b1b","on-error":"#690005","surface-variant":"#353535","on-primary-fixed-variant":"#454747","surface-container-highest":"#353535","on-tertiary-fixed-variant":"#46464b","primary-fixed":"#e2e2e2","outline":"#8e9192","surface-container-high":"#2a2a2a","error":"#ffb4ab","primary":"#ffffff","on-primary":"#2f3131","secondary-fixed":"#e5e2e1","surface":"#131313","on-secondary-container":"#b7b4b4","inverse-on-surface":"#303030","background":"#131313","primary-fixed-dim":"#c6c6c7","error-container":"#93000a","tertiary-fixed-dim":"#c6c6cb","primary-container":"#e2e2e2","on-tertiary":"#2f3034","secondary-fixed-dim":"#c8c6c5","tertiary-container":"#e3e2e7","surface-container":"#1f1f1f","on-secondary":"#313030","on-surface":"#e2e2e2","on-error-container":"#ffdad6","tertiary":"#ffffff","on-background":"#e2e2e2","on-surface-variant":"#c4c7c8","surface-bright":"#393939","tertiary-fixed":"#e3e2e7","outline-variant":"#444748","on-tertiary-fixed":"#1a1b1f","inverse-primary":"#5d5f5f","surface-tint":"#c6c6c7","on-secondary-fixed":"#1c1b1b","secondary":"#c8c6c5","on-primary-container":"#636565","on-tertiary-container":"#636469","on-secondary-fixed-variant":"#474746","on-primary-fixed":"#1a1c1c","inverse-surface":"#e2e2e2","surface-container-lowest":"#0e0e0e","surface-dim":"#131313","secondary-container":"#474746"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-sm":"0.5rem","margin":"1rem","space-xs":"0.25rem","space-xl":"1.25rem","space-md":"0.75rem","gutter":"0.75rem","space-lg":"1rem"},"fontFamily":{"label-lg":["Space Grotesk"],"body-md":["Inter"],"label-md":["JetBrains Mono"],"headline-lg":["Space Grotesk"],"headline-sm":["Inter"],"headline-md":["Space Grotesk"],"label-sm":["JetBrains Mono"],"body-lg":["Inter"]},"fontSize":{"label-lg":["12px",{"lineHeight":"16px","letterSpacing":"0.08em","fontWeight":"700"}],"body-md":["12px",{"lineHeight":"17px","fontWeight":"400"}],"label-md":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"500"}],"headline-lg":["20px",{"lineHeight":"24px","letterSpacing":"0.08em","fontWeight":"700"}],"headline-sm":["14px",{"lineHeight":"18px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["16px",{"lineHeight":"20px","letterSpacing":"0.06em","fontWeight":"700"}],"label-sm":["10px",{"lineHeight":"12px","letterSpacing":"0.02em","fontWeight":"500"}],"body-lg":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest flex flex-col z-50 justify-between select-none shadow-[0_1px_8px_rgba(0,0,0,0.3)]"><div class="flex flex-col"><div class="px-space-lg pt-space-lg pb-space-md"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[20px]">radar</span></div><div class="flex flex-col"><span class="font-headline-md text-headline-md tracking-wider text-primary uppercase">LunarMatch</span><span class="font-label-sm text-label-sm text-on-surface-variant tracking-widest uppercase">ISRO CH-2 // SIH 2026</span></div></div><div class="mt-space-md inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span><span>LM-SYS // ORBITAL v2.4.0</span></div></div><div class="px-space-lg py-space-xs"><div class="text-outline font-label-sm text-label-sm uppercase tracking-wider mb-space-xs">Subsystems &amp; Modules</div></div><nav class="flex flex-col px-space-sm gap-space-xs" data-active-classes="bg-surface-container-high text-primary font-bold"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[18px]">grid_view</span><div class="flex flex-col"><span class="font-label-md text-label-md tracking-wider text-outline">01 // CORE</span><span class="font-headline-sm text-headline-sm uppercase tracking-tight">Dashboard</span></div></a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-space-sm rounded transition-colors bg-surface-container-high text-primary font-bold" data-path="registration" href="#"><span class="material-symbols-outlined text-[18px]">tune</span><div class="flex flex-col"><span class="font-label-md text-label-md tracking-wider text-outline">02 // PIPELINE</span><span class="font-headline-sm text-headline-sm uppercase tracking-tight">Registration</span></div></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="robustness-lab" href="#"><span class="material-symbols-outlined text-[18px]">biotech</span><div class="flex flex-col"><span class="font-label-md text-label-md tracking-wider text-outline">03 // STRESS-TEST</span><span class="font-headline-sm text-headline-sm uppercase tracking-tight">Robustness Lab</span></div></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="capabilities-&amp;-arch" href="#"><span class="material-symbols-outlined text-[18px]">hub</span><div class="flex flex-col"><span class="font-label-md text-label-md tracking-wider text-outline">04 // ENGINE SPEC</span><span class="font-headline-sm text-headline-sm uppercase tracking-tight">Capabilities &amp; Arch</span></div></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="mission-info" href="#"><span class="material-symbols-outlined text-[18px]">satellite_alt</span><div class="flex flex-col"><span class="font-label-md text-label-md tracking-wider text-outline">05 // TELEMETRY</span><span class="font-headline-sm text-headline-sm uppercase tracking-tight">Mission Info</span></div></a></nav></div><div class="flex flex-col px-space-md pb-space-lg gap-space-md"><div class="p-space-md rounded bg-surface-container-low flex flex-col gap-space-xs"><div class="flex items-center justify-between font-label-sm text-label-sm"><span class="text-outline uppercase">NODE STATUS</span><span class="text-primary font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>ONLINE</span></div><div class="font-label-sm text-label-sm text-on-surface-variant font-mono">LATENCY: 18.4ms // 60 FPS</div><div class="mt-space-xs pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-outline"><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary">OHRC</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary">TMC-2</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary">IIRS</span></div></div><div class="flex items-center justify-between px-space-xs"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-md text-label-md text-primary font-bold">ISRO_OPERATOR_01</span><span class="font-label-sm text-label-sm text-outline">SAC-ISRO // SIH DESK</span></div></div><span class="material-symbols-outlined text-outline hover:text-primary transition-colors cursor-pointer text-[18px]">power_settings_new</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md z-40 px-space-xl flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-xs font-label-md text-label-md text-outline"><span class="text-on-surface-variant uppercase">WORKSPACE</span><span class="material-symbols-outlined text-[14px]">chevron_right</span><span class="text-primary uppercase tracking-wider font-bold">ORBITAL WORKSTATION</span></div><div class="hidden xl:flex items-center gap-space-sm px-space-sm py-1 rounded bg-surface-container font-label-sm text-label-sm text-on-surface-variant"><span class="material-symbols-outlined text-[14px] text-outline">explore</span><span>SELENE-2000 CRATER COORD: 70.9°S 22.8°E</span></div></div><div class="flex items-center gap-space-md"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container font-label-sm text-label-sm text-on-surface-variant"><span class="material-symbols-outlined text-[14px] text-outline">schedule</span><span class="font-mono">UTC 14:32:08.41</span></div><div class="flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container-high text-primary font-label-sm text-label-sm"><span class="w-2 h-2 rounded-full bg-primary"></span><span class="font-mono uppercase">FASTAPI: 10.0.2.2:8000</span></div><button class="flex items-center gap-1.5 px-space-md py-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm uppercase tracking-wider"><span class="material-symbols-outlined text-[16px]">terminal</span><span>Raw Logs</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface min-h-screen px-space-xl py-space-lg"><div class="flex flex-col w-full gap-space-lg pb-12">
+<section class="flex flex-col bg-surface-container-low rounded-xl p-space-lg shadow-md gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-outline uppercase tracking-widest">
+<span class="text-on-surface-variant">PIPELINE EXECUTION</span>
+<span>//</span>
+<span>REGISTRATION</span>
+<span>/</span>
+<span class="text-primary font-bold">STEP 01 OF 04 : IMAGE PAIRING</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-primary uppercase tracking-tight">
+          SELECT LUNAR IMAGES &amp; CONFIGURE PAIR // ORBITAL CO-REGISTRATION SETUP
+        </h1>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors font-label-sm text-label-sm uppercase tracking-wider shadow-sm" id="btn-swap">
+<span class="material-symbols-outlined text-[16px]">swap_horiz</span>
+<span>Swap Reference &amp; Moving</span>
+</button>
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-colors font-label-sm text-label-sm uppercase tracking-wider shadow-sm" id="btn-clear">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+<span>Clear Pair</span>
+</button>
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-variant hover:bg-surface-bright text-primary font-label-sm text-label-sm uppercase tracking-wider font-bold shadow-sm" id="btn-load-sample">
+<span class="material-symbols-outlined text-[16px]">cloud_sync</span>
+<span>Load Sample Crater Pair</span>
+</button>
+</div>
+</div>
+<div class="flex items-start gap-space-md p-space-md rounded-lg bg-surface-container font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5 shrink-0">info</span>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm w-full">
+<p class="leading-relaxed">
+<span class="text-primary font-bold">REFERENCE</span> designates the invariant fixed geodetic coordinate frame (e.g. high-resolution OHRC nadir strip). 
+          <span class="text-primary font-bold">MOVING</span> designates unaligned sensor payload capture (e.g. TMC-2 oblique or IIRS hyper-cube). 
+          Co-registration convergence requires salient crater rim and central peak structural morphology under non-linear illumination variance.
+        </p>
+<span class="shrink-0 px-2 py-1 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-mono uppercase">
+          CRS: MOON_2000_IAU
+        </span>
+</div>
+</div>
+</section>
+<section class="grid grid-cols-1 xl:grid-cols-2 gap-space-lg">
+<div class="flex flex-col bg-surface-container-low rounded-xl p-space-lg shadow-md gap-space-md" id="col-reference">
+<div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-2 py-1 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold uppercase tracking-wider">
+            FRAME A // FIXED
+          </span>
+<div class="flex flex-col">
+<h2 class="font-headline-md text-headline-md text-primary uppercase">Reference Dataset</h2>
+<span class="font-label-sm text-label-sm text-outline">PRIMARY ORTHO-RECTIFIED BASE</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container font-label-sm text-label-sm text-on-surface">
+<span class="material-symbols-outlined text-[14px] text-outline">wb_sunny</span>
+<span>AZ: <span class="font-mono text-primary font-bold">118.4°</span></span>
+</div>
+<span class="px-2 py-1 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-mono">
+            BAND: MONO_P
+          </span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-space-xs">
+<div class="flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Payload Sensor</label>
+<select class="bg-surface-container-highest text-primary font-label-md text-label-md rounded p-1.5 focus:outline-none cursor-pointer">
+<option selected="">OHRC (0.25m High-Res)</option>
+<option>TMC-2 (5.0m Stereo)</option>
+<option>IIRS (Hyperspectral NIR)</option>
+<option>LRO NAC (0.50m USGS)</option>
+</select>
+</div>
+<div class="flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Spectral Band</label>
+<select class="bg-surface-container-highest text-primary font-label-md text-label-md rounded p-1.5 focus:outline-none cursor-pointer">
+<option selected="">CH-01 [450-900nm Panchromatic]</option>
+<option>CH-02 [VIS-NIR Filter]</option>
+<option>RAW L1C Calibration Matrix</option>
+</select>
+</div>
+<div class="col-span-2 sm:col-span-1 flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Spatial GSD</label>
+<div class="flex items-center justify-between h-full px-2 py-1 rounded bg-surface-container-highest">
+<span class="font-label-sm text-label-sm font-mono text-primary font-bold">0.32 m/px</span>
+<span class="material-symbols-outlined text-[16px] text-outline">lens_blur</span>
+</div>
+</div>
+</div>
+<div class="relative w-full aspect-square bg-surface-container-lowest rounded-xl overflow-hidden shadow-inner group">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-300" data-alt="Orbital nadir view of deep lunar south pole crater Shackleton captured by Chandrayaan-2 OHRC camera at 0.25m ultra-high resolution. Pitch black stark shadowed crater walls, sharp razor rim edge, fine ejecta blanket rays, matte monochrome slate gray basalt regolith, precision scientific aerospace imaging." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDB8OCJRVnlQiGLapJLT0ShjdHBnJGXIF2Zt4woCXrcPpSf6VAyictDL5XCKb16GsDTuM7FVWP_P-CNwC1B41art5s4BBmqOcf9qEYFNUWqwRME4-9DDuxpqpbZMAx5qlxB_50wgrAma_wgoqaSzsZQk2hwmfZxSftrbhD_kB4AESvJ13pbpvY72a2LT3TSstQL8TSrTnvb9Vy4ZkJQQ7O5hZTBPv2HXHbbxTYUqj53IAL_-1Yrqe-i')"></div>
+<div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-primary font-mono shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span>2048 x 2048 PX</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[14px]">grid_4x4</span>
+<span>GRID NATIVE</span>
+</div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-36 h-36 flex items-center justify-center pointer-events-none">
+<div class="absolute inset-x-0 top-1/2 h-[1px] bg-primary/40"></div>
+<div class="absolute inset-y-0 left-1/2 w-[1px] bg-primary/40"></div>
+<div class="w-16 h-16 rounded-full border border-primary/40 flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+</div>
+<span class="absolute top-1 right-1 font-label-sm text-[9px] text-primary/70 font-mono">TGT_REF_CTR</span>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div class="flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-outline font-mono">
+<span class="text-primary font-bold">16-BIT UNCOMPRESSED</span>
+<span>// 4.19 MP</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-lowest/90 backdrop-blur-sm p-1 rounded shadow pointer-events-auto">
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">zoom_in</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">zoom_out</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">crop_free</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-xs">
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Solar Elevation</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">14.2° (Grazing)</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Incidence Angle</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">75.8°</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Lunar Geodetic</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">89.9°S 0.0°E</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Mean DN / Variance</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">84.2 // σ 41.7</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Radiometric Histogram (Linear 12-Bit)</span>
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm font-mono text-on-surface-variant">
+<span>MIN: 02</span>
+<span>-</span>
+<span>MEDIAN: 126</span>
+<span>-</span>
+<span>MAX: 254</span>
+</div>
+</div>
+<div class="w-48 h-9 flex items-end gap-1 px-2 py-1 rounded bg-surface-container-highest">
+<div class="w-1.5 bg-primary/20 rounded-t h-[20%]"></div>
+<div class="w-1.5 bg-primary/30 rounded-t h-[35%]"></div>
+<div class="w-1.5 bg-primary/45 rounded-t h-[60%]"></div>
+<div class="w-1.5 bg-primary/70 rounded-t h-[90%]"></div>
+<div class="w-1.5 bg-primary rounded-t h-[100%]"></div>
+<div class="w-1.5 bg-primary/90 rounded-t h-[82%]"></div>
+<div class="w-1.5 bg-primary/60 rounded-t h-[64%]"></div>
+<div class="w-1.5 bg-primary/40 rounded-t h-[42%]"></div>
+<div class="w-1.5 bg-primary/25 rounded-t h-[30%]"></div>
+<div class="w-1.5 bg-primary/20 rounded-t h-[18%]"></div>
+<div class="w-1.5 bg-primary/10 rounded-t h-[12%]"></div>
+<div class="w-1.5 bg-primary/5 rounded-t h-[8%]"></div>
+</div>
+</div>
+<div class="p-space-lg rounded-xl bg-surface-container flex flex-col items-center justify-center text-center gap-space-xs cursor-pointer hover:bg-surface-container-high transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">upload_file</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary uppercase">Ingest Primary Reference GeoTIFF / PDS4</span>
+<span class="font-label-sm text-label-sm text-outline">Drag &amp; drop mission raster (.TIF, .IMG, .JP2) or browse local mount</span>
+</div>
+<button class="mt-space-xs px-space-md py-1.5 rounded-lg bg-surface-variant text-primary font-label-sm text-label-sm uppercase tracking-wider font-bold">
+          Browse Storage Array
+        </button>
+</div>
+</div>
+<div class="flex flex-col bg-surface-container-low rounded-xl p-space-lg shadow-md gap-space-md" id="col-moving">
+<div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-2 py-1 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-bold uppercase tracking-wider">
+            FRAME B // TARGET (WARPED)
+          </span>
+<div class="flex flex-col">
+<h2 class="font-headline-md text-headline-md text-primary uppercase">Moving Dataset</h2>
+<span class="font-label-sm text-label-sm text-outline">UNREGISTERED OBLIQUE / MULTI-SPECTRAL</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container font-label-sm text-label-sm text-on-surface">
+<span class="material-symbols-outlined text-[14px] text-outline">wb_sunny</span>
+<span>AZ: <span class="font-mono text-primary font-bold">163.4°</span> <span class="text-outline">(Δ+45.0°)</span></span>
+</div>
+<span class="px-2 py-1 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-mono">
+            GEO-WARP: ESTIMATED
+          </span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-space-xs">
+<div class="flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Payload Sensor</label>
+<select class="bg-surface-container-highest text-primary font-label-md text-label-md rounded p-1.5 focus:outline-none cursor-pointer">
+<option selected="">TMC-2 (5.0m Stereo Fore/Aft)</option>
+<option>IIRS (Hyperspectral 250 bands)</option>
+<option>OHRC (Secondary Orbit Strip)</option>
+<option>Mini-SAR S-Band Radar</option>
+</select>
+</div>
+<div class="flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Spectral Band</label>
+<select class="bg-surface-container-highest text-primary font-label-md text-label-md rounded p-1.5 focus:outline-none cursor-pointer">
+<option selected="">FORE-CAM // 500-850nm</option>
+<option>AFT-CAM // 500-850nm</option>
+<option>NADIR STEREO // 5m</option>
+</select>
+</div>
+<div class="col-span-2 sm:col-span-1 flex flex-col gap-1 p-space-sm rounded bg-surface-container">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Spatial GSD</label>
+<div class="flex items-center justify-between h-full px-2 py-1 rounded bg-surface-container-highest">
+<span class="font-label-sm text-label-sm font-mono text-primary font-bold">5.00 m/px</span>
+<span class="material-symbols-outlined text-[16px] text-outline">aspect_ratio</span>
+</div>
+</div>
+</div>
+<div class="relative w-full aspect-square bg-surface-container-lowest rounded-xl overflow-hidden shadow-inner group">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-300 rotate-12 scale-110" data-alt="Oblique wide-angle satellite capture of the same lunar polar crater terrain taken by Chandrayaan-2 TMC-2 camera at 5.0m resolution. Dramatic directional low-sun illumination creating shifted elongated shadow profiles, severe rotation offset, coarser pixel scale, textured grayscale surface with evident crater rims." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBVRK3wyEr5Ha14pWXeZudfJ6M5pFCjzyO-UQWTg9dYvpVF5zl-jKinhC4UZHUZX1dv9mw0gaq_JWiLVL4xiEv7sMY7zJTEwUSjpdZyzw-JLUNJ51jY-8wkqoUGuPmmqwZVa8FQItOG6xvf6DoQQqJtdIS-hfqfNHRnMeGBEBcYXUCQ4SXqxwhNZbEMn0sAQO4AetVlCxM3a4UEOSEOXTPrNQ2kHL0iTpxK3tsigLdTDqSFKOzzzzYl')"></div>
+<div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-primary font-mono shadow-sm">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span>1024 x 1024 PX</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[14px]">rotate_90_degrees_cw</span>
+<span>ROT: ~12.4° CCW</span>
+</div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-48 h-48 border border-dashed border-primary/50 rounded flex items-center justify-center rotate-12">
+<span class="absolute top-1 left-1 font-label-sm text-[9px] text-primary font-mono px-1 rounded bg-surface-container-lowest/80">OVERLAP REGION</span>
+<div class="w-2 h-2 rounded-full bg-primary/70"></div>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div class="flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-sm font-label-sm text-label-sm text-outline font-mono">
+<span class="text-primary font-bold">12-BIT CALIBRATED</span>
+<span>// 1.05 MP</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-lowest/90 backdrop-blur-sm p-1 rounded shadow pointer-events-auto">
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">zoom_in</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">zoom_out</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded bg-surface-container hover:bg-surface-container-high text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">sync_alt</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-xs">
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Solar Elevation</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">28.6° (Mid-Angle)</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Incidence Angle</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">61.4°</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Est. Scale Ratio</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">15.6x Difference</span>
+</div>
+<div class="flex flex-col p-space-sm rounded bg-surface-container">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Phase Angle Diff</span>
+<span class="font-label-md text-label-md text-primary font-bold font-mono mt-0.5">+38.2° Non-linear</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Radiometric Histogram (Linear 12-Bit)</span>
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm font-mono text-on-surface-variant">
+<span>MIN: 14</span>
+<span>-</span>
+<span>MEDIAN: 94</span>
+<span>-</span>
+<span>MAX: 248</span>
+</div>
+</div>
+<div class="w-48 h-9 flex items-end gap-1 px-2 py-1 rounded bg-surface-container-highest">
+<div class="w-1.5 bg-primary/10 rounded-t h-[10%]"></div>
+<div class="w-1.5 bg-primary/25 rounded-t h-[25%]"></div>
+<div class="w-1.5 bg-primary/60 rounded-t h-[65%]"></div>
+<div class="w-1.5 bg-primary rounded-t h-[98%]"></div>
+<div class="w-1.5 bg-primary/80 rounded-t h-[80%]"></div>
+<div class="w-1.5 bg-primary/50 rounded-t h-[50%]"></div>
+<div class="w-1.5 bg-primary/35 rounded-t h-[35%]"></div>
+<div class="w-1.5 bg-primary/25 rounded-t h-[25%]"></div>
+<div class="w-1.5 bg-primary/15 rounded-t h-[15%]"></div>
+<div class="w-1.5 bg-primary/10 rounded-t h-[10%]"></div>
+<div class="w-1.5 bg-primary/10 rounded-t h-[8%]"></div>
+<div class="w-1.5 bg-primary/5 rounded-t h-[4%]"></div>
+</div>
+</div>
+<div class="p-space-lg rounded-xl bg-surface-container flex flex-col items-center justify-center text-center gap-space-xs cursor-pointer hover:bg-surface-container-high transition-colors">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">add_photo_alternate</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary uppercase">Ingest Unregistered Moving Scene</span>
+<span class="font-label-sm text-label-sm text-outline">Drag &amp; drop auxiliary mission scene or query PDS index server</span>
+</div>
+<button class="mt-space-xs px-space-md py-1.5 rounded-lg bg-surface-variant text-primary font-label-sm text-label-sm uppercase tracking-wider font-bold">
+          Connect Payload Catalog
+        </button>
+</div>
+</div>
+</section>
+<section class="flex flex-col bg-surface-container-low rounded-xl p-space-lg shadow-xl gap-space-md">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[20px] text-primary">precision_manufacturing</span>
+<div class="flex flex-col">
+<h2 class="font-headline-md text-headline-md text-primary uppercase tracking-tight">Algorithmic Matcher &amp; Geometric Fitting Engine</h2>
+<span class="font-label-sm text-label-sm text-outline">MULTI-SCALE ILLUMINATION-INVARIANT LUNAR CO-REGISTRATION HYPERPARAMETERS</span>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-space-sm font-label-sm text-label-sm font-mono text-outline">
+<span>ESTIMATED RUNTIME: ~2.4s</span>
+<span>//</span>
+<span>CUDA CORE ACCEL: ACTIVE</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+<div class="flex flex-col gap-space-xs p-space-md rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Feature Detection Engine</label>
+<span class="font-label-sm text-[10px] text-primary font-mono uppercase bg-surface-container-highest px-1.5 py-0.5 rounded">Phase Congruency</span>
+</div>
+<div class="grid grid-cols-2 gap-1.5 pt-1">
+<button class="engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold text-left transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest"></span>
+<span>RIFT2 (Phase Cong.)</span>
+</button>
+<button class="engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm text-left transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>OpenCV SIFT</span>
+</button>
+<button class="engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm text-left transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>SuperPoint + Glue</span>
+</button>
+<button class="engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm text-left transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>HOPC (Phase Cor.)</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-space-xs p-space-md rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Geometric Model (RANSAC)</label>
+<span class="font-label-sm text-[10px] text-primary font-mono uppercase bg-surface-container-highest px-1.5 py-0.5 rounded">8-DOF Projective</span>
+</div>
+<div class="grid grid-cols-1 gap-1.5 pt-1">
+<button class="geom-pill flex items-center justify-between px-space-md py-1.5 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold transition-colors">
+<span>Projective Homography (RANSAC)</span>
+<span class="font-mono text-[10px]">H (3x3)</span>
+</button>
+<div class="grid grid-cols-2 gap-1.5">
+<button class="geom-pill flex items-center justify-between px-space-sm py-1.5 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm transition-colors">
+<span>Affine Transform</span>
+<span class="font-mono text-[10px] text-outline">6-DOF</span>
+</button>
+<button class="geom-pill flex items-center justify-between px-space-sm py-1.5 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm transition-colors">
+<span>Thin Plate Spline</span>
+<span class="font-mono text-[10px] text-outline">TPS Non-Rigid</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-xs p-space-md rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Spatial Keypoint Balancing</label>
+<span class="font-label-sm text-[10px] text-primary font-mono uppercase bg-surface-container-highest px-1.5 py-0.5 rounded">Quad-Tree Uniform</span>
+</div>
+<div class="flex flex-col gap-2 pt-1">
+<div class="flex items-center justify-between p-2 rounded bg-surface-container-high">
+<span class="font-label-sm text-label-sm text-on-surface">N×N Grid 8×8 (Max 25 kp/cell)</span>
+<span class="material-symbols-outlined text-[16px] text-primary">check_circle</span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm font-mono text-outline px-1">
+<span>MAX POINTS: 1600</span>
+<span>OUTLIER THRESHOLD: 3.0 px</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-md pt-space-xs border-t-0">
+<div class="flex items-center gap-space-sm w-full sm:w-auto">
+<div class="w-3 h-3 rounded-full bg-primary animate-ping"></div>
+<span class="font-label-sm text-label-sm font-mono text-on-surface-variant uppercase">
+          READY FOR CO-REGISTRATION // ALL GEOMETRIC CONSTRAINTS VALIDATED
+        </span>
+</div>
+<div class="flex items-center gap-space-sm w-full sm:w-auto justify-end">
+<button class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-space-lg py-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm uppercase tracking-wider transition-colors shadow-sm" id="btn-preview-corr">
+<span class="material-symbols-outlined text-[18px]">polyline</span>
+<span>Preview Correspondences</span>
+</button>
+<button class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-space-xl py-3 rounded-xl bg-primary hover:bg-surface-bright text-on-primary font-headline-sm text-headline-sm uppercase tracking-wider font-bold transition-all shadow-md" id="btn-submit">
+<span>Continue to Registration Pipeline</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<script>
+  (function initRegistrationStudio() {
+    const swapBtn = document.getElementById('btn-swap');
+    const clearBtn = document.getElementById('btn-clear');
+    const loadSampleBtn = document.getElementById('btn-load-sample');
+    const previewBtn = document.getElementById('btn-preview-corr');
+    const submitBtn = document.getElementById('btn-submit');
+
+    const colRef = document.getElementById('col-reference');
+    const colMov = document.getElementById('col-moving');
+
+    if (swapBtn && colRef && colMov) {
+      swapBtn.addEventListener('click', () => {
+        const parent = colRef.parentNode;
+        if (parent) {
+          const nextRef = colRef.nextElementSibling === colMov ? colRef : colMov;
+          parent.insertBefore(colMov, nextRef);
+          swapBtn.classList.add('bg-surface-container-highest');
+          setTimeout(() => swapBtn.classList.remove('bg-surface-container-highest'), 300);
+        }
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        const selects = document.querySelectorAll('select');
+        selects.forEach(s => s.selectedIndex = 0);
+      });
+    }
+
+    if (loadSampleBtn) {
+      loadSampleBtn.addEventListener('click', () => {
+        loadSampleBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">sync</span><span>Loading Shackleton DEM...</span>';
+        setTimeout(() => {
+          loadSampleBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cloud_done</span><span>Sample Pair Loaded</span>';
+          setTimeout(() => {
+            loadSampleBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cloud_sync</span><span>Load Sample Crater Pair</span>';
+          }, 2000);
+        }, 600);
+      });
+    }
+
+    const enginePills = document.querySelectorAll('.engine-pill');
+    enginePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        enginePills.forEach(p => {
+          p.className = 'engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-sm text-label-sm text-left transition-colors';
+          const dot = p.querySelector('span:first-child');
+          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-outline';
+        });
+        pill.className = 'engine-pill flex items-center justify-start gap-1.5 px-space-sm py-2 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold text-left transition-colors';
+        const activeDot = pill.querySelector('span:first-child');
+        if (activeDot) activeDot.className = 'w-1.5 h-1.5 rounded-full bg-surface-container-lowest';
+      });
+    });
+
+    if (previewBtn) {
+      previewBtn.addEventListener('click', () => {
+        const originalText = previewBtn.innerHTML;
+        previewBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Computing RIFT2 Inliers...</span>';
+        setTimeout(() => {
+          previewBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] text-primary">task_alt</span><span>1,412 Inliers Verified</span>';
+          setTimeout(() => {
+            previewBtn.innerHTML = originalText;
+          }, 2500);
+        }, 800);
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        submitBtn.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span><span>Initializing Warp Matrix...</span>';
+        setTimeout(() => {
+          submitBtn.innerHTML = '<span>Proceeding to Step 02</span><span class="material-symbols-outlined text-[20px]">done</span>';
+        }, 1200);
+      });
+    }
+  })();
+</script></main></div></body></html>
