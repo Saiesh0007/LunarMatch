@@ -8,7 +8,8 @@ import { ActionBar } from './ActionBar.jsx';
 
 export default function Registration() {
   const { 
-    referenceFile, movingFile, 
+    referenceFile, setReferenceFile,
+    movingFile, setMovingFile,
     selectedEngine, setSelectedEngine,
     selectedModel, setSelectedModel,
     isSwapped, toggleSwap, clearFiles, loadSample,
@@ -25,6 +26,7 @@ export default function Registration() {
           title="Frame A // Fixed" 
           subtitle="Reference Base"
           file={isSwapped ? movingFile : referenceFile}
+          onUpload={(f) => isSwapped ? setMovingFile(f) : setReferenceFile(f)}
           roleId="reference"
           orderClass={isSwapped ? "xl:order-2" : "xl:order-1"}
         />
@@ -33,6 +35,7 @@ export default function Registration() {
           title="Frame B // Target" 
           subtitle="Moving Image"
           file={isSwapped ? referenceFile : movingFile}
+          onUpload={(f) => isSwapped ? setReferenceFile(f) : setMovingFile(f)}
           roleId="moving"
           orderClass={isSwapped ? "xl:order-1" : "xl:order-2"}
         />

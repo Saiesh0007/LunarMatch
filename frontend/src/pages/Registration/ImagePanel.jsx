@@ -2,7 +2,7 @@ import React from 'react';
 import { ImageViewport } from '../../components/ImageViewport.jsx';
 import { twMerge } from 'tailwind-merge';
 
-export function ImagePanel({ title, subtitle, file, roleId, orderClass }) {
+export function ImagePanel({ title, subtitle, file, onUpload, roleId, orderClass }) {
   return (
     <div className={twMerge("flex flex-col", orderClass)}>
       <div className="flex items-center justify-between mb-4">
@@ -12,7 +12,7 @@ export function ImagePanel({ title, subtitle, file, roleId, orderClass }) {
         </div>
       </div>
       
-      <ImageViewport file={file} roleId={roleId} label={title} />
+      <ImageViewport file={file} roleId={roleId} label={title} onUpload={onUpload} />
     </div>
   );
 }
