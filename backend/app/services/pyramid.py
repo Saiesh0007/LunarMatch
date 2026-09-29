@@ -8,7 +8,7 @@ from ..preprocessing.pyramid import (
     MultiscaleResult,
     PyramidFeatureExtractor,
     _build_pyramid_debug,
-    _deduplicate,
+    _deduplicate_numpy as _deduplicate,
     extract_rift2_multiscale,
     filter_cross_scale_matches,
 )

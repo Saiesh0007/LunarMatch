@@ -11,8 +11,7 @@ export function TopHeader() {
   const apiStatus = useApiStatus();
   const location = useLocation();
 
-  // Simple breadcrumb logic based on static nav
-  const activeItem = NAV_ITEMS.find(item => 
+  const activeItem = NAV_ITEMS.find(item =>
     item.path !== '/' ? location.pathname.startsWith(item.path) : location.pathname === '/'
   );
   const breadcrumb = `WORKSPACE › ${activeItem ? activeItem.name.toUpperCase() : 'UNKNOWN'}`;
@@ -26,27 +25,35 @@ export function TopHeader() {
         </div>
         <div className="hidden xl:flex items-center gap-2 bg-surface-container px-3 py-1 rounded border border-surface-container-high font-label-md">
           <Icon name="my_location" size="14px" />
-          <span>78.5° S, 142.3° W</span>
+          <span>78.5° S, 142.3° W (LUNAR ORBIT)</span>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="font-label-md bg-surface-container border border-surface-container-high px-3 py-1.5 rounded flex items-center gap-2">
           <Icon name="schedule" size="14px" className="text-outline" />
-          <span className="tracking-widest">{timeStr}</span>
+          <span className="tracking-widest font-mono">{timeStr}</span>
         </div>
 
         <div className="flex items-center gap-2 bg-surface-container border border-surface-container-high px-3 py-1 rounded">
           <StatusDot status={apiStatus.status} />
           <div className="flex flex-col ml-1">
-            <span className="font-label-sm text-outline uppercase tracking-wider">FastAPI Core</span>
-            <span className="font-mono text-[10px] text-primary">10.0.2.2:8000</span>
+            <span className="font-label-sm text-outline uppercase tracking-wider flex items-center gap-1">
+              Backend {apiStatus.status === 'online' ? '(Connected)' : '(Offline)'}
+            </span>
+            <span className="font-mono text-[10px] text-primary">
+              {apiStatus.ms != null ? `${apiStatus.ms}ms · 127.0.0.1:8000` : '127.0.0.1:8000'}
+            </span>
           </div>
         </div>
 
-        <button type="button" className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-high border border-outline-variant rounded hover:bg-surface-bright hover:border-outline transition-colors text-primary font-label-md ml-2">
+        <button
+          type="button"
+          onClick={() => window.open('http://127.0.0.1:8000/docs', '_blank')}
+          className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-high border border-outline-variant rounded hover:bg-surface-bright hover:border-outline transition-colors text-primary font-label-md ml-2 cursor-pointer"
+        >
           <Icon name="terminal" size="16px" />
-          <span>RAW LOGS</span>
+          <span>API DOCS</span>
         </button>
       </div>
     </header>

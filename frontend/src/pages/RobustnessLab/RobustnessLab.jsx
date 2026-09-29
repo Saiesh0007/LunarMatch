@@ -23,21 +23,21 @@ export default function RobustnessLab() {
 
       <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 min-h-[600px]">
         <div className="lg:col-span-4 h-full">
-          <PerturbationSetup 
+          <PerturbationSetup
             selectedParam={selectedParam} setSelectedParam={setSelectedParam}
             stepsGranularity={stepsGranularity} setStepsGranularity={setStepsGranularity}
             isSweeping={isSweeping} handleRunSweep={handleRunSweep}
           />
         </div>
         <div className="lg:col-span-4 h-full">
-          <DegradationChart 
-            dataSteps={dataSteps} 
-            selectedStep={selectedStep} 
-            onSelectStep={setSelectedStep} 
+          <DegradationChart
+            dataSteps={dataSteps}
+            selectedStep={selectedStep}
+            onSelectStep={setSelectedStep}
           />
         </div>
         <div className="lg:col-span-4 h-full">
-          <OpticalInspection selectedStep={selectedStep} />
+          <OpticalInspection selectedStep={selectedStep} dataSteps={dataSteps} />
         </div>
       </div>
     </div>

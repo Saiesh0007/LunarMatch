@@ -6,40 +6,45 @@ export function useRegistration() {
   const store = useRegistrationStore();
   const [isSwapped, setIsSwapped] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const toggleSwap = () => setIsSwapped(!isSwapped);
 
   const handlePreview = async () => {
-    if (!store.referenceFile?.imageId || !store.movingFile?.imageId) {
-      alert("Please upload both images first.");
+    setErrorMessage(null);
+    const refFile = isSwapped ? store.movingFile : store.referenceFile;
+    const movFile = isSwapped ? store.referenceFile : store.movingFile;
+
+    if (!refFile?.imageId || !movFile?.imageId) {
+      setErrorMessage("Please upload or select both Reference (Frame A) and Moving (Frame B) images before executing alignment.");
       return;
     }
 
     setIsProcessing(true);
 
-    // Convert short engine names to API Enums
-    // (We fallback to what's defined in the backend: sift | rift2 | hopc | superpoint)
-    // SIFT in our UI maps to "sift", "rift2" -> "rift2", "superpoint" -> "sift" (assuming fallback, backend doesn't have superpoint yet without torch)
-    // Actually our UI has selectedEngine: 'sift' | 'rift2' | 'superpoint'
-
     try {
       const config = {
-        reference_image_id: store.referenceFile.imageId,
-        moving_image_id: store.movingFile.imageId,
+        reference_image_id: refFile.imageId,
+        moving_image_id: movFile.imageId,
         feature_method: store.selectedEngine === 'superpoint' ? 'sift' : store.selectedEngine,
         geometric_model: store.selectedModel === 'homography' ? 'homography' : 'affine',
-        simulation_mode: store.selectedEngine === 'superpoint' ? true : false,
+        simulation_mode: store.selectedEngine === 'superpoint',
         spatial_balancing: true
       };
 
       const result = await apiClient.runPipeline(config);
-      console.log("Pipeline result:", result);
       store.setPipelineResult(result);
-      // You could redirect to results page here or show an overlay
-      alert(`Pipeline finished successfully! Mode: ${result.execution_mode}, RMSE: ${result.metrics.rmse_px.toFixed(2)}px`);
+
+      // Smooth scroll to result
+      setTimeout(() => {
+        const resultElem = document.getElementById('results-section');
+        if (resultElem) {
+          resultElem.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (e) {
-      console.error(e);
-      alert("Pipeline execution failed: " + e.message);
+      console.error("Pipeline run failed:", e);
+      setErrorMessage(e.message || "Pipeline execution failed on backend server.");
     } finally {
       setIsProcessing(false);
     }
@@ -53,6 +58,8 @@ export function useRegistration() {
     toggleSwap,
     isProcessing,
     handlePreview,
-    isReady
+    isReady,
+    errorMessage,
+    clearError: () => setErrorMessage(null)
   };
 }

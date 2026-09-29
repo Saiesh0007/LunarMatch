@@ -6,6 +6,7 @@ import { ImagePanel } from './ImagePanel.jsx';
 import { AlgorithmConfig } from './AlgorithmConfig.jsx';
 import { ActionBar } from './ActionBar.jsx';
 import { ResultPanel } from './ResultPanel.jsx';
+import { Icon } from '../../components/ui/Icon.jsx';
 
 export default function Registration() {
   const {
@@ -14,13 +15,30 @@ export default function Registration() {
     selectedEngine, setSelectedEngine,
     selectedModel, setSelectedModel,
     isSwapped, toggleSwap, clearFiles, loadSample,
-    isProcessing, handlePreview, isReady, pipelineResult
+    isProcessing, handlePreview, isReady, pipelineResult,
+    errorMessage, clearError
   } = useRegistration();
 
   return (
     <div className="max-w-[1200px] mx-auto pb-12 relative">
       <StepHeader onSwap={toggleSwap} onClear={clearFiles} onLoadSample={loadSample} />
       <InfoBanner />
+
+      {errorMessage && (
+        <div className="mb-6 p-4 bg-error-container/20 border border-error/50 rounded-xl flex items-center justify-between gap-3 text-error">
+          <div className="flex items-center gap-3">
+            <Icon name="error" size="20px" className="flex-shrink-0" />
+            <span className="font-mono text-xs">{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearError}
+            className="text-error hover:opacity-80 font-bold px-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="grid xl:grid-cols-2 gap-6 relative">
         <ImagePanel
@@ -55,7 +73,9 @@ export default function Registration() {
         onPreview={handlePreview}
       />
 
-      <ResultPanel result={pipelineResult} />
+      <div id="results-section">
+        <ResultPanel result={pipelineResult} />
+      </div>
     </div>
   );
 }
