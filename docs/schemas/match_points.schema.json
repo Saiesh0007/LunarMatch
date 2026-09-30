@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MatchPointsRecord",
+  "type": "object",
+  "required": [
+    "match_id",
+    "ref_x",
+    "ref_y",
+    "mov_x",
+    "mov_y",
+    "distance",
+    "is_inlier",
+    "is_spatially_selected"
+  ],
+  "properties": {
+    "match_id": { "type": "integer" },
+    "ref_x": { "type": "number" },
+    "ref_y": { "type": "number" },
+    "mov_x": { "type": "number" },
+    "mov_y": { "type": "number" },
+    "distance": { "type": "number" },
+    "is_inlier": { "type": "boolean" },
+    "is_spatially_selected": { "type": "boolean" },
+    "residual_pixels": { "type": ["number", "null"] },
+    "residual_meters": { "type": ["number", "null"] },
+    "uncertainty_x": { "type": ["number", "null"] },
+    "uncertainty_y": { "type": ["number", "null"] },
+    "refinement_status": { "type": "string" },
+    "source_lat": { "type": ["number", "null"] },
+    "source_lon": { "type": ["number", "null"] },
+    "reference_lat": { "type": ["number", "null"] },
+    "reference_lon": { "type": ["number", "null"] },
+    "pyramid_level_ref": { "type": "integer" },
+    "pyramid_level_mov": { "type": "integer" }
+  }
+}

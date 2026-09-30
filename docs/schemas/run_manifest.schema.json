@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RunManifest",
+  "type": "object",
+  "required": [
+    "run_id",
+    "timestamp",
+    "mode",
+    "git_commit",
+    "environment",
+    "inputs",
+    "configuration",
+    "metrics_summary"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "mode": { "type": "string", "enum": ["live_baseline", "synthetic_validation", "offline_local"] },
+    "git_commit": { "type": "string" },
+    "git_branch": { "type": "string" },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "python_version": { "type": "string" },
+        "opencv_version": { "type": "string" },
+        "numpy_version": { "type": "string" },
+        "os": { "type": "string" }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "reference_image": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "sha256": { "type": "string" },
+            "shape": { "type": "array", "items": { "type": "integer" } },
+            "sensor": { "type": "string" }
+          }
+        },
+        "moving_image": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "sha256": { "type": "string" },
+            "shape": { "type": "array", "items": { "type": "integer" } },
+            "sensor": { "type": "string" }
+          }
+        }
+      }
+    },
+    "configuration": { "type": "object" },
+    "metrics_summary": { "type": "object" }
+  }
+}

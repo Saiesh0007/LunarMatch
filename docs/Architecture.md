@@ -1,285 +1,98 @@
-# LunarMatch — System Architecture
+# LunarMatch — Architecture & Scientific Framework
 
-## 1. Purpose
+**Target:** Smart India Hackathon 2026 | **Problem Statement:** 26166 | **Organization:** ISRO | **Team:** LunarMatch | **Domain:** Space Technology
 
-LunarMatch is a modular software pipeline for correspondence and registration of Chandrayaan-2 optical imagery (OHRC, TMC/TMC-2 and IIRS) with other lunar reference imagery such as LRO NAC and SELENE.
+---
 
-The architecture is designed around the SIH 2026 Problem Statement 26166 requirements:
+## 1. System Overview
+LunarMatch is an engineering prototype designed for multi-modal, cross-sensor correspondence and registration of lunar orbital imagery (such as Chandrayaan-2 OHRC, TMC-2 stereo, IIRS hyperspectral, and LRO NAC).
 
-- multimodal correspondence
-- illumination / sun-angle variation
-- viewpoint variation
-- scale and resolution variation
-- registered output with corresponding match points
-- high-precision / sub-pixel registration target
-- spatially distributed correspondences
-- quantitative evaluation using RMSE, inlier count, inlier ratio and spatial coverage
-
-## 2. High-Level Architecture
-
-```text
-                         ┌─────────────────────────┐
-                         │       IMAGE INPUT       │
-                         │ OHRC / TMC / IIRS / LRO │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │  IMAGE VALIDATION &     │
-                         │   METADATA HANDLING     │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ ILLUMINATION-AWARE      │
-                         │ PREPROCESSING           │
-                         │ • normalization         │
-                         │ • contrast enhancement  │
-                         │ • denoising             │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ SCALE / RESOLUTION      │
-                         │ ALIGNMENT               │
-                         └────────────┬────────────┘
-                                      │
-                         ┌────────────┴────────────┐
-                         ▼                         ▼
-               ┌──────────────────┐     ┌──────────────────┐
-               │ CLASSICAL        │     │ ROBUST / LEARNED │
-               │ FEATURES         │     │ FEATURES         │
-               │ SIFT (baseline)  │     │ RIFT             │
-               │                  │     │ SuperPoint*      │
-               └────────┬─────────┘     └────────┬─────────┘
-                        │                        │
-                        └────────────┬───────────┘
-                                     ▼
-                         ┌─────────────────────────┐
-                         │   FEATURE MATCHING      │
-                         │ BF / FLANN / LightGlue* │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ MATCH QUALITY FILTERING │
-                         │ • ratio test            │
-                         │ • descriptor distance   │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ GEOMETRIC VERIFICATION  │
-                         │ RANSAC / robust model   │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ SPATIAL BALANCING       │
-                         │ grid / region-aware     │
-                         │ match selection         │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ TRANSFORMATION ESTIMATE │
-                         │ affine / homography     │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │ SUB-PIXEL REFINEMENT*   │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-               ┌──────────────────────┴─────────────────────┐
-               ▼                                            ▼
-     ┌──────────────────────┐                    ┌──────────────────────┐
-     │ REGISTERED PRODUCT   │                    │ EVALUATION           │
-     │ • aligned image      │                    │ • RMSE               │
-     │ • match points       │                    │ • inlier count       │
-     │ • overlay            │                    │ • inlier ratio       │
-     └──────────────────────┘                    │ • spatial coverage   │
-                                                 └──────────────────────┘
+```
+                      [ REFERENCE IMAGE ]               [ MOVING IMAGE ]
+                     (Fixed Coordinate Frame)        (Image to Transform)
+                                |                              |
+                                +--------------+---------------+
+                                               |
+                                               v
+                                   [ 01 INPUT VALIDATION ]
+                                               |
+                                               v
+                                   [ 02 PREPROCESSING ]
+                                   (Norm + CLAHE + Denoise)
+                                               |
+                                               v
+                                   [ 03 FEATURE EXTRACTION ]
+                                   (OpenCV SIFT Baseline)
+                                               |
+                                               v
+                                   [ 04 FEATURE MATCHING ]
+                                   (BFMatcher / FLANN 2-NN)
+                                               |
+                                               v
+                                   [ 05 RATIO FILTERING ]
+                                   (Lowe's Ratio Test: d1 < 0.75*d2)
+                                               |
+                                               v
+                                [ 06 GEOMETRIC VERIFICATION ]
+                                (RANSAC Homography / Affine)
+                                               |
+                                               v
+                                  [ 07 SPATIAL BALANCING ]
+                                (N x N Grid Capping & Coverage)
+                                               |
+                                               v
+                                [ 08 TRANSFORMATION & WARP ]
+                                (cv2.warpPerspective to Reference)
+                                               |
+                                               v
+                                  [ 09 OUTPUT SYNTHESIS ]
+                                (Registered + Overlay + Diff)
+                                               |
+                                               v
+                                [ 10 QUANTITATIVE METRICS ]
+                                (RMSE, Inliers, Spatial Coverage,
+                                 Confidence Rating & Fail-Safe)
 ```
 
-`*` denotes an advanced/next-stage component. The prototype must not claim a component as implemented until it has been tested.
+---
 
-## 3. Module Responsibilities
+## 2. Core Operational Modes
 
-### Input and Validation
-- Accept raster image formats supported by the prototype.
-- Preserve original image dimensions.
-- Validate that the pair has usable image content.
-- Optionally capture sensor/source labels and metadata.
+LunarMatch exposes three clearly delineated execution modes:
 
-### Preprocessing
-The preprocessing stage reduces appearance differences before feature extraction.
+### Mode 1: LIVE BASELINE (`metric_mode: MEASURED`)
+- Uses actual FastAPI + OpenCV implementation:
+  1. Grayscale conversion and intensity normalization
+  2. Contrast Limited Adaptive Histogram Equalization (CLAHE)
+  3. Bilateral noise filtering
+  4. SIFT multiscale extrema feature detection and 128D orientation descriptors
+  5. Exhaustive Brute-Force L2 or FLANN KD-Tree 2-NN correspondence matching
+  6. Dual-pass Lowe's ratio test filter
+  7. RANSAC robust homography/affine estimation with condition number and determinant checks
+  8. $N \times N$ spatial grid balancing
+  9. Warping into the reference coordinate system
+  10. Measured reprojection RMSE calculation over inliers
 
-Candidate operations:
-1. grayscale conversion where appropriate
-2. intensity normalization
-3. denoising
-4. local contrast enhancement such as CLAHE
-5. optional illumination normalization
+### Mode 2: DEMO SIMULATION (`metric_mode: SIMULATED`, `seed: 26166`)
+- Deterministic simulation engine for advanced/future research algorithms (RIFT, SuperPoint, SuperGlue).
+- Visibly displays `SIMULATED PIPELINE`.
+- Never claims that neural networks or unvalidated research models actually executed.
+- Seed `26166` guarantees identical reproducible presentation outputs for identical inputs.
 
-The exact preprocessing chain should be configurable rather than hard-coded.
+### Mode 3: LOCAL FALLBACK (`LOCAL DEMO`)
+- Zero-network client-side fallback used when the backend is offline.
+- Serves bundled demo assets (`pair_a_ref.png`, `pair_a_mov.png`) and deterministic demo telemetry.
+- Visibly displays `LOCAL DEMO` (never claims "ONLINE" or "LIVE AI").
 
-### Scale / Resolution Alignment
-The system should bring images into a compatible working scale before correspondence search.
+---
 
-Responsibilities:
-- estimate or accept scale ratio
-- resize the moving image or create image pyramids
-- retain the original-to-working scale factor
-- avoid unnecessary loss of information
-
-### Feature Extraction
-The architecture supports multiple feature extractors.
-
-**Prototype baseline**
-- SIFT
-
-**Robust feature module**
-- RIFT
-
-**Advanced learned module**
-- SuperPoint
-
-The extractor should expose a common interface:
-
-```text
-extract(image)
-    -> keypoints
-    -> descriptors
-```
-
-### Feature Matching
-The matcher receives descriptors from two images and returns candidate correspondences.
-
-Possible implementations:
-- BFMatcher
-- FLANN
-- LightGlue for the learned pipeline
-
-### Match Filtering
-Candidate matches are filtered using descriptor quality and geometric consistency.
-
-Typical baseline:
-- k-nearest-neighbour matching
-- Lowe-style ratio test
-
-### Geometric Verification
-RANSAC rejects geometrically inconsistent correspondences and estimates a transformation model.
-
-The implementation should record:
-- total candidate matches
-- matches after filtering
-- inlier count
-- inlier ratio
-- transformation matrix
-- reprojection error where available
-
-### Spatial Balancing
-The PS asks for uniform distribution of match points.
-
-A practical implementation:
-1. divide the reference image into a grid
-2. assign each candidate match to a grid cell
-3. rank matches within each cell
-4. keep a controlled number of strong matches per occupied cell
-5. run/redo geometric verification using the selected set where appropriate
-6. calculate spatial coverage
-
-This prevents a high number of matches from one small region from dominating registration.
-
-### Transformation and Registration
-The transformation model is selected according to the image pair and geometry.
-
-For a planar/local prototype:
-- affine transformation
-- homography
-
-The moving image is warped into the reference image coordinate system.
-
-### Sub-Pixel Refinement
-This is an advanced stage aligned with the PS requirement. The prototype should only label it as "implemented" after numerical validation.
-
-Possible refinement strategies include local correlation/optimization around matched locations.
-
-## 4. Data Flow
-
-```text
-Reference image ──► preprocess ──► features ──┐
-                                               ├─► matching
-Moving image ─────► preprocess ──► features ──┘
-                                                   │
-                                                   ▼
-                                             filtering
-                                                   │
-                                                   ▼
-                                               RANSAC
-                                                   │
-                                                   ▼
-                                          spatial balancing
-                                                   │
-                                                   ▼
-                                          transformation
-                                                   │
-                                                   ▼
-                                             registration
-                                                   │
-                         ┌─────────────────────────┴──────────────┐
-                         ▼                                        ▼
-                   output image                             evaluation
-```
-
-## 5. Design Principles
-
-- **Modular:** detectors, descriptors and matchers can be replaced independently.
-- **Reproducible:** all parameters used in a run are recorded.
-- **Fail-safe:** weak correspondence must produce a low-confidence result instead of an untrustworthy registration.
-- **Measurable:** every successful run produces quantitative metrics.
-- **Extensible:** the prototype can evolve from SIFT to RIFT and learned matching without rewriting the whole system.
-- **Demo-friendly:** every major stage produces a visual artifact.
-
-## 6. Prototype vs Target Architecture
-
-| Component | MVP | Target |
-|---|---|---|
-| Input | local raster images | Chandrayaan + reference repositories |
-| Preprocessing | normalization + CLAHE/denoise | modality-aware illumination pipeline |
-| Feature | SIFT | RIFT + SuperPoint |
-| Matching | BF/FLANN | robust/learned matching including LightGlue |
-| Verification | RANSAC | robust estimation / RANSAC++ style module |
-| Spatial distribution | grid balancing | optimized spatial coverage |
-| Registration | affine/homography | high-precision registration |
-| Refinement | optional | validated sub-pixel refinement |
-| Metrics | RMSE, inliers, ratio, coverage | full benchmark suite |
-| UI | Streamlit | scalable research/production interface |
-
-## 7. Failure Handling
-
-A registration result should be rejected or marked low-confidence when:
-- too few usable keypoints exist
-- too few valid matches remain
-- RANSAC cannot find a stable model
-- inlier ratio is below the configured threshold
-- spatial coverage is inadequate
-- reprojection error is excessive
-
-The UI should explain why the result was rejected.
-
-## 8. Deployment
-
-The first prototype is intended to run locally.
-
-Recommended prototype stack:
-- Python
-- OpenCV
-- NumPy
-- scikit-image where needed
-- rasterio/GDAL where GeoTIFF/geospatial handling is required
-- Streamlit for the demonstration interface
-
-Cloud deployment is optional and should not be a prerequisite for the internal prototype.
+## 3. Scientific Terminology Preservation
+- **Reference Image:** The fixed reference coordinate system. Never transformed.
+- **Moving Image:** The image mapped into the reference coordinate system.
+- **Keypoint:** 2D feature location with scale and orientation.
+- **Descriptor:** 128-dimensional floating-point representation.
+- **Candidate Match:** Raw 2-NN descriptor match.
+- **Filtered Match:** Match passing Lowe's ratio test.
+- **Inlier:** Geometrically verified match satisfying RANSAC consensus.
+- **Spatial Coverage:** Percentage of uniform grid cells occupied by valid inliers.
+- **Registration Confidence:** Prototype-level quality indicator derived from measurable metrics (NOT an AI probability).
