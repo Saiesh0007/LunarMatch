@@ -301,6 +301,99 @@ def build_pc_octaves(
 
 
 
+# Scale/rotation-invariant RIFT2 descriptor parameters
+_DESC_GRID = 6          # 6x6 spatial cells
+_DESC_SAMPLES = 36      # samples per patch side (6 per cell)
+_DESC_WINDOW = 6.0      # patch side as a multiple of the keypoint size
+_DOG_CONTRAST = 0.02    # DoG contrast threshold for keypoint detection
+
+
+def _to_uint8(gray: np.ndarray) -> np.ndarray:
+    """Return an 8-bit copy of a grayscale image (DoG detection requires uint8)."""
+    if gray.dtype == np.uint8:
+        return gray
+    return cv2.normalize(gray.astype(np.float32), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+
+def _orientation_field(gray: np.ndarray, n_scales: int, n_orientations: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Doubled-angle orientation field from log-Gabor amplitudes.
+
+    Each pixel's per-orientation amplitudes are summed as vectors at twice the
+    filter angle and normalized by the total amplitude, giving an
+    illumination-invariant (cos 2θ, sin 2θ) field whose magnitude is the
+    orientation coherence. Unlike the discrete MIM, it can be bilinearly
+    resampled and rotated continuously.
+    """
+    _, _, _, amps = compute_phase_congruency_and_mim(
+        gray, n_scales=n_scales, n_orientations=n_orientations, return_amplitudes=True
+    )
+    angles = np.arange(n_orientations) * np.pi / n_orientations
+    total = amps.sum(axis=-1) + 1e-6
+    cos_2t = (amps * np.cos(2.0 * angles)).sum(axis=-1) / total
+    sin_2t = (amps * np.sin(2.0 * angles)).sum(axis=-1) / total
+    return cos_2t.astype(np.float32), sin_2t.astype(np.float32)
+
+
+def _describe_oriented_patches(
+    keypoints: List[cv2.KeyPoint],
+    cos_2t: np.ndarray,
+    sin_2t: np.ndarray,
+    n_orientations: int,
+) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
+    """Build 6x6xN RIFT2 descriptors on scale- and rotation-normalized patches.
+
+    The sampling window is sized by each keypoint's detection scale and rotated
+    by its orientation, and orientations are measured relative to that angle,
+    so the descriptor is invariant to scale and in-plane rotation.
+    """
+    dim = _DESC_GRID * _DESC_GRID * n_orientations
+    field = np.dstack([cos_2t, sin_2t])
+    half = _DESC_SAMPLES / 2.0
+    coords = np.arange(_DESC_SAMPLES) + 0.5 - half
+    gaussian = np.exp(-(coords[:, None] ** 2 + coords[None, :] ** 2) / (2.0 * half ** 2)).astype(np.float32)
+    cell = np.arange(_DESC_SAMPLES) // (_DESC_SAMPLES // _DESC_GRID)
+    cell_id = (cell[:, None] * _DESC_GRID + cell[None, :]).ravel()
+
+    kept: List[cv2.KeyPoint] = []
+    descriptors: List[np.ndarray] = []
+    for kp in keypoints:
+        x, y = kp.pt
+        step = _DESC_WINDOW * kp.size / _DESC_SAMPLES
+        angle = np.deg2rad(kp.angle)
+        ca, sa = np.cos(angle) * step, np.sin(angle) * step
+        # Maps patch (u, v) to image (x, y): rotate and scale about the patch centre
+        warp = np.float32([
+            [ca, -sa, x - ca * half + sa * half],
+            [sa, ca, y - sa * half - ca * half],
+        ])
+        patch = cv2.warpAffine(
+            field, warp, (_DESC_SAMPLES, _DESC_SAMPLES),
+            flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
+            borderMode=cv2.BORDER_CONSTANT, borderValue=0,
+        )
+        magnitude = np.hypot(patch[..., 0], patch[..., 1]) * gaussian
+        # Doubled-angle orientation relative to the keypoint (sign matches the sampling rotation)
+        rel = (np.arctan2(patch[..., 1], patch[..., 0]) + 2.0 * angle) % (2.0 * np.pi)
+        bins = rel / (2.0 * np.pi) * n_orientations
+        b0 = np.floor(bins).astype(np.int32) % n_orientations
+        frac = (bins - np.floor(bins)).astype(np.float32)
+        b1 = (b0 + 1) % n_orientations
+        desc = np.bincount(cell_id * n_orientations + b0.ravel(), weights=(magnitude * (1.0 - frac)).ravel(), minlength=dim)
+        desc += np.bincount(cell_id * n_orientations + b1.ravel(), weights=(magnitude * frac).ravel(), minlength=dim)
+
+        norm = np.linalg.norm(desc)
+        if norm < 1e-6:
+            continue
+        desc = np.clip(desc / norm, 0.0, 0.2)
+        desc /= np.linalg.norm(desc) + 1e-12
+        kept.append(kp)
+        descriptors.append(desc.astype(np.float32))
+
+    if not descriptors:
+        return [], np.empty((0, dim), dtype=np.float32)
+    return kept, np.vstack(descriptors)
+
+
 class RIFT2Extractor(BaseFeatureExtractor):
     """
     Radiation-variation Insensitive Feature Transform 2 (RIFT2) Extractor.
@@ -308,8 +401,10 @@ class RIFT2Extractor(BaseFeatureExtractor):
     Implements:
     - Log-Gabor filter bank & Kovesi phase congruency.
     - Maximum Index Map (MIM) construction.
-    - FAST & corner keypoint detection with sub-pixel parabolic refinement.
-    - Dominant index normalization (speedup over 6-ring convolution).
+    - Scale-space (DoG) keypoint detection with per-keypoint scale and orientation.
+    - Descriptors from the log-Gabor orientation field on scale- and
+      rotation-normalized patches (invariant to scale, rotation and illumination).
+    - Legacy FAST/MIM path when a precomputed phase map is supplied.
     - 216-dimensional (6x6x6) normalized descriptor with Gaussian weighting.
     """
 
@@ -465,20 +560,17 @@ class RIFT2Extractor(BaseFeatureExtractor):
             return all_kps, np.vstack(all_descs).astype(np.float32)
 
 
-        # 1. Compute Phase Congruency & MIM, or use the supplied phase map.
         if phase_map is None:
-            pc_max, pc_min, mim, sum_amps = compute_phase_congruency_and_mim(
-                gray, n_scales=self.n_scales, n_orientations=self.n_orientations, return_amplitudes=True
-            )
-        else:
-            pc_max = np.ascontiguousarray(phase_map, dtype=np.float32)
-            if pc_max.shape != gray.shape:
-                raise ValueError("phase_map must have the same shape as img")
-            pc_min = pc_max
-            sum_amps = np.repeat(
-                pc_max[:, :, np.newaxis], self.n_orientations, axis=2
-            ).astype(np.float32)
-            mim = np.zeros(gray.shape, dtype=np.int32)
+            return self._extract_invariant(gray)
+
+        # Legacy path: FAST keypoints and fixed-size MIM patches on a supplied phase map.
+        pc_max = np.ascontiguousarray(phase_map, dtype=np.float32)
+        if pc_max.shape != gray.shape:
+            raise ValueError("phase_map must have the same shape as img")
+        pc_min = pc_max
+        sum_amps = np.repeat(
+            pc_max[:, :, np.newaxis], self.n_orientations, axis=2
+        ).astype(np.float32)
 
         # 2. Detect keypoints on pc_max (edges) and pc_min (corners)
         norm_max = cv2.normalize(pc_max, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
@@ -609,6 +701,20 @@ class RIFT2Extractor(BaseFeatureExtractor):
         descriptors = np.vstack(descriptors_list).astype(np.float32)
         logger.info(f"RIFT2 extracted {len(valid_kps)} keypoints with 216-D descriptors")
         return valid_kps, descriptors
+
+    def _extract_invariant(self, gray: np.ndarray) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
+        """Detect DoG keypoints and describe them with scale/rotation-normalized RIFT2 patches."""
+        detector = cv2.SIFT_create(nfeatures=self.max_features, contrastThreshold=_DOG_CONTRAST)
+        keypoints = list(detector.detect(_to_uint8(gray), None))
+        if not keypoints:
+            return [], np.empty((0, _DESC_GRID * _DESC_GRID * self.n_orientations), dtype=np.float32)
+        keypoints.sort(key=lambda k: k.response, reverse=True)
+        keypoints = keypoints[: self.max_features]
+
+        cos_2t, sin_2t = _orientation_field(gray, self.n_scales, self.n_orientations)
+        kept, descriptors = _describe_oriented_patches(keypoints, cos_2t, sin_2t, self.n_orientations)
+        logger.info(f"RIFT2 extracted {len(kept)} keypoints with {descriptors.shape[1]}-D descriptors")
+        return kept, descriptors
 
 def extract_rift2(image_gray: np.ndarray, max_features: int = 2000) -> Tuple[List[cv2.KeyPoint], np.ndarray]:
     """Expose high-level RIFT2 feature extraction API."""

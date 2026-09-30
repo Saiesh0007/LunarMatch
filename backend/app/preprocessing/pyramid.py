@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from ..models.schemas import MatchPairModel
-from ..vision.rift2 import RIFT2Extractor, compute_phase_congruency, extract_rift2_on_pc
+from ..vision.rift2 import RIFT2Extractor, compute_phase_congruency
 from ..utils.logging import logger
 
 
@@ -16,14 +16,14 @@ class PyramidLevel:
     image: np.ndarray
 
 
-class LunarKeyPoint(cv2.KeyPoint):
-    """OpenCV keypoint carrying the source pyramid level."""
+def LunarKeyPoint(x=0.0, y=0.0, size=0.0, angle=-1.0, response=0.0, octave=0, class_id=-1, pyramid_level=0, sublevel=0, scale=1.0) -> cv2.KeyPoint:
+    """Build an OpenCV keypoint carrying the source pyramid level in its octave field.
 
-    def __init__(self, x=0.0, y=0.0, size=0.0, angle=-1.0, response=0.0, octave=0, class_id=-1, pyramid_level=0, sublevel=0, scale=1.0):
-        super().__init__(x=float(x), y=float(y), size=float(size), angle=float(angle), response=float(response), octave=int(octave), class_id=int(class_id))
-        self.pyramid_level = int(pyramid_level)
-        self.sublevel = int(sublevel)
-        self.scale = float(scale)
+    Must return a plain cv2.KeyPoint: Python subclasses of cv2.KeyPoint with extra
+    attributes are freed by OpenCV's native dealloc and corrupt the heap (segfault).
+    """
+    level_octave = int(octave) if octave else int(pyramid_level)
+    return cv2.KeyPoint(x=float(x), y=float(y), size=float(size), angle=float(angle), response=float(response), octave=level_octave, class_id=int(class_id))
 
 
 def _as_gray_float(image_gray: np.ndarray) -> np.ndarray:
@@ -109,7 +109,7 @@ def extract_rift2_multiscale(
         image_gray: Grayscale image, uint8 or float32.
         config: Optional configuration dictionary or PipelineConfig.
         request: Optional PipelineRunRequest.
-        n_levels: Number of pyramid levels (when scale space disabled).
+        n_levels: Number of levels that DoG octaves are clipped into (when scale space disabled).
         dedup_radius: Base-resolution suppression radius in pixels.
     Returns:
         MultiscaleResult dict with keypoints, descriptors, octaves_used, ms, levels.
@@ -149,19 +149,16 @@ def extract_rift2_multiscale(
             "ms": float(elapsed_ms),
         })
     else:
-        levels = _build_pyramid_debug(image_gray, n_levels=n_levels)
+        # The DoG detector already searches scale space; each keypoint's octave becomes its level
+        keypoints, descriptors = RIFT2Extractor(max_features=2000).extract(image_gray)
         entries: List[Tuple[float, float, float, int]] = []
-        descriptor_parts: List[np.ndarray] = []
-        for level_index, pc_level in enumerate(levels):
-            keypoints, descriptors = extract_rift2_on_pc(pc_level, max_features=500)
-            if not keypoints or descriptors is None or len(descriptors) == 0:
-                continue
-            scale = 2.0 ** level_index
-            for keypoint in keypoints:
-                entries.append((keypoint.pt[0] * scale, keypoint.pt[1] * scale, max(float(keypoint.response), 1.0), level_index))
-            descriptor_parts.append(descriptors.astype(np.float32))
+        for keypoint in keypoints:
+            octave = keypoint.octave & 0xFF
+            octave = octave - 256 if octave >= 128 else octave
+            level_index = int(np.clip(octave, 0, n_levels - 1))
+            entries.append((keypoint.pt[0], keypoint.pt[1], float(keypoint.response), level_index))
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
-        if not descriptor_parts:
+        if not entries:
             return MultiscaleResult({
                 "keypoints": [],
                 "descriptors": np.empty((0, 216), dtype=np.float32),
@@ -169,7 +166,7 @@ def extract_rift2_multiscale(
                 "levels": np.empty((0,), dtype=np.int8),
                 "ms": float(elapsed_ms),
             })
-        pts, descs, lvls = _deduplicate_numpy(entries, np.vstack(descriptor_parts), dedup_radius)
+        pts, descs, lvls = _deduplicate_numpy(entries, descriptors.astype(np.float32), dedup_radius)
         return MultiscaleResult({
             "keypoints": pts,
             "descriptors": descs,

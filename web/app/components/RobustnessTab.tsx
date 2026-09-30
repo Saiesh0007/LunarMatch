@@ -3,9 +3,59 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { ROBUSTNESS_SUN_ANGLE } from "../data/lunarData";
+import { runRobustnessExperiment, RobustnessExperimentResponse, StudioSession } from "../lib/api";
 
-export default function RobustnessTab() {
+const EXPERIMENT_TYPES: Record<string, string> = {
+  illumination: "Illumination (brightness offset)",
+  scale: "Scale (0.5× – 1.5×)",
+  rotation: "Rotation (±50°)",
+  translation: "Translation (±50 px)",
+};
+
+const cellStyle: React.CSSProperties = { padding: "10px 12px" };
+
+interface RobustnessTabProps {
+  session: StudioSession | null;
+  isBackendOnline: boolean;
+}
+
+export default function RobustnessTab({ session, isBackendOnline }: RobustnessTabProps) {
   const [activeAngleIndex, setActiveAngleIndex] = useState<number>(3); // 45 deg
+
+  // Live sweep on the Studio reference image
+  const [experimentType, setExperimentType] = useState<string>("illumination");
+  const [isSweeping, setIsSweeping] = useState<boolean>(false);
+  const [sweep, setSweep] = useState<RobustnessExperimentResponse | null>(null);
+  const [sweepError, setSweepError] = useState<string | null>(null);
+  const [sweepImageId, setSweepImageId] = useState<string | null>(null);
+
+  // A new Studio image invalidates the previous sweep
+  const sessionImageId = session?.refImageId ?? null;
+  if (sweepImageId !== null && sweepImageId !== sessionImageId && !isSweeping) {
+    setSweep(null);
+    setSweepError(null);
+    setSweepImageId(null);
+  }
+
+  const handleRunSweep = async () => {
+    if (!session || isSweeping) return;
+    setIsSweeping(true);
+    setSweepError(null);
+    setSweepImageId(session.refImageId);
+    try {
+      setSweep(await runRobustnessExperiment({
+        base_image_id: session.refImageId,
+        experiment_type: experimentType,
+        feature_method: session.featureMethod,
+        variation_steps: 5,
+      }));
+    } catch (err) {
+      setSweep(null);
+      setSweepError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSweeping(false);
+    }
+  };
 
   const currentPoint = ROBUSTNESS_SUN_ANGLE[activeAngleIndex];
 
@@ -41,16 +91,106 @@ export default function RobustnessTab() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: 20 }}>
+      {/* Live sweep on the user's own image */}
+      <div className="card-box" style={{ marginBottom: 20 }}>
+        <div className="card-header">
+          <span className="card-header-title">YOUR IMAGE: CONTROLLED ROBUSTNESS SWEEP</span>
+          <span className={`tag-badge ${session ? "badge-white" : "badge-subtle"}`}>
+            {session ? `REF: ${session.refImageId}` : "NO STUDIO RUN YET"}
+          </span>
+        </div>
+
+        {!session ? (
+          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+            {isBackendOnline
+              ? "Run the registration pipeline in Studio first; this sweep then re-registers your reference image against controlled variations of itself."
+              : "The backend is offline. Start it and run the pipeline in Studio to sweep your own image; the charts below are the reference benchmark."}
+          </p>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 14 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={session.refSrc}
+                alt="Reference image under test"
+                style={{ width: 72, height: 72, objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", flexShrink: 0 }}
+              />
+              <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", margin: 0 }}>
+                Testing your Studio <strong>reference image</strong>{session.isCustom ? " (uploaded)" : ""}. The backend makes 5 copies of it
+                with a controlled change applied and registers the original against each one using <code>{session.featureMethod}</code>.
+                Your moving image is not used here.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
+              <select
+                className="param-select"
+                style={{ flex: "1 1 220px", marginBottom: 0 }}
+                value={experimentType}
+                disabled={isSweeping}
+                onChange={(e) => setExperimentType(e.target.value)}
+              >
+                {Object.entries(EXPERIMENT_TYPES).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <button className="btn-secondary-action active" disabled={isSweeping || !isBackendOnline} onClick={handleRunSweep}>
+                {isSweeping ? "RUNNING SWEEP…" : "RUN SWEEP"}
+              </button>
+            </div>
+
+            {sweepError && (
+              <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Sweep failed: {sweepError}</p>
+            )}
+
+            {sweep && (
+              <div className="table-scroll">
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.76rem", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)" }}>
+                      <th style={cellStyle}>VARIATION</th>
+                      <th style={cellStyle}>INLIERS</th>
+                      <th style={cellStyle}>INLIER RATIO</th>
+                      <th style={cellStyle}>COVERAGE</th>
+                      <th style={cellStyle}>RMSE</th>
+                      <th style={cellStyle}>RUNTIME</th>
+                      <th style={cellStyle}>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ fontFamily: "var(--font-geist-mono)", color: "var(--text-secondary)" }}>
+                    {sweep.points.map(pt => (
+                      <tr key={pt.variation_value} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ ...cellStyle, color: "#ffffff", fontWeight: 800 }}>{pt.variation_label}</td>
+                        <td style={cellStyle}>{pt.inliers}</td>
+                        <td style={cellStyle}>{pt.inlier_ratio.toFixed(1)}%</td>
+                        <td style={cellStyle}>{pt.spatial_coverage.toFixed(1)}%</td>
+                        <td style={cellStyle}>{pt.rmse_px !== null ? `${pt.rmse_px.toFixed(2)} px` : "N/A"}</td>
+                        <td style={cellStyle}>{pt.runtime_ms.toFixed(0)} ms</td>
+                        <td style={{ ...cellStyle, color: pt.status === "SUCCESSFUL" ? "#ffffff" : undefined }}>{pt.status.replace("_", " ")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ marginTop: 10, fontSize: "0.72rem", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)" }}>
+              {sweep ? sweep.disclaimer : "Each step runs the full pipeline, so a sweep can take a while on large images."}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="two-col-grid">
         {/* SVG Chart */}
         <div className="card-box">
           <div className="card-header">
             <span className="card-header-title">SUN ANGLE DELTA vs REPROJECTION RMSE</span>
-            <span className="tag-badge badge-white">ACCURACY STABILITY</span>
+            <span className="tag-badge badge-subtle">REFERENCE DATA · NOT YOUR IMAGE</span>
           </div>
 
-          <div style={{ width: "100%", height: 260, position: "relative" }}>
-            <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg">
+          <div style={{ width: "100%", position: "relative" }}>
+            <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sun angle delta versus reprojection RMSE for RIFT2 and SIFT">
               {/* Grid Lines */}
               {[0, 1, 2, 3, 4].map(r => {
                 const y = padding.top + (chartH / 4) * r;
@@ -118,16 +258,17 @@ export default function RobustnessTab() {
         <div className="card-box">
           <div className="card-header">
             <span className="card-header-title">SIFT VS RIFT2 PHASE CONGRUENCY</span>
-            <span className="tag-badge badge-subtle">RESEARCH DATASET</span>
+            <span className="tag-badge badge-subtle">REFERENCE DATA · NOT YOUR IMAGE</span>
           </div>
 
-          <div style={{ width: "100%", height: 260, display: "flex", alignItems: "center", justifyContent: "center", background: "#000000", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
+          <div style={{ width: "100%", aspectRatio: "1010 / 580", display: "flex", alignItems: "center", justifyContent: "center", background: "#000000", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
             <Image
               src="/assets/visuals/sift_vs_rift2.png"
               alt="SIFT vs RIFT2 Comparison"
-              width={500}
-              height={260}
-              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+              width={1010}
+              height={580}
+              sizes="(max-width: 900px) 100vw, 50vw"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
 
@@ -141,7 +282,7 @@ export default function RobustnessTab() {
       <div className="card-box">
         <div className="card-header">
           <span className="card-header-title">INTERACTIVE SUN INCIDENCE SWEEP PROBE</span>
-          <span className="tag-badge badge-white">&Delta; {currentPoint.angle}&deg; SOLAR ELEVATION</span>
+          <span className="tag-badge badge-white">&Delta; {currentPoint.angle}&deg; SOLAR ELEVATION &middot; REFERENCE DATA</span>
         </div>
 
         <div style={{ marginBottom: 14 }}>

@@ -79,3 +79,6 @@ backend/scratch_*.py
 backend/get_*.py
 backend/*.log
 
+
+# Web app source data module (not a dataset)
+!web/app/data/

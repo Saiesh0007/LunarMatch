@@ -157,7 +157,7 @@ export default function OverviewTab({ onNavigateTab }: OverviewTabProps) {
           <span className="tag-badge badge-subtle">ISRO CHANDRAYAAN-2 &amp; REFERENCE MISSIONS</span>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div className="table-scroll">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.76rem", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)" }}>

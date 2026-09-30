@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
 from ..config import settings
-from ..utils.file_utils import load_json
+from ..utils.file_utils import load_json, to_json_serializable
 
 router = APIRouter(tags=["Results"])
 
@@ -64,7 +64,8 @@ def get_run_results(run_id: str):
     benchmark_path = run_dir / "matcher_benchmark.json"
     result["matcher_benchmark"] = load_json(benchmark_path) if benchmark_path.exists() else None
 
-    return result
+    # Persisted logs can contain NaN/inf, which strict JSON responses reject
+    return to_json_serializable(result)
 
 @router.get("/api/v1/results/{run_id}/artifact/{filename}")
 @router.get("/api/runs/{run_id}/artifacts/{key}")
@@ -84,7 +85,7 @@ def get_run_artifact(run_id: str, filename: str = None, key: str = None):
         raise HTTPException(status_code=404, detail=f"Artifact {artifact_name} for run {run_id} not found")
 
     if artifact_name.endswith(".json"):
-        return JSONResponse(content=load_json(artifact_path))
+        return JSONResponse(content=to_json_serializable(load_json(artifact_path)))
     elif artifact_name.endswith(".png"):
         return FileResponse(path=str(artifact_path), media_type="image/png")
     else:

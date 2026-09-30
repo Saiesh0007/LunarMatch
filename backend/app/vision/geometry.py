@@ -85,9 +85,14 @@ class GeometricVerification:
                 det = np.linalg.det(H_norm[:2, :2])
                 if det <= 0.05 or det > 20.0:
                     return False, f"Extreme perspective scaling or reflection (det={det:.3f})"
-                cond = np.linalg.cond(H_norm)
-                if cond > 1e5:
-                    return False, f"Ill-conditioned homography matrix (condition number={cond:.1e})"
+                # Condition the linear part only: the full matrix's condition number grows with the
+                # translation in pixels, which rejected valid rotations/scalings of large images.
+                cond = np.linalg.cond(H_norm[:2, :2])
+                if cond > 100.0:
+                    return False, f"Extreme anisotropic distortion (linear condition number={cond:.1f})"
+                persp = float(np.max(np.abs(H_norm[2, :2])))
+                if persp > 1e-2:
+                    return False, f"Degenerate perspective terms (max |h2x|={persp:.1e})"
             else:
                 det = np.linalg.det(matrix[:2, :2])
                 if det <= 0.05 or det > 20.0:

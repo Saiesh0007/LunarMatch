@@ -1,43 +1,66 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Header from "./components/Header";
 import OverviewTab from "./components/OverviewTab";
-import StudioTab from "./components/StudioTab";
-import CorrespondenceTab from "./components/CorrespondenceTab";
-import RobustnessTab from "./components/RobustnessTab";
-import ArchitectureTab from "./components/ArchitectureTab";
-import ExportModal from "./components/ExportModal";
 import Footer from "./components/Footer";
+
+// Non-default tabs and the export modal are code-split and loaded on demand
+const TabLoading = () => <div className="card-box tab-loading" aria-busy="true">Loading module…</div>;
+const StudioTab = dynamic(() => import("./components/StudioTab"), { loading: TabLoading });
+const CorrespondenceTab = dynamic(() => import("./components/CorrespondenceTab"), { loading: TabLoading });
+const RobustnessTab = dynamic(() => import("./components/RobustnessTab"), { loading: TabLoading });
+const ArchitectureTab = dynamic(() => import("./components/ArchitectureTab"), { loading: TabLoading });
+const ExportModal = dynamic(() => import("./components/ExportModal"));
+import { checkHealth, StudioSession } from "./lib/api";
+
+const TABS = ["overview", "studio", "correspondence", "robustness", "architecture"];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [isBackendOnline, setIsBackendOnline] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  // Latest Studio run, consumed by the Correspondence and Robustness tabs
+  const [session, setSession] = useState<StudioSession | null>(null);
+  // Tabs stay mounted once visited so their state survives tab switches
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(["overview"]));
+
+  if (!visitedTabs.has(activeTab)) setVisitedTabs(new Set(visitedTabs).add(activeTab));
+
+  const tabPane = (tab: string, content: React.ReactNode) =>
+    visitedTabs.has(tab) || activeTab === tab ? (
+      <div key={tab} style={{ display: activeTab === tab ? "contents" : "none" }}>
+        {content}
+      </div>
+    ) : null;
 
   const checkBackendHealth = async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch("http://127.0.0.1:8000/health", { signal: controller.signal });
-      clearTimeout(timeout);
-      if (res.ok) {
-        setIsBackendOnline(true);
-        return;
-      }
-    } catch {
-      // Offline fallback
-    }
-    setIsBackendOnline(false);
+    setIsBackendOnline(await checkHealth());
   };
 
   useEffect(() => {
-    checkBackendHealth();
-    // Sync with URL hash
-    const hash = window.location.hash.replace("#", "");
-    if (hash && ["overview", "studio", "correspondence", "robustness", "architecture"].includes(hash)) {
-      setActiveTab(hash);
-    }
+    let cancelled = false;
+    checkHealth().then(online => {
+      if (!cancelled) setIsBackendOnline(online);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Sync active tab with URL hash (initial load and back/forward navigation)
+  useEffect(() => {
+    const syncFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (TABS.includes(hash)) setActiveTab(hash);
+    };
+    const timer = setTimeout(syncFromHash, 0);
+    window.addEventListener("hashchange", syncFromHash);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("hashchange", syncFromHash);
+    };
   }, []);
 
   const handleTabChange = (tab: string) => {
@@ -56,14 +79,14 @@ export default function Home() {
       />
 
       <main className="main-content">
-        {activeTab === "overview" && <OverviewTab onNavigateTab={handleTabChange} />}
-        {activeTab === "studio" && <StudioTab />}
-        {activeTab === "correspondence" && <CorrespondenceTab />}
-        {activeTab === "robustness" && <RobustnessTab />}
-        {activeTab === "architecture" && <ArchitectureTab />}
+        {tabPane("overview", <OverviewTab onNavigateTab={handleTabChange} />)}
+        {tabPane("studio", <StudioTab isBackendOnline={isBackendOnline} onSessionChange={setSession} />)}
+        {tabPane("correspondence", <CorrespondenceTab session={session} />)}
+        {tabPane("robustness", <RobustnessTab session={session} isBackendOnline={isBackendOnline} />)}
+        {tabPane("architecture", <ArchitectureTab />)}
       </main>
 
-      <ExportModal isOpen={isExportOpen} onClose={() => setIsExportOpen(false)} />
+      {isExportOpen && <ExportModal isOpen={isExportOpen} onClose={() => setIsExportOpen(false)} />}
 
       <Footer onTabChange={handleTabChange} />
     </div>

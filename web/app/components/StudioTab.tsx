@@ -1,10 +1,39 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { PRESET_PAIRS, PresetPair, MetricData } from "../data/lunarData";
+import { PRESET_PAIRS, MetricData } from "../data/lunarData";
+import { apiUrl, runPipeline, uploadImage, PipelineRunResponse, StudioSession } from "../lib/api";
 
-export default function StudioTab() {
+const PRESET_IMAGE_IDS: Record<string, { ref: string; mov: string }> = {
+  pair_a: { ref: "demo_pair_a_ref", mov: "demo_pair_a_mov" },
+  pair_b: { ref: "demo_pair_b_ref", mov: "demo_pair_b_mov" },
+};
+
+function toMetricData(res: PipelineRunResponse): MetricData {
+  const m = res.metrics;
+  return {
+    keypointsRef: m.keypoints_reference,
+    keypointsMov: m.keypoints_moving,
+    candidateMatches: m.candidate_matches,
+    filteredMatches: m.filtered_matches,
+    ransacInliers: m.ransac_inliers,
+    inlierRatio: m.inlier_ratio / 100,
+    rmsePx: m.rmse_px,
+    spatialCoverage: m.spatial_coverage / 100,
+    mutualInformation: 0,
+    ssim: 0,
+    runtimeMs: m.runtime_ms,
+    status: res.status,
+    confidenceExplanation: m.confidence_explanation,
+  };
+}
+
+interface StudioTabProps {
+  isBackendOnline: boolean;
+  onSessionChange: (session: StudioSession | null) => void;
+}
+
+export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTabProps) {
   const [selectedPairId, setSelectedPairId] = useState<string>("pair_a");
   const [refImageSrc, setRefImageSrc] = useState<string>(PRESET_PAIRS.pair_a.refPath);
   const [movImageSrc, setMovImageSrc] = useState<string>(PRESET_PAIRS.pair_a.movPath);
@@ -15,9 +44,13 @@ export default function StudioTab() {
   const [activeStageIndex, setActiveStageIndex] = useState<number>(-1);
   const [blinkShowRef, setBlinkShowRef] = useState<boolean>(true);
   const [zoomScale, setZoomScale] = useState<number>(1.0);
+  const [refFile, setRefFile] = useState<File | null>(null);
+  const [movFile, setMovFile] = useState<File | null>(null);
+  const [originalMovSrc, setOriginalMovSrc] = useState<string>(PRESET_PAIRS.pair_a.movPath);
+  const [lastRun, setLastRun] = useState<PipelineRunResponse | null>(null);
 
   // Form Controls
-  const [sinkhornIter, setSinkhornIter] = useState<number>(50);
+  const [featureMethod, setFeatureMethod] = useState<string>("rift2_multiscale");  const [sinkhornIter, setSinkhornIter] = useState<number>(50);
   const [magsacThreshold, setMagsacThreshold] = useState<number>(2.5);
   const [subpixelEnabled, setSubpixelEnabled] = useState<boolean>(true);
   const [spatialEnabled, setSpatialEnabled] = useState<boolean>(true);
@@ -58,6 +91,11 @@ export default function StudioTab() {
     if (!pair) return;
     setRefImageSrc(pair.refPath);
     setMovImageSrc(pair.movPath);
+    setOriginalMovSrc(pair.movPath);
+    setRefFile(null);
+    setMovFile(null);
+    setLastRun(null);
+    onSessionChange(null);
     setMetrics(pair.metrics);
     addLog(`Selected preset pair: ${pair.name} (${pair.region})`, "info");
   };
@@ -71,49 +109,57 @@ export default function StudioTab() {
       const result = event.target?.result as string;
       if (isRef) {
         setRefImageSrc(result);
+        setRefFile(file);
         addLog(`Custom Reference image loaded: ${file.name}`, "info");
       } else {
         setMovImageSrc(result);
+        setOriginalMovSrc(result);
+        setMovFile(file);
         addLog(`Custom Moving image loaded: ${file.name}`, "info");
       }
+      // A custom upload replaces only one side; keep the other side's preset as a file-less source
+      if (selectedPairId) {
+        if (isRef) setMovFile(null);
+        else setRefFile(null);
+      }
+      setLastRun(null);
+      onSessionChange(null);
       setSelectedPairId("");
     };
     reader.readAsDataURL(file);
   };
 
-  // Split-Screen Drag Logic
+  // Split-Screen Drag Logic (pointer events: mouse, touch and pen)
   const handleSplitMove = (clientX: number) => {
     if (!splitWrapperRef.current) return;
     const rect = splitWrapperRef.current.getBoundingClientRect();
-    let x = clientX - rect.left;
-    x = Math.max(0, Math.min(x, rect.width));
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
     setSplitPercent((x / rect.width) * 100);
   };
 
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (isDraggingSplit) handleSplitMove(e.clientX);
-    };
-    const onMouseUp = () => setIsDraggingSplit(false);
+  // Ref (not state) so moves arriving before the next render aren't dropped
+  const draggingRef = useRef<boolean>(false);
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (isDraggingSplit && e.touches[0]) handleSplitMove(e.touches[0].clientX);
-    };
-    const onTouchEnd = () => setIsDraggingSplit(false);
+  const handleSplitPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    draggingRef.current = true;
+    setIsDraggingSplit(true);
+    handleSplitMove(e.clientX);
+  };
 
-    if (isDraggingSplit) {
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-      window.addEventListener("touchmove", onTouchMove);
-      window.addEventListener("touchend", onTouchEnd);
-    }
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [isDraggingSplit]);
+  const handleSplitPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (draggingRef.current) handleSplitMove(e.clientX);
+  };
+
+  const handleSplitPointerUp = () => {
+    draggingRef.current = false;
+    setIsDraggingSplit(false);
+  };
+
+  const handleSplitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowLeft") setSplitPercent(p => Math.max(0, p - 5));
+    if (e.key === "ArrowRight") setSplitPercent(p => Math.min(100, p + 5));
+  };
 
   // Blink Mode Timer
   useEffect(() => {
@@ -137,6 +183,9 @@ export default function StudioTab() {
 
     const imgA = new window.Image();
     const imgB = new window.Image();
+    // Backend artifacts are cross-origin; request CORS so getImageData doesn't taint the canvas
+    imgA.crossOrigin = "anonymous";
+    imgB.crossOrigin = "anonymous";
     imgA.src = refImageSrc;
     imgB.src = movImageSrc;
 
@@ -199,9 +248,80 @@ export default function StudioTab() {
     imgB.onload = onLoaded;
   }, [viewMode, refImageSrc, movImageSrc]);
 
-  // Execute Pipeline Simulation
+  // Resolve a Studio image slot to a backend image ID (uploading custom images when needed)
+  const resolveImageId = async (isRef: boolean): Promise<string> => {
+    const file = isRef ? refFile : movFile;
+    if (file) {
+      const uploaded = await uploadImage(file, file.name);
+      addLog(`Uploaded ${isRef ? "reference" : "moving"} image → ${uploaded.image_id} (${uploaded.width}×${uploaded.height})`, "info");
+      return uploaded.image_id;
+    }
+    const src = isRef ? refImageSrc : originalMovSrc;
+    const presetId = Object.keys(PRESET_PAIRS).find(id => (isRef ? PRESET_PAIRS[id].refPath : PRESET_PAIRS[id].movPath) === src);
+    if (presetId) return isRef ? PRESET_IMAGE_IDS[presetId].ref : PRESET_IMAGE_IDS[presetId].mov;
+    // Fallback: upload whatever the slot currently shows
+    const blob = await (await fetch(src)).blob();
+    const uploaded = await uploadImage(blob, isRef ? "reference.png" : "moving.png");
+    return uploaded.image_id;
+  };
+
+  // Execute the real FastAPI registration pipeline
+  const executeLivePipeline = async () => {
+    setIsProcessing(true);
+    setMovImageSrc(originalMovSrc);
+    addLog("==================================================", "info");
+    addLog("SUBMITTING TO LUNARMATCH FASTAPI PIPELINE (LIVE)...", "info");
+    try {
+      setActiveStageIndex(0);
+      const [refId, movId] = await Promise.all([resolveImageId(true), resolveImageId(false)]);
+      addLog(`Reference: ${refId} | Moving: ${movId} | Method: ${featureMethod}`, "info");
+      setActiveStageIndex(2);
+      const res = await runPipeline({
+        reference_image_id: refId,
+        moving_image_id: movId,
+        feature_method: featureMethod,
+        ransac_threshold: magsacThreshold,
+        subpixel_refinement: subpixelEnabled,
+        spatial_balancing: spatialEnabled,
+      });
+      res.stages.forEach(stg => {
+        addLog(`[${stg.stage_number}] ${stg.name}: ${stg.status}${stg.details ? ` — ${stg.details}` : ""} (${stg.duration_ms.toFixed(1)} ms)`, stg.status === "COMPLETED" ? "success" : "info");
+      });
+      const live = toMetricData(res);
+      setMetrics(live);
+      setLastRun(res);
+      onSessionChange({
+        run: res,
+        refSrc: refImageSrc,
+        movSrc: originalMovSrc,
+        refImageId: refId,
+        movImageId: movId,
+        featureMethod,
+        isCustom: !selectedPairId,
+      });
+      if (res.status === "SUCCESSFUL" || res.status === "LOW_CONFIDENCE") {
+        if (res.outputs.registered_image_url) setMovImageSrc(apiUrl(res.outputs.registered_image_url));
+        addLog(`Run ${res.run_id}: ${res.status}. Inliers = ${live.ransacInliers}, RMSE = ${live.rmsePx ?? "N/A"} px`, "success");
+      } else {
+        addLog(`Run ${res.run_id}: ${res.status}. ${res.failure_reason ?? live.confidenceExplanation}`, "info");
+      }
+      setViewMode("split");
+    } catch (err) {
+      addLog(`Pipeline request failed: ${err instanceof Error ? err.message : String(err)}`, "info");
+    } finally {
+      addLog("==================================================", "info");
+      setActiveStageIndex(-1);
+      setIsProcessing(false);
+    }
+  };
+
+  // Execute Pipeline (live when the backend is reachable, otherwise offline simulation)
   const handleExecutePipeline = async () => {
     if (isProcessing) return;
+    if (isBackendOnline) {
+      await executeLivePipeline();
+      return;
+    }
     setIsProcessing(true);
     addLog("==================================================", "info");
     addLog("INITIALIZING LUNARMATCH CORRESPONDENCE PIPELINE...", "info");
@@ -232,7 +352,9 @@ export default function StudioTab() {
     setViewMode("split");
   };
 
-  const isOptimal = metrics.status === "SUCCESSFUL" || (metrics.rmsePx && metrics.rmsePx < 0.5);
+  const isOptimal = lastRun
+    ? metrics.status === "SUCCESSFUL"
+    : metrics.status === "SUCCESSFUL" || (metrics.rmsePx !== null && metrics.rmsePx < 0.5);
 
   return (
     <div className="grid-studio">
@@ -283,14 +405,14 @@ export default function StudioTab() {
         <div className="dropzone-container">
           <div className="upload-slot">
             <input type="file" accept="image/*" onChange={(e) => handleCustomUpload(e, true)} />
-            <img src={refImageSrc} className="slot-thumb" alt="Reference Thumbnail" />
+            <img src={refImageSrc} className="slot-thumb" alt="Reference Thumbnail" decoding="async" />
             <span className="upload-slot-label">REF (FIXED)</span>
             <span className="upload-slot-hint">Drop or Click</span>
           </div>
 
           <div className="upload-slot">
             <input type="file" accept="image/*" onChange={(e) => handleCustomUpload(e, false)} />
-            <img src={movImageSrc} className="slot-thumb" alt="Moving Thumbnail" />
+            <img src={movImageSrc} className="slot-thumb" alt="Moving Thumbnail" decoding="async" />
             <span className="upload-slot-label">MOVING</span>
             <span className="upload-slot-hint">Drop or Click</span>
           </div>
@@ -301,11 +423,11 @@ export default function StudioTab() {
           <div className="param-label-row">
             <span className="param-label">DESCRIPTOR PIPELINE</span>
           </div>
-          <select className="param-select">
-            <option value="rift2">RIFT2 + SuperGlue Sinkhorn OT (Recommended)</option>
+          <select className="param-select" value={featureMethod} onChange={(e) => setFeatureMethod(e.target.value)}>
+            <option value="rift2_multiscale">RIFT2 Multi-Scale Pyramid (Recommended)</option>
+            <option value="rift2">RIFT2 Single-Scale</option>
             <option value="hopc">HOPC Structural Phase Matching</option>
             <option value="sift">SIFT Baseline (Fails at &Delta; Sun &gt; 45&deg;)</option>
-            <option value="orb">ORB Binary Descriptor</option>
           </select>
         </div>
 
@@ -383,7 +505,7 @@ export default function StudioTab() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              EXECUTE REGISTRATION ENGINE
+              {isBackendOnline ? "EXECUTE REGISTRATION ENGINE (LIVE)" : "EXECUTE REGISTRATION ENGINE (SIMULATED)"}
             </>
           )}
         </button>
@@ -449,24 +571,35 @@ export default function StudioTab() {
         </div>
 
         {/* Viewport Display Stage */}
-        <div className="viewport-stage" style={{ transform: `scale(${zoomScale})` }}>
+        <div className="viewport-stage">
+          <div className="viewport-zoom-layer" style={{ transform: `scale(${zoomScale})` }}>
           {viewMode === "split" ? (
-            <div className="split-viewer-wrapper" ref={splitWrapperRef}>
+            <div
+              className={`split-viewer-wrapper ${isDraggingSplit ? "dragging" : ""}`}
+              ref={splitWrapperRef}
+              onPointerDown={handleSplitPointerDown}
+              onPointerMove={handleSplitPointerMove}
+              onPointerUp={handleSplitPointerUp}
+              onPointerCancel={handleSplitPointerUp}
+            >
               <div className="split-layer">
-                <img src={refImageSrc} alt="Reference Lunar Surface" />
+                <img src={refImageSrc} alt="Reference Lunar Surface" draggable={false} />
               </div>
 
-              <div className="split-layer-top" style={{ width: `${splitPercent}%` }}>
-                <div className="inner-img-wrapper">
-                  <img src={movImageSrc} alt="Moving Lunar Surface" />
-                </div>
+              <div className="split-layer split-layer-top" style={{ clipPath: `inset(0 0 0 ${splitPercent}%)` }}>
+                <img src={movImageSrc} alt="Moving Lunar Surface" draggable={false} />
               </div>
 
               <div
                 className="split-divider-handle"
                 style={{ left: `${splitPercent}%` }}
-                onMouseDown={() => setIsDraggingSplit(true)}
-                onTouchStart={() => setIsDraggingSplit(true)}
+                role="slider"
+                tabIndex={0}
+                aria-label="Split position"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(splitPercent)}
+                onKeyDown={handleSplitKeyDown}
               >
                 <div className="split-handle-badge">&#8596;</div>
               </div>
@@ -480,6 +613,7 @@ export default function StudioTab() {
               <canvas ref={canvasRef} />
             </div>
           )}
+          </div>
 
           <div className="viewport-hud-tag">
             {viewMode === "split" && "MODE: SPLIT SLIDER (REF ↔ REGISTERED)"}
@@ -489,8 +623,9 @@ export default function StudioTab() {
           </div>
 
           <div className="viewport-zoom-toolbar">
-            <button className="zoom-btn" onClick={() => setZoomScale(s => Math.min(2.0, s + 0.2))}>+</button>
-            <button className="zoom-btn" onClick={() => setZoomScale(1.0)}>&#8635;</button>
+            <button className="zoom-btn" aria-label="Zoom in" onClick={() => setZoomScale(s => Math.min(2.0, s + 0.2))}>+</button>
+            <button className="zoom-btn" aria-label="Zoom out" onClick={() => setZoomScale(s => Math.max(1.0, s - 0.2))}>&minus;</button>
+            <button className="zoom-btn" aria-label="Reset zoom" onClick={() => setZoomScale(1.0)}>&#8635;</button>
           </div>
         </div>
 
@@ -522,7 +657,7 @@ export default function StudioTab() {
 
           <div className="result-metric-card">
             <div className="metric-title">REPROJECTION RMSE</div>
-            <div className="metric-number">{metrics.rmsePx.toFixed(2)} px</div>
+            <div className="metric-number">{metrics.rmsePx !== null ? `${metrics.rmsePx.toFixed(2)} px` : "N/A"}</div>
             <div className="metric-sub">Residual Discrepancy</div>
           </div>
 
@@ -543,7 +678,7 @@ export default function StudioTab() {
             <div className="metric-number" style={{ fontSize: "0.95rem" }}>
               {isOptimal ? "ACCEPTED" : "REJECTED"}
             </div>
-            <div className="metric-sub">All Criteria Satisfied</div>
+            <div className="metric-sub">{isOptimal ? "All Criteria Satisfied" : "Quality Gates Not Met"}</div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 
 interface HeaderProps {
@@ -18,11 +18,19 @@ export default function Header({
   onCheckHealth,
   onOpenExport
 }: HeaderProps) {
+  const navRef = useRef<HTMLElement>(null);
+
+  // On narrow screens the nav scrolls horizontally; keep the active tab visible
+  useEffect(() => {
+    const active = navRef.current?.querySelector<HTMLElement>(".nav-tab-btn.active");
+    active?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [activeTab]);
+
   return (
     <header className="top-header">
       <div className="brand-wrapper">
         <Image
-          src="/assets/icons/app_logo.png"
+          src="/assets/icons/app_logo_128.png"
           alt="LunarMatch Logo"
           width={28}
           height={28}
@@ -32,15 +40,16 @@ export default function Header({
         <div className="brand-titles">
           <div className="brand-title">
             <span>LUNARMATCH</span>
-            <span className="tag-badge badge-white">PS 26166</span>
+            <span className="tag-badge badge-white hide-sm">PS 26166</span>
           </div>
-          <span className="brand-subtitle">ISRO SIH 2026 &bull; SPACE TECHNOLOGY</span>
+          <span className="brand-subtitle hide-sm">ISRO SIH 2026 &bull; SPACE TECHNOLOGY</span>
         </div>
       </div>
 
-      <nav className="nav-tabs" aria-label="Main Navigation">
+      <nav className="nav-tabs" aria-label="Main Navigation" ref={navRef}>
         <button
           className={`nav-tab-btn ${activeTab === "overview" ? "active" : ""}`}
+          aria-current={activeTab === "overview" ? "page" : undefined}
           onClick={() => onTabChange("overview")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -51,6 +60,7 @@ export default function Header({
 
         <button
           className={`nav-tab-btn ${activeTab === "studio" ? "active" : ""}`}
+          aria-current={activeTab === "studio" ? "page" : undefined}
           onClick={() => onTabChange("studio")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -63,6 +73,7 @@ export default function Header({
 
         <button
           className={`nav-tab-btn ${activeTab === "correspondence" ? "active" : ""}`}
+          aria-current={activeTab === "correspondence" ? "page" : undefined}
           onClick={() => onTabChange("correspondence")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -75,6 +86,7 @@ export default function Header({
 
         <button
           className={`nav-tab-btn ${activeTab === "robustness" ? "active" : ""}`}
+          aria-current={activeTab === "robustness" ? "page" : undefined}
           onClick={() => onTabChange("robustness")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -85,6 +97,7 @@ export default function Header({
 
         <button
           className={`nav-tab-btn ${activeTab === "architecture" ? "active" : ""}`}
+          aria-current={activeTab === "architecture" ? "page" : undefined}
           onClick={() => onTabChange("architecture")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -96,10 +109,11 @@ export default function Header({
         </button>
       </nav>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <div className="status-pill" title="Backend Health Status">
+      <div className="header-actions">
+        <div className="status-pill" title="Backend Health Status" role="status" aria-live="polite">
           <span className={`pulse-dot ${isBackendOnline ? "" : "dot-offline"}`} />
-          <span>{isBackendOnline ? "FASTAPI: ONLINE" : "FLIGHT SIMULATION"}</span>
+          <span className="status-text">{isBackendOnline ? "FASTAPI: ONLINE" : "FLIGHT SIMULATION"}</span>
+          <span className="status-text-short" aria-hidden="true">{isBackendOnline ? "LIVE" : "SIM"}</span>
           <button
             className="btn-secondary-action"
             style={{ padding: "2px 6px", fontSize: "0.65rem" }}
@@ -109,13 +123,13 @@ export default function Header({
           </button>
         </div>
 
-        <button className="btn-secondary-action" onClick={onOpenExport}>
+        <button className="btn-secondary-action" onClick={onOpenExport} aria-label="Export">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Export
+          <span className="hide-sm">Export</span>
         </button>
       </div>
     </header>

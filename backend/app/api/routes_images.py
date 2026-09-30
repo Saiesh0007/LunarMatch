@@ -16,6 +16,8 @@ async def upload_image(file: UploadFile = File(...)):
         if len(content) == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
         return image_service.save_upload(content, file.filename or "upload.png")
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
