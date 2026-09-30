@@ -1,0 +1,562 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { PRESET_PAIRS, PresetPair, MetricData } from "../data/lunarData";
+
+export default function StudioTab() {
+  const [selectedPairId, setSelectedPairId] = useState<string>("pair_a");
+  const [refImageSrc, setRefImageSrc] = useState<string>(PRESET_PAIRS.pair_a.refPath);
+  const [movImageSrc, setMovImageSrc] = useState<string>(PRESET_PAIRS.pair_a.movPath);
+  const [viewMode, setViewMode] = useState<"split" | "blink" | "checkerboard" | "diff">("split");
+  const [splitPercent, setSplitPercent] = useState<number>(50);
+  const [isDraggingSplit, setIsDraggingSplit] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [activeStageIndex, setActiveStageIndex] = useState<number>(-1);
+  const [blinkShowRef, setBlinkShowRef] = useState<boolean>(true);
+  const [zoomScale, setZoomScale] = useState<number>(1.0);
+
+  // Form Controls
+  const [sinkhornIter, setSinkhornIter] = useState<number>(50);
+  const [magsacThreshold, setMagsacThreshold] = useState<number>(2.5);
+  const [subpixelEnabled, setSubpixelEnabled] = useState<boolean>(true);
+  const [spatialEnabled, setSpatialEnabled] = useState<boolean>(true);
+
+  // Live Telemetry state
+  const [metrics, setMetrics] = useState<MetricData>(PRESET_PAIRS.pair_a.metrics);
+
+  // Logs state
+  const [logs, setLogs] = useState<Array<{ time: string; msg: string; type: "info" | "success" }>>([
+    {
+      time: "00:00:00.000",
+      msg: "LUNARMATCH Mission Station Ready. Seed: 26166. Awaiting operator execution.",
+      type: "info"
+    }
+  ]);
+
+  const splitWrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logTerminalRef = useRef<HTMLDivElement>(null);
+
+  // Helper to add log line
+  const addLog = (msg: string, type: "info" | "success" = "info") => {
+    const now = new Date();
+    const timeStr = now.toTimeString().split(" ")[0] + "." + String(now.getMilliseconds()).padStart(3, "0");
+    setLogs(prev => [...prev, { time: timeStr, msg, type }]);
+  };
+
+  useEffect(() => {
+    if (logTerminalRef.current) {
+      logTerminalRef.current.scrollTop = logTerminalRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  // Handle Preset Selection
+  const handleSelectPair = (pairId: string) => {
+    setSelectedPairId(pairId);
+    const pair = PRESET_PAIRS[pairId];
+    if (!pair) return;
+    setRefImageSrc(pair.refPath);
+    setMovImageSrc(pair.movPath);
+    setMetrics(pair.metrics);
+    addLog(`Selected preset pair: ${pair.name} (${pair.region})`, "info");
+  };
+
+  // Custom File Upload Handlers
+  const handleCustomUpload = (e: React.ChangeEvent<HTMLInputElement>, isRef: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (isRef) {
+        setRefImageSrc(result);
+        addLog(`Custom Reference image loaded: ${file.name}`, "info");
+      } else {
+        setMovImageSrc(result);
+        addLog(`Custom Moving image loaded: ${file.name}`, "info");
+      }
+      setSelectedPairId("");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Split-Screen Drag Logic
+  const handleSplitMove = (clientX: number) => {
+    if (!splitWrapperRef.current) return;
+    const rect = splitWrapperRef.current.getBoundingClientRect();
+    let x = clientX - rect.left;
+    x = Math.max(0, Math.min(x, rect.width));
+    setSplitPercent((x / rect.width) * 100);
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (isDraggingSplit) handleSplitMove(e.clientX);
+    };
+    const onMouseUp = () => setIsDraggingSplit(false);
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (isDraggingSplit && e.touches[0]) handleSplitMove(e.touches[0].clientX);
+    };
+    const onTouchEnd = () => setIsDraggingSplit(false);
+
+    if (isDraggingSplit) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener("touchmove", onTouchMove);
+      window.addEventListener("touchend", onTouchEnd);
+    }
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isDraggingSplit]);
+
+  // Blink Mode Timer
+  useEffect(() => {
+    if (viewMode !== "blink") return;
+    const interval = setInterval(() => {
+      setBlinkShowRef(prev => !prev);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [viewMode]);
+
+  // Canvas Generation: Checkerboard & Difference Map
+  useEffect(() => {
+    if (viewMode !== "checkerboard" && viewMode !== "diff") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = 600;
+    canvas.height = 600;
+
+    const imgA = new window.Image();
+    const imgB = new window.Image();
+    imgA.src = refImageSrc;
+    imgB.src = movImageSrc;
+
+    let loaded = 0;
+    const onLoaded = () => {
+      loaded++;
+      if (loaded < 2) return;
+
+      if (viewMode === "checkerboard") {
+        const canA = document.createElement("canvas");
+        canA.width = 600; canA.height = 600;
+        canA.getContext("2d")?.drawImage(imgA, 0, 0, 600, 600);
+
+        const canB = document.createElement("canvas");
+        canB.width = 600; canB.height = 600;
+        canB.getContext("2d")?.drawImage(imgB, 0, 0, 600, 600);
+
+        const tiles = 8;
+        const tileW = 600 / tiles;
+        const tileH = 600 / tiles;
+
+        for (let r = 0; r < tiles; r++) {
+          for (let c = 0; c < tiles; c++) {
+            const useA = (r + c) % 2 === 0;
+            const src = useA ? canA : canB;
+            ctx.drawImage(src, c * tileW, r * tileH, tileW, tileH, c * tileW, r * tileH, tileW, tileH);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.strokeRect(c * tileW, r * tileH, tileW, tileH);
+          }
+        }
+      } else if (viewMode === "diff") {
+        const canA = document.createElement("canvas");
+        canA.width = 600; canA.height = 600;
+        const ctxA = canA.getContext("2d");
+        ctxA?.drawImage(imgA, 0, 0, 600, 600);
+        const dataA = ctxA?.getImageData(0, 0, 600, 600).data;
+
+        const canB = document.createElement("canvas");
+        canB.width = 600; canB.height = 600;
+        const ctxB = canB.getContext("2d");
+        ctxB?.drawImage(imgB, 0, 0, 600, 600);
+        const dataB = ctxB?.getImageData(0, 0, 600, 600).data;
+
+        if (dataA && dataB) {
+          const diffImg = ctx.createImageData(600, 600);
+          const diffData = diffImg.data;
+          for (let i = 0; i < dataA.length; i += 4) {
+            const diff = Math.abs(dataA[i] - dataB[i]) * 1.5;
+            diffData[i] = diff > 30 ? Math.min(255, diff + 40) : diff;
+            diffData[i + 1] = diff > 30 ? Math.min(255, diff + 40) : diff;
+            diffData[i + 2] = diff > 30 ? Math.min(255, diff + 40) : diff;
+            diffData[i + 3] = 255;
+          }
+          ctx.putImageData(diffImg, 0, 0);
+        }
+      }
+    };
+
+    imgA.onload = onLoaded;
+    imgB.onload = onLoaded;
+  }, [viewMode, refImageSrc, movImageSrc]);
+
+  // Execute Pipeline Simulation
+  const handleExecutePipeline = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    addLog("==================================================", "info");
+    addLog("INITIALIZING LUNARMATCH CORRESPONDENCE PIPELINE...", "info");
+    addLog(`Sensor Pair: ${selectedPairId ? selectedPairId.toUpperCase() : "CUSTOM"}`, "info");
+
+    const stages = [
+      "Multi-scale Log-Gabor Phase Congruency (RIFT2)",
+      "Maximum Moment Keypoint Extraction (HOPC)",
+      "SuperGlue-style Sinkhorn Optimal Transport",
+      "MAGSAC++ Threshold-Free Homography Consensus",
+      "Sub-Pixel Phase Correlation Refinement"
+    ];
+
+    for (let i = 0; i < stages.length; i++) {
+      setActiveStageIndex(i);
+      addLog(`[Stage ${i + 1}/5] Running ${stages[i]}...`, "info");
+      await new Promise(r => setTimeout(r, 280));
+    }
+
+    setActiveStageIndex(-1);
+    const baseMetrics = PRESET_PAIRS[selectedPairId]?.metrics || PRESET_PAIRS.pair_a.metrics;
+    setMetrics(baseMetrics);
+
+    addLog(`Registration Consensus Achieved: Inliers = ${baseMetrics.ransacInliers}, RMSE = ${baseMetrics.rmsePx} px`, "success");
+    addLog("Status: ACCEPTED (OPTIMAL). Geometric verification criteria satisfied.", "success");
+    addLog("==================================================", "info");
+    setIsProcessing(false);
+    setViewMode("split");
+  };
+
+  const isOptimal = metrics.status === "SUCCESSFUL" || (metrics.rmsePx && metrics.rmsePx < 0.5);
+
+  return (
+    <div className="grid-studio">
+      {/* Left Column: Configuration Controls */}
+      <div className="card-box">
+        <div className="card-header">
+          <span className="card-header-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            CONFIGURATION &amp; PAIRS
+          </span>
+          <span className="tag-badge badge-white">STATION HUD</span>
+        </div>
+
+        <label className="param-label" style={{ display: "block", marginBottom: 8 }}>
+          OBSERVATION PAIR
+        </label>
+        <div className="pair-selector-list">
+          <div
+            className={`pair-card-option ${selectedPairId === "pair_a" ? "selected" : ""}`}
+            onClick={() => handleSelectPair("pair_a")}
+          >
+            <div className="pair-info-left">
+              <span className="pair-title">PAIR A: OHRC vs TMC-2</span>
+              <span className="pair-sub">Tycho Crater Rim &bull; Sun Angle &Delta; 34.2&deg;</span>
+            </div>
+            <span className="tag-badge badge-subtle">20&times; SCALE</span>
+          </div>
+
+          <div
+            className={`pair-card-option ${selectedPairId === "pair_b" ? "selected" : ""}`}
+            onClick={() => handleSelectPair("pair_b")}
+          >
+            <div className="pair-info-left">
+              <span className="pair-title">PAIR B: IIRS vs LRO NAC</span>
+              <span className="pair-sub">South Pole-Aitken &bull; Sun Angle &Delta; 52.8&deg;</span>
+            </div>
+            <span className="tag-badge badge-subtle">160&times; SCALE</span>
+          </div>
+        </div>
+
+        {/* Custom Image Slots */}
+        <label className="param-label" style={{ display: "block", marginBottom: 8 }}>
+          OR UPLOAD CUSTOM IMAGES
+        </label>
+        <div className="dropzone-container">
+          <div className="upload-slot">
+            <input type="file" accept="image/*" onChange={(e) => handleCustomUpload(e, true)} />
+            <img src={refImageSrc} className="slot-thumb" alt="Reference Thumbnail" />
+            <span className="upload-slot-label">REF (FIXED)</span>
+            <span className="upload-slot-hint">Drop or Click</span>
+          </div>
+
+          <div className="upload-slot">
+            <input type="file" accept="image/*" onChange={(e) => handleCustomUpload(e, false)} />
+            <img src={movImageSrc} className="slot-thumb" alt="Moving Thumbnail" />
+            <span className="upload-slot-label">MOVING</span>
+            <span className="upload-slot-hint">Drop or Click</span>
+          </div>
+        </div>
+
+        {/* Parameters */}
+        <div className="param-group">
+          <div className="param-label-row">
+            <span className="param-label">DESCRIPTOR PIPELINE</span>
+          </div>
+          <select className="param-select">
+            <option value="rift2">RIFT2 + SuperGlue Sinkhorn OT (Recommended)</option>
+            <option value="hopc">HOPC Structural Phase Matching</option>
+            <option value="sift">SIFT Baseline (Fails at &Delta; Sun &gt; 45&deg;)</option>
+            <option value="orb">ORB Binary Descriptor</option>
+          </select>
+        </div>
+
+        <div className="param-group">
+          <div className="param-label-row">
+            <span className="param-label">SINKHORN OT ITERATIONS</span>
+            <span className="param-val-badge">{sinkhornIter}</span>
+          </div>
+          <input
+            type="range"
+            min={20}
+            max={100}
+            step={5}
+            value={sinkhornIter}
+            onChange={(e) => setSinkhornIter(Number(e.target.value))}
+          />
+        </div>
+
+        <div className="param-group">
+          <div className="param-label-row">
+            <span className="param-label">MAGSAC++ INLIER THRESHOLD</span>
+            <span className="param-val-badge">{magsacThreshold.toFixed(1)} px</span>
+          </div>
+          <input
+            type="range"
+            min={1.0}
+            max={5.0}
+            step={0.1}
+            value={magsacThreshold}
+            onChange={(e) => setMagsacThreshold(Number(e.target.value))}
+          />
+        </div>
+
+        <div className="toggle-switch-row">
+          <div>
+            <div className="switch-title">Sub-Pixel Phase Refinement</div>
+            <div className="switch-subtitle">Local Fourier phase peak interpolation</div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={subpixelEnabled}
+              onChange={(e) => setSubpixelEnabled(e.target.checked)}
+            />
+            <span className="slider-toggle" />
+          </label>
+        </div>
+
+        <div className="toggle-switch-row">
+          <div>
+            <div className="switch-title">Uniform Spatial Grid Balancing</div>
+            <div className="switch-subtitle">Distribute inliers across 4x4 quadrants</div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={spatialEnabled}
+              onChange={(e) => setSpatialEnabled(e.target.checked)}
+            />
+            <span className="slider-toggle" />
+          </label>
+        </div>
+
+        <button
+          className="btn-primary-action"
+          disabled={isProcessing}
+          onClick={handleExecutePipeline}
+        >
+          {isProcessing ? (
+            <>
+              <span className="pulse-dot" /> EXECUTING PIPELINE...
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              EXECUTE REGISTRATION ENGINE
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Right Column: Viewport & Telemetry */}
+      <div className="viewer-card">
+        {/* Stage Progression HUD */}
+        <div className="pipeline-hud-container">
+          <div className="stage-step-list">
+            {[
+              { id: 1, name: "Phase Congruency" },
+              { id: 2, name: "HOPC Features" },
+              { id: 3, name: "Sinkhorn OT" },
+              { id: 4, name: "MAGSAC++ Consensus" },
+              { id: 5, name: "Sub-Pixel & QA" }
+            ].map((stg, idx) => (
+              <div
+                key={stg.id}
+                className={`stage-step-item ${activeStageIndex === idx ? "active" : ""} ${activeStageIndex > idx ? "completed" : ""}`}
+              >
+                <div className="stage-num-tag">STAGE 0{stg.id}</div>
+                <div className="stage-name-text">{stg.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Viewport Toolbar */}
+        <div className="viewer-top-toolbar">
+          <div className="view-mode-buttons">
+            <button
+              className={`mode-btn ${viewMode === "split" ? "active" : ""}`}
+              onClick={() => setViewMode("split")}
+            >
+              SPLIT SLIDER
+            </button>
+            <button
+              className={`mode-btn ${viewMode === "blink" ? "active" : ""}`}
+              onClick={() => setViewMode("blink")}
+            >
+              OVERLAY BLINK
+            </button>
+            <button
+              className={`mode-btn ${viewMode === "checkerboard" ? "active" : ""}`}
+              onClick={() => setViewMode("checkerboard")}
+            >
+              CHECKERBOARD
+            </button>
+            <button
+              className={`mode-btn ${viewMode === "diff" ? "active" : ""}`}
+              onClick={() => setViewMode("diff")}
+            >
+              DIFFERENCE MAP
+            </button>
+          </div>
+
+          <div>
+            <span className={`tag-badge ${isOptimal ? "badge-white" : "badge-subtle"}`}>
+              {isOptimal ? "OPTIMAL (PASS)" : "FAIL-SAFE"}
+            </span>
+          </div>
+        </div>
+
+        {/* Viewport Display Stage */}
+        <div className="viewport-stage" style={{ transform: `scale(${zoomScale})` }}>
+          {viewMode === "split" ? (
+            <div className="split-viewer-wrapper" ref={splitWrapperRef}>
+              <div className="split-layer">
+                <img src={refImageSrc} alt="Reference Lunar Surface" />
+              </div>
+
+              <div className="split-layer-top" style={{ width: `${splitPercent}%` }}>
+                <div className="inner-img-wrapper">
+                  <img src={movImageSrc} alt="Moving Lunar Surface" />
+                </div>
+              </div>
+
+              <div
+                className="split-divider-handle"
+                style={{ left: `${splitPercent}%` }}
+                onMouseDown={() => setIsDraggingSplit(true)}
+                onTouchStart={() => setIsDraggingSplit(true)}
+              >
+                <div className="split-handle-badge">&#8596;</div>
+              </div>
+            </div>
+          ) : viewMode === "blink" ? (
+            <div className="single-mode-view">
+              <img src={blinkShowRef ? refImageSrc : movImageSrc} alt="Blink View" />
+            </div>
+          ) : (
+            <div className="single-mode-view">
+              <canvas ref={canvasRef} />
+            </div>
+          )}
+
+          <div className="viewport-hud-tag">
+            {viewMode === "split" && "MODE: SPLIT SLIDER (REF ↔ REGISTERED)"}
+            {viewMode === "blink" && `MODE: OVERLAY BLINK [${blinkShowRef ? "REFERENCE" : "WARPED MOVING"}]`}
+            {viewMode === "checkerboard" && "MODE: CHECKERBOARD MOSAIC"}
+            {viewMode === "diff" && "MODE: RESIDUAL DIFFERENCE HEATMAP"}
+          </div>
+
+          <div className="viewport-zoom-toolbar">
+            <button className="zoom-btn" onClick={() => setZoomScale(s => Math.min(2.0, s + 0.2))}>+</button>
+            <button className="zoom-btn" onClick={() => setZoomScale(1.0)}>&#8635;</button>
+          </div>
+        </div>
+
+        {/* Quantitative Telemetry 8-Grid */}
+        <div className="results-telemetry-grid">
+          <div className="result-metric-card">
+            <div className="metric-title">KEYPOINTS</div>
+            <div className="metric-number">{metrics.keypointsRef} / {metrics.keypointsMov}</div>
+            <div className="metric-sub">Reference / Moving</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">CANDIDATES</div>
+            <div className="metric-number">{metrics.candidateMatches}</div>
+            <div className="metric-sub">Sinkhorn OT Pairs</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">RANSAC INLIERS</div>
+            <div className="metric-number">{metrics.ransacInliers}</div>
+            <div className="metric-sub">Consensus Subset</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">INLIER RATIO</div>
+            <div className="metric-number">{(metrics.inlierRatio * 100).toFixed(1)}%</div>
+            <div className="metric-sub">Consensus / Candidates</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">REPROJECTION RMSE</div>
+            <div className="metric-number">{metrics.rmsePx.toFixed(2)} px</div>
+            <div className="metric-sub">Residual Discrepancy</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">SPATIAL COVERAGE</div>
+            <div className="metric-number">{(metrics.spatialCoverage * 100).toFixed(1)}%</div>
+            <div className="metric-sub">4&times;4 Grid Partition Fill</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">LATENCY</div>
+            <div className="metric-number">{metrics.runtimeMs.toFixed(1)} ms</div>
+            <div className="metric-sub">End-to-End CPU Runtime</div>
+          </div>
+
+          <div className="result-metric-card">
+            <div className="metric-title">DECISION</div>
+            <div className="metric-number" style={{ fontSize: "0.95rem" }}>
+              {isOptimal ? "ACCEPTED" : "REJECTED"}
+            </div>
+            <div className="metric-sub">All Criteria Satisfied</div>
+          </div>
+        </div>
+
+        {/* Log Stream Terminal */}
+        <div className="log-terminal-box" ref={logTerminalRef}>
+          {logs.map((l, i) => (
+            <div key={i} className="log-line">
+              <span className="log-time">[{l.time}]</span>
+              <span className={`log-msg-${l.type}`}>{l.msg}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

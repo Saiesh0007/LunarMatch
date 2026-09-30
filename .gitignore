@@ -1,12 +1,12 @@
 # Data directories (raw, processed, downloaded imagery & datasets)
-data/
-data/*
-DATA/
-DATA/*
-!data/.gitkeep
-!data/**/.gitkeep
-!data/examples/
-!data/examples/.gitkeep
+/data/
+/data/*
+/DATA/
+/DATA/*
+!/data/.gitkeep
+!/data/**/.gitkeep
+!/data/examples/
+!/data/examples/.gitkeep
 
 # Large imagery and satellite data formats
 *.tif
@@ -78,4 +78,11 @@ backend/scratch/
 backend/scratch_*.py
 backend/get_*.py
 backend/*.log
+
+# Next.js web
+web/node_modules/
+web/.next/
+web/out/
+web/build/
+web/*.tsbuildinfo
 

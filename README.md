@@ -49,7 +49,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 API documentation is available at `http://127.0.0.1:8000/docs`.
 
-### Frontend
+### Frontend (Web — Next.js)
+
+```bash
+cd web
+npm install
+npm run dev                  # starts dev server on http://localhost:3000
+npm run build                # production build
+```
+
+### Frontend (Mobile — Flutter)
 
 ```bash
 cd mobile
@@ -65,7 +74,8 @@ The APK is available at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
 | Layer | Technology |
 | :--- | :--- |
 | Backend | Python 3.11, FastAPI, OpenCV 4.13, NumPy, SciPy |
-| Frontend | Flutter 3.41, Provider |
+| Web | Next.js 16 (App Router), TypeScript, Vanilla CSS |
+| Mobile | Flutter 3.41, Provider |
 | Algorithms | RIFT2, HOPC, SuperGlue (Sinkhorn OT), MAGSAC++, Phase Correlation |
 | Tests | Pytest (isolated runner), Flutter Test |
 
@@ -73,6 +83,7 @@ The APK is available at `mobile/build/app/outputs/flutter-apk/app-release.apk`.
 
 ```
 backend/       FastAPI service, computer-vision pipeline, tests
+web/           Next.js 16 web application with matching Pure Monochrome theme
 mobile/        Flutter application, 12 screens
 docs/          Visual assets, UI mockup, logo
 ```
