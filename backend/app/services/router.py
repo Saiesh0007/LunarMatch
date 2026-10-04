@@ -55,6 +55,7 @@ def _canonical_sensor(value: object) -> str:
         "LRO_NAC": "LRO_NAC",
         "LRONAC": "LRO_NAC",
         "OHRC": "OHRC",
+        "OHR": "OHRC",
         "IIRS": "IIRS",
         "SELENE": "SELENE",
         "SAR": "SAR",
@@ -88,11 +89,11 @@ def detect_sensor(metadata: object, filename: Optional[str] = None) -> str:
             if detected != "unknown":
                 return detected
             value_text = str(metadata_dict[key]).upper().replace("-", "_")
-            for token, sensor in (("OHRC", "OHRC"), ("TMC2", "TMC2"), ("TMC_2", "TMC2"), ("IIRS", "IIRS"), ("LRO_NAC", "LRO_NAC"), ("LRO NAC", "LRO_NAC"), ("SELENE", "SELENE"), ("SAR", "SAR"), ("DEPTH", "DEPTH")):
+            for token, sensor in (("OHRC", "OHRC"), ("OHR", "OHRC"), ("TMC2", "TMC2"), ("TMC_2", "TMC2"), ("IIRS", "IIRS"), ("LRO_NAC", "LRO_NAC"), ("LRO NAC", "LRO_NAC"), ("SELENE", "SELENE"), ("SAR", "SAR"), ("DEPTH", "DEPTH")):
                 if token in value_text:
                     return sensor
     text = str(filename or "").upper().replace("-", "_")
-    for token, sensor in (("OHRC", "OHRC"), ("TMC2", "TMC2"), ("TMC_2", "TMC2"), ("IIRS", "IIRS"), ("LRO_NAC", "LRO_NAC"), ("LRO NAC", "LRO_NAC"), ("SELENE", "SELENE"), ("SAR", "SAR"), ("DEPTH", "DEPTH")):
+    for token, sensor in (("OHRC", "OHRC"), ("OHR", "OHRC"), ("TMC2", "TMC2"), ("TMC_2", "TMC2"), ("IIRS", "IIRS"), ("LRO_NAC", "LRO_NAC"), ("LRO NAC", "LRO_NAC"), ("SELENE", "SELENE"), ("SAR", "SAR"), ("DEPTH", "DEPTH")):
         if token in text:
             return sensor
     logger.warning("Unable to detect sensor; falling back to unknown")

@@ -319,9 +319,10 @@ class PipelineService:
         path_a_iq = str(_ref_reproj) if not crs_fallback else str(ref_path)
         path_b_iq = str(_mov_reproj) if not crs_fallback else str(mov_path)
         
-        iq_a = input_quality.check_input_quality(path_a_iq)
-        iq_b = input_quality.check_input_quality(path_b_iq)
-        pair_iq = input_quality.check_pair_quality(path_a_iq, path_b_iq)
+        iq_check_uint8_sentinel = not crs_fallback
+        iq_a = input_quality.check_input_quality(path_a_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
+        iq_b = input_quality.check_input_quality(path_b_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
+        pair_iq = input_quality.check_pair_quality(path_a_iq, path_b_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
         
         _stage_log_entries.append({
             "stage": "input_quality",

@@ -1,14 +1,18 @@
 import rasterio
 import numpy as np
 
-def check_input_quality(img_path: str, invalid_threshold: float = 0.20) -> dict:
+def check_input_quality(img_path: str, invalid_threshold: float = 0.20, check_uint8_sentinel: bool = True) -> dict:
     """
     F9: Input Quality Gate.
     Per-crop cloud/nodata quality control (SCDF, Sec. IV-B).
     Threshold is 20% by default.
-    
+
     For uint8/uint16, zeros are sentinel. For float32, zero is only invalid
     if it matches the declared nodata value. NaNs are always invalid for floats.
+
+    check_uint8_sentinel should be False for raw, non-georeferenced uint8 images
+    (e.g. plain browse PNG/JPG uploads with no reprojection padding), where
+    0/255 are legitimate pixel values (deep shadow, glare) rather than nodata.
     """
     invalid_reasons = []
     try:
@@ -35,7 +39,8 @@ def check_input_quality(img_path: str, invalid_threshold: float = 0.20) -> dict:
                 
                 # 4. Zero and saturation handling
                 if dtype == np.uint8:
-                    band_invalid |= (band == 0) | (band == 255)
+                    if check_uint8_sentinel:
+                        band_invalid |= (band == 0) | (band == 255)
                 elif dtype == np.uint16:
                     band_invalid |= (band == 0)
                 else:
@@ -65,9 +70,9 @@ def check_input_quality(img_path: str, invalid_threshold: float = 0.20) -> dict:
             "reason": str(e)
         }
 
-def check_pair_quality(img_a_path: str, img_b_path: str, threshold: float = 0.20) -> dict:
-    iq_a = check_input_quality(img_a_path, threshold)
-    iq_b = check_input_quality(img_b_path, threshold)
+def check_pair_quality(img_a_path: str, img_b_path: str, threshold: float = 0.20, check_uint8_sentinel: bool = True) -> dict:
+    iq_a = check_input_quality(img_a_path, threshold, check_uint8_sentinel)
+    iq_b = check_input_quality(img_b_path, threshold, check_uint8_sentinel)
     
     ok = iq_a["ok"] and iq_b["ok"]
     reason = None
