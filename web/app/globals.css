@@ -1566,3 +1566,712 @@ input:checked + .slider-toggle:before {
     padding-right: 10px;
   }
 }
+
+/* ==========================================================================
+   Overview — Chandrayaan-2 mission visuals
+   ========================================================================== */
+
+.ov-hero {
+  padding: 28px 28px 22px;
+  background:
+    radial-gradient(ellipse 60% 90% at 78% 40%, rgba(255, 255, 255, 0.06) 0%, transparent 70%),
+    var(--surface-card);
+}
+
+.ov-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.ov-hero-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.ov-hero-title {
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+.ov-cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ov-cta-primary {
+  width: auto;
+  margin-top: 0;
+  padding: 11px 20px;
+}
+
+.ov-cta-secondary {
+  padding: 10px 16px;
+}
+
+.ov-mission-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.ov-mission-facts dt {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ov-mission-facts dd {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ov-hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.ov-moon-svg {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  overflow: visible;
+}
+
+.ov-moon-annot line,
+.ov-moon-annot polyline {
+  stroke: #ffffff;
+  stroke-opacity: 0.45;
+}
+
+.ov-moon-annot text {
+  fill: #ffffff;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ov-moon-annot text.dim {
+  fill: #8a8a8a;
+  font-weight: 500;
+  font-size: 9px;
+}
+
+/* Scrolling ground track (real TMC-2 strip, mirrored to tile seamlessly) */
+.ov-groundtrack {
+  position: relative;
+  height: 72px;
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #000;
+}
+
+.ov-groundtrack-img {
+  position: absolute;
+  inset: 0;
+  background-image: url("/assets/ch2/tmc2_strip.jpg");
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  animation: ov-track 90s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes ov-track {
+  from { background-position-x: 0; }
+  to { background-position-x: -1620px; }
+}
+
+.ov-groundtrack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, transparent 28%, transparent 80%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+}
+
+.ov-groundtrack-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 62%;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 14px 2px rgba(255, 255, 255, 0.55);
+  opacity: 0.8;
+  z-index: 1;
+}
+
+.ov-groundtrack-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+}
+
+.ov-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* Section headers */
+.ov-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 8px 0 14px;
+}
+
+.ov-section-title {
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ov-section-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+}
+
+/* Payload gallery */
+.ov-payload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ov-payload-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.ov-payload-card:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+.ov-payload-frame {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #000;
+  overflow: hidden;
+}
+
+.ov-payload-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ov-payload-card:hover .ov-payload-frame img {
+  transform: scale(1.04);
+}
+
+.ov-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: rgba(255, 255, 255, 0.7);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.ov-corner.tl { top: 10px; left: 10px; border-top-width: 1.5px; border-left-width: 1.5px; }
+.ov-corner.tr { top: 10px; right: 10px; border-top-width: 1.5px; border-right-width: 1.5px; }
+.ov-corner.bl { bottom: 10px; left: 10px; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+.ov-corner.br { bottom: 10px; right: 10px; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+
+.ov-chip {
+  position: absolute;
+  z-index: 2;
+  padding: 3px 7px;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.ov-chip-tl { top: 16px; left: 16px; }
+.ov-chip-tr { top: 16px; right: 16px; }
+
+.ov-scalebar {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ov-scalebar span {
+  height: 5px;
+  border: 1px solid #ffffff;
+  border-top: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.ov-scalebar em {
+  font-style: normal;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.ov-payload-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.ov-payload-body h3 {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ov-payload-caption {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.ov-spec-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.ov-spec-row div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  min-width: 0;
+}
+
+.ov-spec-row span {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.ov-spec-row strong {
+  font-size: 0.74rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ov-product-id {
+  font-size: 0.62rem;
+  color: var(--text-disabled);
+  overflow-wrap: anywhere;
+}
+
+/* Challenge / compare */
+.ov-challenge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.ov-challenge-copy h2 {
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+  font-weight: 900;
+  line-height: 1.2;
+  margin: 8px 0 10px;
+}
+
+.ov-challenge-copy p {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.ov-challenge-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 18px;
+}
+
+.ov-challenge-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-elevated);
+}
+
+.ov-challenge-list strong {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 1.05rem;
+}
+
+.ov-challenge-list span {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+
+.ov-compare-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 520px;
+  margin-left: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  user-select: none;
+}
+
+.ov-compare-stage:focus-within {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.ov-compare-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ov-compare-top {
+  position: absolute;
+  inset: 0;
+}
+
+.ov-compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.ov-compare-divider::after {
+  content: "\2194";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ov-compare-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  margin: 0;
+  z-index: 3;
+}
+
+/* Resolution ladder */
+.ov-ladder-card {
+  margin-bottom: 24px;
+}
+
+.ov-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 22px;
+  position: relative;
+}
+
+.ov-ladder-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 230px;
+  gap: 14px;
+  align-items: center;
+}
+
+.ov-ladder-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-ladder-name strong {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.8rem;
+}
+
+.ov-ladder-name span,
+.ov-ladder-role {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+
+.ov-ladder-track {
+  height: 22px;
+  background:
+    linear-gradient(90deg, var(--border) 1px, transparent 1px) 0 0 / 33.33% 100%,
+    var(--surface-elevated);
+  border-radius: var(--radius-xs);
+}
+
+.ov-ladder-bar {
+  height: 100%;
+  border-radius: var(--radius-xs);
+  background: #5a5a5a;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  min-width: 52px;
+}
+
+.ov-ladder-row.is-ch2 .ov-ladder-bar {
+  background: #ffffff;
+}
+
+.ov-ladder-bar span {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.ov-ladder-row.is-ch2 .ov-ladder-bar span {
+  color: #000000;
+}
+
+.ov-ladder-axis {
+  position: absolute;
+  bottom: 0;
+  left: calc(150px + 14px);
+  right: calc(230px + 14px);
+  height: 14px;
+}
+
+.ov-ladder-axis span {
+  white-space: nowrap;
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+}
+
+.ov-ladder-axis span:first-child { transform: none; }
+.ov-ladder-axis span:last-child { transform: translateX(-100%); }
+
+.ov-ladder-note {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* Capabilities */
+.ov-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.ov-capability {
+  display: flex;
+  gap: 14px;
+  text-align: left;
+  padding: 18px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.ov-capability:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+}
+
+.ov-capability:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.ov-capability-icon {
+  flex: 0 0 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.ov-capability-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ov-capability-text strong {
+  font-size: 0.86rem;
+}
+
+.ov-capability-text span {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+@media (max-width: 1040px) {
+  .ov-payload-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ov-ladder-row {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .ov-ladder-role {
+    display: none;
+  }
+
+  .ov-ladder-axis {
+    left: calc(120px + 14px);
+    right: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .ov-hero-grid,
+  .ov-challenge {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-hero-visual {
+    order: -1;
+  }
+
+  .ov-moon-svg {
+    max-width: 340px;
+  }
+
+  .ov-compare-stage {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .ov-hero {
+    padding: 18px 16px;
+  }
+
+  .ov-payload-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-challenge {
+    padding: 16px;
+  }
+
+  .ov-challenge-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-groundtrack {
+    height: 56px;
+  }
+
+  .ov-groundtrack-label {
+    font-size: 0.6rem;
+  }
+
+  .ov-ladder-row {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .ov-ladder-name span {
+    display: none;
+  }
+
+  .ov-ladder-axis {
+    left: calc(82px + 10px);
+  }
+}
