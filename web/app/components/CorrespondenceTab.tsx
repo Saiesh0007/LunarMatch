@@ -211,17 +211,17 @@ export default function CorrespondenceTab({ session }: CorrespondenceTabProps) {
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       if (pt.inlier) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+        ctx.strokeStyle = "rgba(134, 239, 172, 0.7)"; // light green
         ctx.lineWidth = 1.2;
         ctx.setLineDash([]);
       } else {
-        ctx.strokeStyle = "rgba(100, 100, 100, 0.4)";
+        ctx.strokeStyle = "rgba(252, 165, 165, 0.6)"; // light red
         ctx.lineWidth = 1.0;
         ctx.setLineDash([3, 3]);
       }
       ctx.stroke();
 
-      ctx.fillStyle = pt.inlier ? "#FFFFFF" : "#666666";
+      ctx.fillStyle = pt.inlier ? "#86EFAC" : "#FCA5A5";
       ctx.beginPath();
       ctx.arc(x1, y1, radius, 0, Math.PI * 2);
       ctx.arc(x2, y2, radius, 0, Math.PI * 2);
@@ -335,7 +335,9 @@ export default function CorrespondenceTab({ session }: CorrespondenceTabProps) {
                   Sinkhorn OT Score: {(hoveredPoint.score * 100).toFixed(1)}%<br />
                 </>
               )}
-              Status: {hoveredPoint.inlier ? "CONSENSUS INLIER" : "REJECTED OUTLIER"}
+              Status: <span style={{ color: hoveredPoint.inlier ? "#86EFAC" : "#FCA5A5" }}>
+                {hoveredPoint.inlier ? "CONSENSUS INLIER" : "REJECTED OUTLIER"}
+              </span>
             </div>
           )}
         </div>

@@ -1,32 +1,55 @@
-# LunarMatch — Deterministic Simulation Engine
+# LunarMatch — Simulation and Offline Modes
 
-**Fixed Seed:** `26166` (derived from SIH 2026 Problem Statement ID)
+**Fixed seed:** `26166` (the SIH 2026 problem-statement number).
+
+LunarMatch normally runs the live pipeline. Three other modes exist so a
+demonstration never depends on a network or on heavy computation. Each one is
+labelled where it runs.
+
+| Mode | Where | Trigger | Label |
+| :--- | :--- | :--- | :--- |
+| Backend simulation | backend | `simulation_mode: true` (or `is_demo_mode`) in the run request | `execution_mode: demo`, `metric_mode: demo`, `simulation_seed: 26166` |
+| Web offline simulation | web Studio | backend unreachable | header shows `FLIGHT SIMULATION`; button reads *EXECUTE REGISTRATION ENGINE (SIMULATED)* |
+| Mobile local demo | mobile app | backend unreachable, or offline forced on the About screen | offline status on About; demo results replayed |
 
 ---
 
-## 1. Purpose & Motivation
-The demonstration MVP must provide an ultra-reliable presentation experience that does not crash or stall in zero-network environments, while strictly adhering to scientific honesty.
-Rather than training a deep neural network or claiming untested sub-pixel capabilities, LunarMatch incorporates a **deterministic simulation engine**.
+## 1. Backend simulation (`app/simulation/simulator.py`)
 
-## 3. Simulated Algorithms
+`DeterministicSimulator` replaces feature matching with a deterministic model:
 
-| Algorithm | Reference | What Is Simulated |
-| :--- | :--- | :--- |
-| **RIFT2** | Li et al. (IEEE TIP 2020) | Phase-congruency feature extraction via deterministic engine |
-| **SuperPoint** | DeTone et al. (CVPRW 2018) | Self-supervised deep keypoint detector via deterministic engine |
-| **SuperGlue** | Sarlin et al. (CVPR 2020) | Full Sinkhorn OT matcher: sinusoidal position encoding of (x, y, scale, angle), cosine score matrix scaled by temperature τ = 0.1, dustbin augmentation, 100-iteration log-domain Sinkhorn iterations, mutual-nearest-neighbour hard assignment. Pure NumPy — no PyTorch or pretrained weights. |
+- the sensor pair sets a domain-gap penalty (e.g. optical vs infrared),
+- the radiometric difference between the two images reduces the correspondence count,
+- synthesized correspondences are spread over the grid and coverage is computed
+  with the same `SpatialBalancing` code as live runs,
+- the same metric rules decide status and confidence, so a simulated run can
+  still be `NOT_RELIABLE`.
 
-All simulated algorithms route through `DeterministicSimulator` and are tagged `metric_mode: SIMULATED`, `simulation_seed: 26166`.
-1. **Never Present Simulation as Real Model Execution:**
-   - Any run executed under simulation is tagged with `metric_mode: "SIMULATED"` and `simulation_seed: 26166`.
-   - The UI prominently displays `SIMULATED PIPELINE` or `LOCAL DEMO`.
-2. **Logically Coherent Physical Relationships:**
-   - Metrics are NOT randomly generated numbers. They follow deterministic mathematical functions based on input attributes:
-     - **Illumination Delta ($\Delta I$):** As radiometric difference increases, feature descriptor matchability degrades non-linearly.
-     - **Multi-Modal Domain Gap:** Sensor mismatch (e.g. Optical vs Hyperspectral) applies a domain gap penalty to inlier ratios.
-     - **Spatial Distribution:** Feature points are partitioned into an $N \times N$ grid; occupied cells and coverage gains are calculated explicitly.
-3. **Fail-Safe Integrity:**
-   - Simulation mode does NOT guarantee a successful registration.
-   - If an input pair is severely degraded or the fail-safe trigger is engaged, the simulation faithfully outputs `REGISTRATION NOT RELIABLE` with precise diagnostic reasons.
-4. **Complete Artifact Generation:**
-   - Every simulated run writes the identical 13 artifact files to `outputs/run_<id>/` (including JSON feature sets, coordinates, warped registered image, overlay, difference map, and experiment log).
+Every simulated run writes the same artifact set as a live run to
+`backend/outputs/run_<id>/`. Identical inputs give identical outputs.
+
+## 2. Web offline simulation
+
+With the backend offline, the Studio animates its five stages and shows the
+selected preset pair's sample values from `web/app/data/lunarData.ts`. No image
+processing happens in the browser. Metric cards appear after the simulated run,
+like after a live run.
+
+## 3. Mobile local demo (`mobile/lib/services/local_demo_simulator.dart`)
+
+Replays bundled results for the demo pairs, stage by stage, without duplicating
+any computer-vision code in Dart. The robustness screen generates an offline
+sweep result in the same situation.
+
+---
+
+## What is not simulated
+
+In live mode every algorithm runs for real, including the learned models:
+SuperPoint, SuperGlue and LightGlue run as PyTorch CPU inference with pretrained
+weights, and fall back to RIFT2 when the weights are missing.
+
+`app/vision/superglue_matcher.py` also contains a pure-NumPy Sinkhorn
+optimal-transport matcher (sinusoidal position encoding, dustbin augmentation,
+log-domain Sinkhorn, mutual-nearest-neighbour assignment). It is exercised by the
+unit tests; the pipeline's `matcher: superglue` uses the neural SuperGlue model.

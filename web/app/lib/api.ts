@@ -24,6 +24,7 @@ export interface PipelineMetrics {
   inlier_ratio: number; // percentage 0-100
   spatial_coverage: number; // percentage 0-100
   spatial_coverage_before: number;
+  spatial_coverage_footprint?: number | null; // percentage 0-100 within the moving image's footprint
   rmse_px: number | null;
   runtime_ms: number;
   confidence_level: string;
@@ -55,6 +56,10 @@ export interface PipelineRunRequest {
   ransac_threshold?: number;
   subpixel_refinement?: boolean;
   spatial_balancing?: boolean;
+  reference_sensor?: string;
+  moving_sensor?: string;
+  reference_gsd_m?: number;
+  moving_gsd_m?: number;
 }
 
 export interface ImageUploadResponse {
@@ -99,11 +104,13 @@ export async function checkHealth(): Promise<boolean> {
 }
 
 export function runPipeline(body: PipelineRunRequest): Promise<PipelineRunResponse> {
+  // Multi-megapixel cross-sensor pairs can take minutes on CPU; the backend keeps working
+  // after a client abort, so a short timeout only hides a result that is still coming.
   return request<PipelineRunResponse>("/api/v1/pipeline/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }, 600000);
 }
 
 export async function uploadImage(file: Blob, filename: string): Promise<ImageUploadResponse> {

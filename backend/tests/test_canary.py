@@ -76,7 +76,8 @@ def test_full_pipeline_smoke():
     
     # Find the output directory for this run
     # result.run_id contains the ID, output dir is typically outputs/{run_id}
-    out_dir = Path("c:/lm/lm/backend/outputs") / result.run_id
+    from app.config import settings
+    out_dir = Path(settings.OUTPUTS_DIR) / result.run_id
     match_decisions = out_dir / "match_decisions.jsonl"
     
     assert match_decisions.exists(), "match_decisions.jsonl was not created!"

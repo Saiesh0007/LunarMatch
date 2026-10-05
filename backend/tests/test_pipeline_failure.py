@@ -79,7 +79,8 @@ def test_pipeline_skips_footprint_gate_without_georeferencing(tmp_path):
 def test_pipeline_returns_structured_rejection_for_invalid_input_quality(tmp_path):
     source = Path(__file__).resolve().parents[1] / "data" / "examples" / "pair_a_ref.png"
     image = cv2.imread(str(source), cv2.IMREAD_GRAYSCALE)
-    image[: image.shape[0] // 2, :] = 0
+    # 85 % of the raster is empty padding -> valid footprint below the 25 % floor
+    image[: int(image.shape[0] * 0.85), :] = 0
     reference_path = tmp_path / "reference.tif"
     moving_path = tmp_path / "moving.tif"
     assert cv2.imwrite(str(reference_path), image)

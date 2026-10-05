@@ -98,7 +98,7 @@ def get_capabilities():
             name="Sub-Pixel Refinement",
             category="Fine Alignment",
             status=ImplementationStatus.ACTIVE,
-            notes="Phase-correlation sub-pixel refinement achieving sub-0.3px precision.",
+            notes="Phase-correlation sub-pixel refinement of inlier positions; dense runs use NCC peak interpolation.",
         ),
         CapabilityItem(
             name="Sensor-Pair Adaptive Routing",
@@ -107,10 +107,34 @@ def get_capabilities():
             notes="Automatic feature/method selection optimized per sensor-pair combination.",
         ),
         CapabilityItem(
-            name="SuperGlue Sinkhorn OT Matcher",
-            category="Advanced Matching",
+            name="Dense Structural Registration (CFOG)",
+            category="Multi-Sensor",
+            status=ImplementationStatus.ACTIVE,
+            notes="Coarse scale/rotation search and CFOG template matching with iterated MAGSAC++. Runs on request (feature_method=dense) or automatically when sparse matching does not verify.",
+        ),
+        CapabilityItem(
+            name="Chandrayaan-2 PDS4 Ingestion",
+            category="Data Ingestion",
+            status=ImplementationStatus.ACTIVE,
+            notes="Reads ISRO ISDA labels (GSD, Sun angles, corners, instrument) and memory-maps raw OHRC/TMC-2 .img and IIRS .qub arrays.",
+        ),
+        CapabilityItem(
+            name="SuperPoint Feature Extractor",
+            category="Learned Features",
             status=ImplementationStatus.AVAILABLE,
-            notes="Deterministic Sinkhorn optimal-transport matching (Simulated). Sinusoidal position encoding, dustbin augmentation, 100-iteration log-domain Sinkhorn, MNN assignment. Seed 26166. Pure NumPy — no PyTorch.",
+            notes="PyTorch CPU inference with pretrained weights (superpoint_v1.pth, scripts/download_weights.py). Falls back to RIFT2 when weights are missing.",
+        ),
+        CapabilityItem(
+            name="SuperGlue Matcher",
+            category="Learned Matching",
+            status=ImplementationStatus.AVAILABLE,
+            notes="PyTorch CPU graph-neural-network matcher with pretrained outdoor weights over SuperPoint features. Falls back to RIFT2 + BF when weights are missing.",
+        ),
+        CapabilityItem(
+            name="LightGlue Matcher",
+            category="Learned Matching",
+            status=ImplementationStatus.AVAILABLE,
+            notes="PyTorch CPU LightGlue with pretrained SuperPoint weights. Falls back to RIFT2 + BF when weights are missing.",
         ),
     ]
 

@@ -1,31 +1,59 @@
-# LunarMatch — Design System & UI/UX Guidelines
+# LunarMatch — Design System
 
-## Space Research / Mission Control Aesthetic
-LunarMatch is designed as a serious scientific instrument rather than a generic SaaS product.
+Both apps share one monochrome "mission control" look: black backgrounds, grey
+surfaces, white text and accents, monospaced telemetry. Status is conveyed by
+labels and badges (e.g. `OPTIMAL (PASS)` / `FAIL-SAFE`, `REGISTRATION SUCCESSFUL`
+/ `REGISTRATION NOT RELIABLE`) rather than by colour. The only hues are the
+correspondence colours in the web app.
 
-### 1. Color Palette
-- **Deep Space Cosmic Background:** `#0A0E17`
-- **Surface Elevation 1 (Cards):** `#111827`
-- **Surface Elevation 2 (Controls):** `#1E293B`
-- **Primary Telemetry Accent:** `#00E5FF` (Cyan)
-- **Secondary Orbital Accent:** `#38BDF8` (Blue)
-- **Scientific Status:**
-  - **Success / Validated:** `#10B981` (Emerald)
-  - **Warning / Simulation / Degraded:** `#F59E0B` (Amber)
-  - **Failure / Unreliable / Outlier:** `#EF4444` (Coral Red)
-  - **Neutral / Borders:** `#2E3D52` / `#475569`
+Sources: `web/app/globals.css` (CSS variables) and `mobile/lib/app/theme.dart`
+(`LunarTheme`).
 
-### 2. Typography
-- **Headings & Badges:** Bold uppercase with deliberate letter spacing (0.8–1.5).
-- **Body & Captions:** High readability clean sans-serif with comfortable line height (1.3–1.5).
-- **Telemetry & Coordinates:** Technical monospaced typography (`Courier`, `monospace`) for keypoint counts, coordinates, inlier ratios, and RMSE figures.
+## 1. Colour palette
 
-### 3. Visual Information Hierarchy
-1. **Registration Result Status:** Large, unambiguous badge (`REGISTRATION SUCCESSFUL` or `REGISTRATION NOT RELIABLE`).
-2. **Interactive Registered Canvas:** Zoomable & pannable comparison viewer with instant toggles for Reference, Registered, Alpha Overlay (0–100% slider), and Difference Map.
-3. **Quantitative Metrics Grid:** Clear cards for keypoints, candidates, filtered matches, RANSAC inliers, inlier ratio, spatial coverage, reprojection RMSE, and latency.
-4. **Interactive Analytical Tools:** Dedicated screens for correspondence line inspection, spatial grid balancing before/after overlays, and synthetic parameter sweeps.
+| Role | Value | Web variable | Mobile constant |
+| :--- | :--- | :--- | :--- |
+| Background | `#000000` | `--bg-primary` | `background` |
+| Background, subtle | `#050505` | `--bg-subtle` | `backgroundSubtle` |
+| Surface | `#101010` | `--surface` | `surface` |
+| Card | `#141414` | `--surface-card` | `surfaceCard` |
+| Elevated surface | `#1C1C1C` | `--surface-elevated` | `surfaceElevated` |
+| Highlight | `#242424` | `--surface-highlight` | `surfaceHighlight` |
+| Border | `#2E2E2E` | `--border` | `border` |
+| Border, light | `#3A3A3A` | `--border-light` | `borderLight` |
+| Border, focus | `#666666` | `--border-focus` | `borderFocus` |
+| Text, primary | `#FFFFFF` | `--text-primary` | `textPrimary` |
+| Text, secondary | `#B0B0B0` | `--text-secondary` | `textSecondary` |
+| Text, tertiary | `#777777` | `--text-tertiary` | `textTertiary` |
+| Disabled | `#555555` | `--text-disabled` | `disabled` |
+| Accent | `#FFFFFF` | `--accent` | `accent` |
 
-### 4. Responsiveness & QA Constraints
-- All scrollable views wrap content inside `SingleChildScrollView` to eliminate RenderFlex overflow.
-- Adaptive grids leverage `LayoutBuilder` and `Wrap` to scale seamlessly from 4.7" Android phones to tablets and Windows desktop windows.
+Mobile status constants are greys too: success `#FFFFFF`, warning `#B8B8B8`,
+error `#E2E2E2`, neutral `#888888`.
+
+**Correspondence colours (web):** inliers light green `#86EFAC` (solid lines),
+outliers light red `#FCA5A5` (dashed lines). Line style also distinguishes them
+without colour.
+
+## 2. Typography
+
+- **Web:** Geist for text, Geist Mono for telemetry, coordinates, badges and the
+  log (`next/font/google`).
+- **Mobile:** system sans-serif for text; Courier / monospace for telemetry.
+- Headings and badges: bold uppercase with wide letter spacing.
+
+## 3. Information hierarchy
+
+1. Decision — success / not-reliable badge or banner.
+2. Visual comparison — split slider, overlay / blink, checkerboard, difference map.
+3. Metric cards — keypoints, candidates, inliers, inlier ratio, RMSE, coverage,
+   latency, decision.
+4. Detail — correspondences, spatial grid, stage log, robustness sweeps.
+
+## 4. Layout
+
+- **Web:** two-column Studio (configuration | viewer and results) that stacks to
+  one column on phones; tabs are reachable by URL hash. See
+  [WebApp.md](WebApp.md).
+- **Mobile:** scrollable screens (`SingleChildScrollView`) with adaptive grids
+  (`LayoutBuilder`, `Wrap`) from phones to Windows desktop windows.

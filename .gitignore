@@ -82,3 +82,8 @@ backend/*.log
 
 # Web app source data module (not a dataset)
 !web/app/data/
+
+# Raw Chandrayaan-2 PDS4 products (ISSDC map browse; multi-GB)
+/iir/
+/ohr/
+/tmc/

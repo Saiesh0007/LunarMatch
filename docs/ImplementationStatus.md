@@ -1,38 +1,76 @@
 # LunarMatch — Implementation & Verification Status
 
-**Audit Date:** 2026-09-16 | **Architecture Version:** 1.1.0 | **Verified By:** Automated Test Suite & Live Pipeline Execution
+**Last reviewed:** 2026-10-05, against the code in `backend/`, `web/` and `mobile/`.
+"Verified by" names the backend test files (`backend/tests/`) that exercise each
+component; "real data" means checked on the Chandrayaan-2 pairs in
+[RealData.md](RealData.md). The full backend suite (50 files) passed on
+2026-10-05 apart from the wall-clock budget tests, which depend on machine load.
 
 ---
 
-## 1. Truthful Status Matrix
+## 1. Backend
 
-| Component | Status | Verified | Implementation Details & Testing Proof |
-| :--- | :--- | :---: | :--- |
-| **SIFT Feature Detection** | `IMPLEMENTED` | **YES** | Real OpenCV SIFT (`cv2.SIFT_create`). Verified in `test_sift.py` & live runs. |
-| **SIFT 128D Description** | `IMPLEMENTED` | **YES** | Real OpenCV SIFT orientation histograms. Verified in `test_sift.py`. |
-| **BFMatcher (L2 Norm)** | `IMPLEMENTED` | **YES** | Exhaustive nearest-neighbor matcher (`cv2.BFMatcher(cv2.NORM_L2)`). Tested in `test_matching.py`. |
-| **FLANN Matcher** | `IMPLEMENTED` | **YES** | Fast KD-Tree matcher (`cv2.FlannBasedMatcher`). Tested in `test_matching.py`. |
-| **Lowe's Ratio Test** | `IMPLEMENTED` | **YES** | 2-NN ambiguity ratio filter ($d_1 < \tau d_2$). Verified in `test_matching.py`. |
-| **RANSAC Homography** | `IMPLEMENTED` | **YES** | `cv2.findHomography` with RANSAC & matrix stability checks. Tested in `test_pipeline_api.py`. |
-| **RANSAC Affine** | `IMPLEMENTED` | **YES** | `cv2.estimateAffine2D` with RANSAC & determinant validation. |
-| **Spatial Grid Balancing** | `IMPLEMENTED` | **YES** | $N \times N$ cell partitioning with top-k selection. Verified in `test_spatial_balancing.py`. |
-| **Reprojection RMSE** | `IMPLEMENTED` | **YES** | Measured pixel residual calculation over confirmed inliers. Verified in `test_metrics.py`. |
-| **Fail-Safe Mechanism** | `IMPLEMENTED` | **YES** | Flags `NOT_RELIABLE` when inliers < 8, ratio < 10%, or coverage < 15%. Tested in `test_metrics.py`. |
-| **Artifact Generation** | `IMPLEMENTED` | **YES** | Auto-generates 13 audit JSON/PNG files per run in `outputs/run_<id>/`. |
-| **Deterministic Simulation**| `IMPLEMENTED` | **YES** | Seed 26166 engine producing reproducible metrics. Verified in `test_simulation.py`. |
-| **Local Offline Fallback** | `IMPLEMENTED` | **YES** | Zero-network client simulator serving bundled demo assets (`LOCAL DEMO`). |
-| **Robustness Lab Engine** | `IMPLEMENTED` | **YES** | Synthetic illumination/scale/rotation parameter sweeps with live curves. |
-| **RIFT (Phase Congruency)** | `SIMULATED` | **YES** | Simulated via deterministic engine (Seed 26166). Advanced model planned for Phase 2. |
-| **SuperPoint Deep Extractor**| `SIMULATED` | **YES** | Simulated via deterministic engine (Seed 26166). Neural weights planned for Phase 2. |
-| **SuperGlue Matcher**       | `SIMULATED` | **YES** | Pure-NumPy Sinkhorn OT simulation (Sarlin et al., CVPR 2020). Sinusoidal position encoding, dustbin augmentation, 100-iteration log-domain Sinkhorn, MNN hard assignment. Seed 26166. Verified in `test_superglue.py` (24 tests). |
-| **LightGlue Graph Matcher** | `PLANNED`   | **NO**  | Interface contract outlined; deep attention weights not trained. |
-| **RANSAC++ Spatial Prior** | `PLANNED` | **NO** | Interface contract outlined; topographic DEM priors scheduled. |
-| **Sub-Pixel Refinement** | `PLANNED` | **NO** | Module stub present in `vision/refinement.py`; scientific validation planned. |
+| Component | Status | Verified by | Notes |
+| :--- | :--- | :--- | :--- |
+| RIFT2 phase-congruency features (single / multi-scale) | Implemented | `test_rift2.py`, `test_rift2_routing.py`, `test_scale_space.py`, `test_pyramid.py` | Default `feature_method`; 216-D descriptors. |
+| SIFT baseline | Implemented | `test_sift.py` | OpenCV SIFT. |
+| HOPC structural descriptor, HOPC + RIFT2 fusion | Implemented | `test_hopc.py` | 288-D. |
+| SuperPoint extractor | Implemented — needs weights | `test_superpoint_extractor.py`, `test_learned_matchers_pipeline.py` | PyTorch CPU; falls back to RIFT2 without `weights/superpoint_v1.pth`. |
+| SuperGlue matcher | Implemented — needs weights | `test_superglue_matcher.py`, `test_superglue.py`, `test_learned_matchers_pipeline.py` | PyTorch CPU, outdoor weights; fallback RIFT2 + BF. A pure-NumPy Sinkhorn matcher in the same module is unit-tested. |
+| LightGlue matcher | Implemented — needs weights | `test_lightglue_matcher.py`, `test_learned_matchers_pipeline.py` | PyTorch CPU; fallback RIFT2 + BF. |
+| BF / FLANN matching, Lowe's ratio test | Implemented | `test_matching.py` | |
+| Hyp-Net descriptor modulation | Implemented | `test_hypnet.py` | |
+| SCDF gates | Implemented | `test_scdf_gates.py` | |
+| MAGSAC++ / RANSAC, homography / affine | Implemented | `test_magsac.py`, `test_pipeline_api.py` | Matrix stability checks. |
+| Dense structural registration (CFOG) | Implemented | `test_dense_structural.py`, `test_pipeline_failure.py`; real data | Explicit or automatic fallback; false-lock guard. |
+| Thin-plate-spline correction | Implemented | `test_tps.py` | |
+| Sub-pixel refinement | Implemented | `test_subpixel.py` | Phase correlation; NCC peak interpolation for dense runs. |
+| Spatial grid balancing | Implemented | `test_spatial_balancing.py` | 6 × 6 default. |
+| Chandrayaan-2 PDS4 reader | Implemented | `test_pds_reader.py`, `test_pds_meta_feed.py`; real OHRC / TMC-2 / IIRS products | ISDA labels, memory-mapped `.img` / `.qub`. |
+| GeoTIFF reader | Implemented | `test_geotiff_reader.py` | |
+| Lunar polar-stereographic reprojection | Implemented | `test_lunar_crs.py` | Pole from scene hemisphere. |
+| GSD normalisation | Implemented | `test_resolution.py` | |
+| Footprint overlap, SPICE kernels, orbital footprint validation | Implemented | `test_overlap.py`, `test_spice.py`, `test_spice_kernel_build.py`, `test_footprint_validation.py` | Synthesized kernels via SpiceyPy. |
+| Illumination check, shadow mask, radiometric normalisation, terrain correction, depth-optical preprocessing | Implemented | `test_illumination.py`, `test_shadow_mask.py`, `test_radiometric_norm.py`, `test_terrain_correction.py`, `test_depth_optical.py` | Terrain correction uses a DEM when `LM_DEM_DIR` is set. |
+| Sensor-pair routing | Implemented | `test_router.py`, `test_rift2_routing.py` | |
+| Input quality gate | Implemented | `test_input_quality.py` | Fill vs in-footprint gaps; alpha as mask. |
+| Status / confidence metrics | Implemented | `test_metrics.py` | [Metrics.md](Metrics.md). |
+| Acceptance checklist | Implemented | `test_quality.py` | Resolution- and overlap-aware. |
+| Run artifacts, manifest, reports | Implemented | `test_manifest.py`, `test_report_generator.py`, `test_finale_run.py` | |
+| Robustness experiments | Implemented | No dedicated API test; exercised from the web and mobile apps | Illumination, scale, rotation, translation. `composite` appears in the request field description but is not implemented (no variation is applied). |
+| Seeded simulation mode | Implemented | `test_simulation.py` | [Simulation.md](Simulation.md). |
+| REST API, route aliases | Implemented | `test_health.py`, `test_api_aliases.py`, `test_pipeline_api.py`, `test_demo_api.py` | [API.md](API.md). |
+| Matcher benchmark | Implemented | `test_matcher_benchmark.py` | `scripts/matcher_benchmark.py`. |
+| Documentation visuals | Implemented | `test_visuals.py` | Regenerates `docs/visuals/` when run. |
+
+## 2. Web app (`web/`)
+
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| Studio: upload or preset pair, method, metadata, live run, viewer modes, metric cards, log | Implemented | Dense CFOG option, sensor / GSD inputs, auto-scroll, results only after a run. |
+| Correspondences: live matches, inlier / outlier filters, 4 × 4 grid with χ² | Implemented | Uses the latest Studio run; demo data before a run. |
+| Robustness: live sweep on the Studio reference image | Implemented | Reference charts are bundled data, labelled as such. |
+| Overview, Architecture | Implemented (static content) | Overview tiles and the 5-stage Architecture summary are fixed content. |
+| Export | Implemented (sample data) | Exports bundled sample telemetry, not the current run. |
+| Offline simulation | Implemented | When the backend is unreachable. |
+| Sinkhorn OT iterations slider | Display only | Not sent to the backend. |
+
+## 3. Mobile app (`mobile/`)
+
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| 13 screens: splash, home, upload, configure, processing, results, correspondence, spatial coverage, robustness, architecture, capabilities, about, pipeline details | Implemented | [MobileApp.md](MobileApp.md). |
+| Live runs, robustness sweeps, run details, capabilities | Implemented | Via the REST API. |
+| Correspondence screen | Illustrative | Line layout generated from match counts, not real coordinates. |
+| Dense CFOG option, sensor / GSD input | Not exposed | Backend dense fallback still applies. |
+| Offline local demo | Implemented | `LocalDemoSimulator`. |
+| Built-in (offline) capability list | Outdated | Still lists the SuperGlue matcher as simulated. |
 
 ---
 
-## 2. Non-Negotiable Engineering Commitments
-1. **No Fake Scientific Claims:** Simulated components are explicitly labeled as such in the UI, API, and documentation.
-2. **No Hard-Coded Numbers:** Every metric displayed originates from OpenCV execution or seed 26166 deterministic simulation.
-3. **Transparent Terminology:** Reference Image = Fixed; Moving Image = Transformed.
-4. **Provable Auditability:** All execution parameters, keypoints, correspondences, inliers, and matrices are persisted on disk for post-run peer review.
+## Engineering commitments
+1. Simulated or illustrative output is labelled where it appears.
+2. Run metrics come from the run; a rejected run reports RMSE as N/A.
+3. Reference image = fixed; moving image = transformed.
+4. Every run's parameters, keypoints, matches, decisions and matrices are saved
+   in `backend/outputs/run_<id>/`.

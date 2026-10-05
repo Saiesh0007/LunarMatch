@@ -58,6 +58,35 @@ def _compute_global_context(descriptors: np.ndarray) -> np.ndarray:
         return np.zeros(dim, dtype=descriptors.dtype if (descriptors is not None and descriptors.size > 0) else np.float32)
     return descriptors.mean(axis=0)
 
+def _to_gray_u8(img: np.ndarray) -> np.ndarray:
+    """Single-channel uint8 view of any supported raster (gray/BGR/BGRA, 8/16-bit, int16, float).
+
+    Higher bit-depth data (16-bit PNG/TIFF, int16 TC/NAC DN, float I/F) is linearly
+    stretched between its 0.5th and 99.5th percentiles; nodata sentinels (-32768,
+    -9999, NaN) and uint16 zero padding are excluded from the stretch and mapped to 0.
+    """
+    a = np.asarray(img)
+    if a.ndim == 3:
+        if a.shape[2] == 4:
+            a = cv2.cvtColor(a, cv2.COLOR_BGRA2GRAY)
+        elif a.shape[2] == 3:
+            a = cv2.cvtColor(a, cv2.COLOR_BGR2GRAY)
+        else:
+            a = a[..., 0]
+    if a.dtype == np.uint8:
+        return a
+    f = a.astype(np.float64)
+    valid = np.isfinite(f) & (f != -32768) & (f != -9999)
+    if a.dtype == np.uint16:
+        valid &= f != 0
+    if not valid.any():
+        return np.zeros(a.shape, np.uint8)
+    lo, hi = np.percentile(f[valid], [0.5, 99.5])
+    out = np.clip((f - lo) / max(hi - lo, 1e-12) * 254.0 + 1.0, 1.0, 255.0)
+    out[~valid] = 0
+    return out.astype(np.uint8)
+
+
 class PipelineService:
     """End-to-end orchestration of LunarMatch registration, telemetry, and artifact persistence."""
 
@@ -133,8 +162,8 @@ class PipelineService:
             return self._build_failure_response(run_id, run_dir, request, stages, f"Validation failed: {str(e)}")
 
         # Convert to grayscale for feature pipeline
-        ref_gray = cv2.cvtColor(ref_img_raw, cv2.COLOR_BGR2GRAY) if len(ref_img_raw.shape) == 3 else ref_img_raw
-        mov_gray = cv2.cvtColor(mov_img_raw, cv2.COLOR_BGR2GRAY) if len(mov_img_raw.shape) == 3 else mov_img_raw
+        ref_gray = _to_gray_u8(ref_img_raw)
+        mov_gray = _to_gray_u8(mov_img_raw)
 
         # Branch to Demo or Live Baseline
         if is_demo_mode:
@@ -225,6 +254,10 @@ class PipelineService:
         meta_merged.update(meta_mov)
         meta_merged.update(meta_ref)
 
+        # Per-image ground sample distances (request > PDS label) drive the dense matcher's scale prior
+        ref_gsd_prior = getattr(request, "reference_gsd_m", None) or meta_ref.get("gsd_meters")
+        mov_gsd_prior = getattr(request, "moving_gsd_m", None) or meta_mov.get("gsd_meters")
+
         pds_gsd = meta_merged.get("gsd_meters")
         pds_elev = meta_merged.get("solar_elevation_deg")
         pds_azim = meta_merged.get("solar_azimuth_deg")
@@ -273,7 +306,17 @@ class PipelineService:
             import rasterio as _rio
             with _rio.open(ref_path) as _ds:
                 _has_crs = _ds.crs is not None
-            
+                if _has_crs:
+                    # project onto the pole of the hemisphere the scene lies in; a southern
+                    # stereographic grid inflates northern scenes by 2x (equator) to >10x
+                    try:
+                        from pyproj import Transformer as _Tr
+                        _cx, _cy = _ds.transform * (_ds.width / 2.0, _ds.height / 2.0)
+                        _lat = _Tr.from_crs(_ds.crs, "+proj=longlat +R=1737400 +no_defs", always_xy=True).transform(_cx, _cy)[1]
+                        crs_pole = "south" if _lat < 0 else "north"
+                    except Exception as _pole_err:
+                        logger.warning(f"Could not determine scene hemisphere, keeping south pole: {_pole_err}")
+
             if _has_crs or is_bundled_demo_pair:
                 _ref_reproj = run_dir / "ref_crs.tif"
                 _mov_reproj = run_dir / "mov_crs.tif"
@@ -283,8 +326,8 @@ class PipelineService:
                 _ref_r = cv2.imread(str(_ref_reproj), cv2.IMREAD_UNCHANGED)
                 _mov_r = cv2.imread(str(_mov_reproj), cv2.IMREAD_UNCHANGED)
                 if _ref_r is not None and _mov_r is not None:
-                    ref_gray = cv2.cvtColor(_ref_r, cv2.COLOR_BGR2GRAY) if len(_ref_r.shape) == 3 else _ref_r
-                    mov_gray = cv2.cvtColor(_mov_r, cv2.COLOR_BGR2GRAY) if len(_mov_r.shape) == 3 else _mov_r
+                    ref_gray = _to_gray_u8(_ref_r)
+                    mov_gray = _to_gray_u8(_mov_r)
                 crs_fallback = False
                 crs_reason = "demo_geotransform" if is_bundled_demo_pair else None
                 crs_identity = ref_identity and mov_identity
@@ -319,7 +362,8 @@ class PipelineService:
         path_a_iq = str(_ref_reproj) if not crs_fallback else str(ref_path)
         path_b_iq = str(_mov_reproj) if not crs_fallback else str(mov_path)
         
-        iq_check_uint8_sentinel = not crs_fallback
+        # uint8 0/255 only count as padding where border-connected, so this is safe for raw uploads too
+        iq_check_uint8_sentinel = True
         iq_a = input_quality.check_input_quality(path_a_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
         iq_b = input_quality.check_input_quality(path_b_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
         pair_iq = input_quality.check_pair_quality(path_a_iq, path_b_iq, check_uint8_sentinel=iq_check_uint8_sentinel)
@@ -424,8 +468,8 @@ class PipelineService:
                     _ref_g = cv2.imread(str(_ref_gsd_path), cv2.IMREAD_UNCHANGED)
                     _mov_g = cv2.imread(str(_mov_gsd_path), cv2.IMREAD_UNCHANGED)
                     if _ref_g is not None and _mov_g is not None:
-                        ref_gray = cv2.cvtColor(_ref_g, cv2.COLOR_BGR2GRAY) if len(_ref_g.shape) == 3 else _ref_g
-                        mov_gray = cv2.cvtColor(_mov_g, cv2.COLOR_BGR2GRAY) if len(_mov_g.shape) == 3 else _mov_g
+                        ref_gray = _to_gray_u8(_ref_g)
+                        mov_gray = _to_gray_u8(_mov_g)
                 else:
                     gsd_fallback = True
                     gsd_reason = "could not determine target GSD"
@@ -735,6 +779,15 @@ class PipelineService:
         t0 = time.perf_counter()
 
         # F12: Cross-modal radiometric normalisation
+        # Sensor routing: PDS instrument fields win; otherwise use sensors the caller explicitly
+        # declared (the request model defaults to OHRC/TMC-2, which must not be assumed silently)
+        from .router import detect_sensor
+        _declared = getattr(request, "model_fields_set", set())
+        _instr_keys = ("sensor", "INSTRUMENT_ID", "INSTRUMENT_NAME", "instrument_id", "instrument_name")
+        for _meta, _field in ((meta_a, "reference_sensor"), (meta_b, "moving_sensor")):
+            _has_instr = any(_meta.get(k) for k in _instr_keys)
+            if _field in _declared and (not _has_instr or detect_sensor(_meta) == "unknown"):
+                _meta["sensor"] = getattr(getattr(request, _field), "value", getattr(request, _field))
         pipe_cfg = select_pipeline_config(meta_b, meta_a)
         sensors_differ = bool(pipe_cfg.get("sensors_differ", False))
 
@@ -898,7 +951,10 @@ class PipelineService:
 
         # F17: True octave scale space over PC map
         t0_ss = time.perf_counter()
-        use_ss = bool(pipe_cfg.get("use_scale_space", True))
+        # telemetry over the sparse phase-congruency pyramid; a dense run has no keypoints to count and
+        # the pyramid costs minutes on multi-megapixel references
+        dense_method = method_name == "dense"
+        use_ss = bool(pipe_cfg.get("use_scale_space", True)) and not dense_method
         max_kps_per_oct = int(pipe_cfg.get("max_keypoints_per_octave", 2667))
         if use_ss:
             from ..services.pyramid import build_pc_octaves
@@ -939,7 +995,7 @@ class PipelineService:
                 "total_keypoints": min(len(kps_ref), max_kps_per_oct),
                 "max_keypoints_per_octave": max_kps_per_oct,
                 "use_scale_space": False,
-                "reason": "scale space disabled",
+                "reason": "dense structural method uses no keypoints" if dense_method else "scale space disabled",
                 "ms": round(dur_ss, 2),
             })
 
@@ -1220,6 +1276,90 @@ class PipelineService:
             )
             estimator_diagnostics = {"backend": "opencv_ransac", "n_hypotheses_tried": -1}
 
+        # ==========================================
+        # F31: DENSE STRUCTURAL REGISTRATION (CFOG template matching)
+        # Explicit method "dense", or automatic fallback when sparse matching did not verify.
+        # ==========================================
+        dense_used = False
+        sparse_verified = matrix is not None and is_stable and len(inliers) >= 12
+        explicit_dense = method_name in ("dense",)
+        if explicit_dense or (getattr(request, "dense_fallback", True) and not sparse_verified):
+            from ..vision.dense_structural import register_dense
+            t0_dense = time.perf_counter()
+            if not crs_fallback:
+                # both rasters were reprojected to one polar-stereographic grid and common GSD
+                d_scale, d_angle = 1.0, 0.0
+            elif ref_gsd_prior and mov_gsd_prior:
+                d_scale, d_angle = float(mov_gsd_prior) / float(ref_gsd_prior), None
+            else:
+                d_scale, d_angle = None, None
+            try:
+                dense_res = register_dense(ref_gray, mov_gray, scale_prior=d_scale, angle_prior=d_angle)
+            except Exception as dense_err:  # never let the fallback crash the run
+                logger.warning(f"Dense structural registration failed: {dense_err}")
+                dense_res = None
+            dense_log = {
+                "stage": "dense_structural",
+                "trigger": "explicit" if explicit_dense else "sparse_fallback",
+                "sparse_inliers": len(inliers),
+                "scale_prior": d_scale,
+                "angle_prior": d_angle,
+                "applied": False,
+                "ms": round((time.perf_counter() - t0_dense) * 1000.0, 2),
+            }
+            if dense_res is not None:
+                dense_log.update({k: v for k, v in dense_res.diagnostics.items()})
+            if dense_res is not None and dense_res.H is not None:
+                d_matches = []
+                for idx_d, (dm, ok) in enumerate(zip(dense_res.matches, dense_res.inlier_mask)):
+                    d_matches.append(MatchPairModel(
+                        ref_idx=idx_d, mov_idx=idx_d, distance=float(1.0 - dm.score),
+                        ref_pt=[float(dm.ref_pt[0]), float(dm.ref_pt[1])],
+                        mov_pt=[float(dm.mov_pt[0]), float(dm.mov_pt[1])],
+                        is_inlier=bool(ok),
+                    ))
+                d_inliers = [m for m in d_matches if m.is_inlier]
+                if request.geometric_model == GeometricModel.AFFINE:
+                    d_matrix, _ = cv2.estimateAffine2D(
+                        np.float32([m.mov_pt for m in d_inliers]), np.float32([m.ref_pt for m in d_inliers]),
+                        method=cv2.LMEDS)
+                else:
+                    d_matrix = dense_res.H
+                if d_matrix is not None:
+                    d_stable, d_msg = GeometricVerification._check_matrix_stability(d_matrix, request.geometric_model)
+                    if d_stable:
+                        H3 = np.vstack([d_matrix, [0, 0, 1]]) if d_matrix.shape == (2, 3) else d_matrix
+                        src_all = np.float64([m.mov_pt for m in d_matches]).reshape(-1, 1, 2)
+                        dst_all = np.float64([m.ref_pt for m in d_matches])
+                        res_all = np.linalg.norm(cv2.perspectiveTransform(src_all, H3).reshape(-1, 2) - dst_all, axis=1)
+                        matrix, is_stable, stability_msg = d_matrix, True, d_msg
+                        filtered_matches, inliers = d_matches, d_inliers
+                        inlier_mask = [m.is_inlier for m in d_matches]
+                        candidate_count = len(d_matches)
+                        levels_ref = levels_mov = None
+                        estimator_diagnostics = {
+                            "backend": "dense_structural_cfog+magsac",
+                            "residuals_px": res_all.tolist(),
+                            "weights": [1.0 if m.is_inlier else 0.0 for m in d_matches],
+                            "weighted_rms_px": dense_res.diagnostics.get("inlier_rmse_px"),
+                            "n_hypotheses_tried": dense_res.diagnostics.get("coarse_hypotheses"),
+                        }
+                        dense_used = True
+                        dense_log["applied"] = True
+                        label_ref = "DENSE-CFOG" if explicit_dense else f"{label_ref}+DENSE-CFOG"
+                    else:
+                        dense_log["reason"] = f"dense matrix unstable: {d_msg}"
+            elif dense_res is not None:
+                dense_log["reason"] = dense_res.diagnostics.get("failure_reason")
+            _stage_log_entries.append(dense_log)
+            if dense_used:
+                warnings.append(
+                    "Dense structural registration applied (" + dense_log["trigger"] + "): "
+                    + f"{len(inliers)} verified correspondences, scale "
+                    + f"{dense_res.diagnostics.get('coarse_scale', d_scale)}, rotation "
+                    + f"{dense_res.diagnostics.get('coarse_angle_deg', d_angle)} deg"
+                )
+
         # F25: TPS Non-Rigid Residual Correction (runs after MAGSAC, before subpixel)
         t0_tps = time.perf_counter()
         use_tps = bool(getattr(request, "use_tps", True) and pipe_cfg.get("use_tps", True))
@@ -1282,7 +1422,17 @@ class PipelineService:
             }
 
         subpixel_diagnostics = {"enabled": bool(request.subpixel_refinement), "n_refined": 0, "n_rejected_refinement": len(inliers), "n_rejected_out_of_bounds": 0, "per_match": [], "mean_residual_px": float("nan"), "median_residual_px": float("nan"), "p95_residual_px": float("nan")}
-        if request.subpixel_refinement and inliers:
+        if dense_used and inliers:
+            # dense correspondences are already sub-pixel (parabolic NCC peak interpolation)
+            res_in = np.asarray([r for r, m in zip(estimator_diagnostics.get("residuals_px", []), filtered_matches) if m.is_inlier], dtype=float)
+            subpixel_diagnostics = {
+                "enabled": True, "method": "dense_ncc_peak_interpolation",
+                "n_refined": len(inliers), "n_rejected_refinement": 0, "n_rejected_out_of_bounds": 0, "per_match": [],
+                "mean_residual_px": float(res_in.mean()) if res_in.size else float("nan"),
+                "median_residual_px": float(np.median(res_in)) if res_in.size else float("nan"),
+                "p95_residual_px": float(np.percentile(res_in, 95)) if res_in.size else float("nan"),
+            }
+        elif request.subpixel_refinement and inliers:
             source_points = np.asarray([match.mov_pt for match in inliers], dtype=np.float32)
             reference_points = np.asarray([match.ref_pt for match in inliers], dtype=np.float32)
             _, refined_reference, subpixel_diagnostics = refine_subpixel(
@@ -1412,6 +1562,9 @@ class PipelineService:
         with open(run_dir / "match_points.csv", "w", encoding="utf-8", newline="") as match_file:
             match_file.write("match_id,ref_x,ref_y,mov_x,mov_y,residual_pixels,residual_meters,uncertainty_x,uncertainty_y,refinement_status\n")
             gsd_meters_per_pixel = getattr(context, "gsd_meters_per_pixel", None)
+            if gsd_meters_per_pixel is None and crs_fallback and ref_gsd_prior:
+                # residuals are in reference pixels; the reference kept its original grid
+                gsd_meters_per_pixel = float(ref_gsd_prior)
             if gsd_meters_per_pixel is None:
                 gsd_meters_per_pixel = derive_gsd_meters_per_pixel(str(ref_path))
             has_valid_gsd = gsd_meters_per_pixel is not None and np.isfinite(gsd_meters_per_pixel) and gsd_meters_per_pixel > 0
@@ -1471,6 +1624,22 @@ class PipelineService:
             force_fail_safe=request.fail_safe_override,
             raw_inlier_count=len(inliers),
         )
+        # Acceptance checklist must judge cross-resolution pairs against their own geometry:
+        # the determinant against the expected scale, coverage within the moving footprint.
+        if not crs_fallback and not gsd_fallback:
+            _qc_expected_scale = 1.0  # both rasters resampled onto one grid and GSD
+        elif crs_fallback and ref_gsd_prior and mov_gsd_prior:
+            _qc_expected_scale = float(mov_gsd_prior) / float(ref_gsd_prior)
+        else:
+            _qc_expected_scale = None
+        from ..evaluation.quality import footprint_coverage
+        _qc_coverage = footprint_coverage([m.ref_pt for m in inliers], matrix, mov_gray.shape, ref_gray.shape,
+                                          grid_size=spatial_stats.grid_size)
+        if _qc_coverage is None:
+            _qc_coverage = spatial_stats.coverage_percentage_after / 100.0
+        else:
+            metrics.spatial_coverage_footprint = round(_qc_coverage * 100.0, 2)
+
         save_json(run_dir / "quality_report.json", {
             "estimator": request.estimator_method.value,
             "sigma_max": 3.0 if request.estimator_method == EstimatorMethod.MAGSAC else None,
@@ -1495,9 +1664,10 @@ class PipelineService:
                 overlap_ratio=1.0,
                 inlier_count=len(inliers),
                 inlier_ratio=len(inliers) / max(len(filtered_matches), 1),
-                spatial_coverage=spatial_stats.coverage_percentage_after / 100.0,
+                spatial_coverage=_qc_coverage,
                 rmse_pixels=metrics.rmse_px,
                 transform_matrix=matrix,
+                expected_scale=_qc_expected_scale,
             ),
         })
         stages.append(PipelineStageInfo(
@@ -1822,6 +1992,9 @@ class PipelineService:
             res = ext.extract(img)
             kps = [cv2.KeyPoint(float(pt[0]), float(pt[1]), 1.0, -1, float(sc)) for pt, sc in zip(res["keypoints"], res["scores"])]
             return kps, res["descriptors"], "SuperPoint", None
+        if method_str == "dense":
+            # dense structural registration runs after matching; no sparse keypoints needed
+            return [], np.zeros((0, 128), dtype=np.float32), "DENSE-CFOG", None
         if method_str == "hopc":
             hopc_map = compute_hopc(img)
             kps, desc = hopc_keypoints_from_dense(img, hopc_map, max_keypoints=max_features)

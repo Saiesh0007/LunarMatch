@@ -9,6 +9,26 @@ const PRESET_IMAGE_IDS: Record<string, { ref: string; mov: string }> = {
   pair_b: { ref: "demo_pair_b_ref", mov: "demo_pair_b_mov" },
 };
 
+const SENSOR_OPTIONS = ["OHRC", "TMC-2", "IIRS", "LRO NAC", "SELENE", "Other"];
+
+/** Positive finite number from a text field, or undefined when blank/invalid. */
+function parseGsd(value: string): number | undefined {
+  const n = Number(value.trim());
+  return value.trim() !== "" && Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+const SPARSE_STAGES = ["Phase Congruency", "HOPC Features", "Sinkhorn OT", "MAGSAC++ Consensus", "Sub-Pixel & QA"];
+const DENSE_STAGES = ["CFOG Structure Maps", "Scale / Rotation Search", "Template Matching", "MAGSAC++ Consensus", "Sub-Pixel & QA"];
+const FALLBACK_STAGES = ["Phase Congruency", "Sparse Matching", "Dense CFOG Fallback", "MAGSAC++ Consensus", "Sub-Pixel & QA"];
+
+/** Which registration path produced a run: the backend reports dense use in its warnings. */
+function registrationPath(run: PipelineRunResponse | null, selectedMethod: string): "sparse" | "dense" | "fallback" {
+  const dense = run?.warnings.find(w => w.startsWith("Dense structural registration applied"));
+  if (dense) return dense.includes("(explicit)") ? "dense" : "fallback";
+  if (run) return "sparse";
+  return selectedMethod === "dense" ? "dense" : "sparse";
+}
+
 function toMetricData(res: PipelineRunResponse): MetricData {
   const m = res.metrics;
   return {
@@ -20,6 +40,7 @@ function toMetricData(res: PipelineRunResponse): MetricData {
     inlierRatio: m.inlier_ratio / 100,
     rmsePx: m.rmse_px,
     spatialCoverage: m.spatial_coverage / 100,
+    spatialCoverageFootprint: m.spatial_coverage_footprint != null ? m.spatial_coverage_footprint / 100 : null,
     mutualInformation: 0,
     ssim: 0,
     runtimeMs: m.runtime_ms,
@@ -48,12 +69,21 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
   const [movFile, setMovFile] = useState<File | null>(null);
   const [originalMovSrc, setOriginalMovSrc] = useState<string>(PRESET_PAIRS.pair_a.movPath);
   const [lastRun, setLastRun] = useState<PipelineRunResponse | null>(null);
+  // Results UI only appears once a run has executed for the current images; before that the
+  // metrics are the preset's sample values and would contradict what the user is about to run
+  const [hasResults, setHasResults] = useState<boolean>(false);
 
   // Form Controls
-  const [featureMethod, setFeatureMethod] = useState<string>("rift2_multiscale");  const [sinkhornIter, setSinkhornIter] = useState<number>(50);
+  const [featureMethod, setFeatureMethod] = useState<string>("rift2_multiscale");
+  const [sinkhornIter, setSinkhornIter] = useState<number>(50);
   const [magsacThreshold, setMagsacThreshold] = useState<number>(2.5);
   const [subpixelEnabled, setSubpixelEnabled] = useState<boolean>(true);
   const [spatialEnabled, setSpatialEnabled] = useState<boolean>(true);
+  // Optional image metadata: plain PNG/JPG uploads carry no sensor or resolution information
+  const [refSensor, setRefSensor] = useState<string>("");
+  const [movSensor, setMovSensor] = useState<string>("");
+  const [refGsd, setRefGsd] = useState<string>("");
+  const [movGsd, setMovGsd] = useState<string>("");
 
   // Live Telemetry state
   const [metrics, setMetrics] = useState<MetricData>(PRESET_PAIRS.pair_a.metrics);
@@ -70,6 +100,16 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
   const splitWrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logTerminalRef = useRef<HTMLDivElement>(null);
+  const telemetryRef = useRef<HTMLDivElement>(null);
+
+  // Bring a section into view; instant for users who prefer reduced motion. The element is looked
+  // up two frames later because the results grid only mounts once the run's state has rendered.
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>, block: ScrollLogicalPosition) => {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block });
+    }));
+  };
 
   // Helper to add log line
   const addLog = (msg: string, type: "info" | "success" = "info") => {
@@ -95,6 +135,7 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
     setRefFile(null);
     setMovFile(null);
     setLastRun(null);
+    setHasResults(false);
     onSessionChange(null);
     setMetrics(pair.metrics);
     addLog(`Selected preset pair: ${pair.name} (${pair.region})`, "info");
@@ -123,6 +164,7 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
         else setRefFile(null);
       }
       setLastRun(null);
+      setHasResults(false);
       onSessionChange(null);
       setSelectedPairId("");
     };
@@ -274,7 +316,12 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
     try {
       setActiveStageIndex(0);
       const [refId, movId] = await Promise.all([resolveImageId(true), resolveImageId(false)]);
+      const refGsdM = parseGsd(refGsd);
+      const movGsdM = parseGsd(movGsd);
       addLog(`Reference: ${refId} | Moving: ${movId} | Method: ${featureMethod}`, "info");
+      if (refSensor || movSensor || refGsdM || movGsdM) {
+        addLog(`Metadata: REF ${refSensor || "auto"}${refGsdM ? ` @ ${refGsdM} m/px` : ""} | MOV ${movSensor || "auto"}${movGsdM ? ` @ ${movGsdM} m/px` : ""}`, "info");
+      }
       setActiveStageIndex(2);
       const res = await runPipeline({
         reference_image_id: refId,
@@ -283,13 +330,21 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
         ransac_threshold: magsacThreshold,
         subpixel_refinement: subpixelEnabled,
         spatial_balancing: spatialEnabled,
+        ...(refSensor ? { reference_sensor: refSensor } : {}),
+        ...(movSensor ? { moving_sensor: movSensor } : {}),
+        ...(refGsdM ? { reference_gsd_m: refGsdM } : {}),
+        ...(movGsdM ? { moving_gsd_m: movGsdM } : {}),
       });
+      res.warnings
+        .filter(w => w.startsWith("Dense structural registration applied"))
+        .forEach(w => addLog(w, "success"));
       res.stages.forEach(stg => {
         addLog(`[${stg.stage_number}] ${stg.name}: ${stg.status}${stg.details ? ` — ${stg.details}` : ""} (${stg.duration_ms.toFixed(1)} ms)`, stg.status === "COMPLETED" ? "success" : "info");
       });
       const live = toMetricData(res);
       setMetrics(live);
       setLastRun(res);
+      setHasResults(true);
       onSessionChange({
         run: res,
         refSrc: refImageSrc,
@@ -318,8 +373,10 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
   // Execute Pipeline (live when the backend is reachable, otherwise offline simulation)
   const handleExecutePipeline = async () => {
     if (isProcessing) return;
+    scrollToSection(logTerminalRef, "center");
     if (isBackendOnline) {
       await executeLivePipeline();
+      scrollToSection(telemetryRef, "start");
       return;
     }
     setIsProcessing(true);
@@ -344,13 +401,21 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
     setActiveStageIndex(-1);
     const baseMetrics = PRESET_PAIRS[selectedPairId]?.metrics || PRESET_PAIRS.pair_a.metrics;
     setMetrics(baseMetrics);
+    setHasResults(true);
 
     addLog(`Registration Consensus Achieved: Inliers = ${baseMetrics.ransacInliers}, RMSE = ${baseMetrics.rmsePx} px`, "success");
     addLog("Status: ACCEPTED (OPTIMAL). Geometric verification criteria satisfied.", "success");
     addLog("==================================================", "info");
     setIsProcessing(false);
     setViewMode("split");
+    scrollToSection(telemetryRef, "start");
   };
+
+  // While a run is in flight, label the stages for the method being run; afterwards, for the path the backend took
+  const regPath = registrationPath(isProcessing ? null : lastRun, featureMethod);
+  const stageNames = regPath === "dense" ? DENSE_STAGES : regPath === "fallback" ? FALLBACK_STAGES : SPARSE_STAGES;
+  // Metric cards describe the run they show: preset (sample) numbers are sparse-pipeline values
+  const cardPath = lastRun ? registrationPath(lastRun, featureMethod) : "sparse";
 
   const isOptimal = lastRun
     ? metrics.status === "SUCCESSFUL"
@@ -426,9 +491,33 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
           <select className="param-select" value={featureMethod} onChange={(e) => setFeatureMethod(e.target.value)}>
             <option value="rift2_multiscale">RIFT2 Multi-Scale Pyramid (Recommended)</option>
             <option value="rift2">RIFT2 Single-Scale</option>
+            <option value="dense">Dense Structural CFOG (Fastest for Cross-Sensor)</option>
             <option value="hopc">HOPC Structural Phase Matching</option>
             <option value="sift">SIFT Baseline (Fails at &Delta; Sun &gt; 45&deg;)</option>
           </select>
+        </div>
+
+        <div className="param-group">
+          <div className="param-label-row">
+            <span className="param-label">IMAGE METADATA (OPTIONAL)</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <select className="param-select" aria-label="Reference sensor" value={refSensor} onChange={(e) => setRefSensor(e.target.value)}>
+              <option value="">REF sensor: auto</option>
+              {SENSOR_OPTIONS.map(s => <option key={s} value={s}>REF: {s}</option>)}
+            </select>
+            <select className="param-select" aria-label="Moving sensor" value={movSensor} onChange={(e) => setMovSensor(e.target.value)}>
+              <option value="">MOV sensor: auto</option>
+              {SENSOR_OPTIONS.map(s => <option key={s} value={s}>MOV: {s}</option>)}
+            </select>
+            <input type="text" inputMode="decimal" className="param-input" aria-label="Reference GSD in metres per pixel"
+              placeholder="REF GSD m/px (e.g. 78.32)" value={refGsd} onChange={(e) => setRefGsd(e.target.value)} />
+            <input type="text" inputMode="decimal" className="param-input" aria-label="Moving GSD in metres per pixel"
+              placeholder="MOV GSD m/px (e.g. 19.6)" value={movGsd} onChange={(e) => setMovGsd(e.target.value)} />
+          </div>
+          <div className="switch-subtitle" style={{ marginTop: 6 }}>
+            Pixel size of the uploaded files (not the instrument&apos;s nominal value if the image was resampled). Narrows the scale search and enables metre-level residuals.
+          </div>
         </div>
 
         <div className="param-group">
@@ -516,19 +605,13 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
         {/* Stage Progression HUD */}
         <div className="pipeline-hud-container">
           <div className="stage-step-list">
-            {[
-              { id: 1, name: "Phase Congruency" },
-              { id: 2, name: "HOPC Features" },
-              { id: 3, name: "Sinkhorn OT" },
-              { id: 4, name: "MAGSAC++ Consensus" },
-              { id: 5, name: "Sub-Pixel & QA" }
-            ].map((stg, idx) => (
+            {stageNames.map((name, idx) => (
               <div
-                key={stg.id}
+                key={idx}
                 className={`stage-step-item ${activeStageIndex === idx ? "active" : ""} ${activeStageIndex > idx ? "completed" : ""}`}
               >
-                <div className="stage-num-tag">STAGE 0{stg.id}</div>
-                <div className="stage-name-text">{stg.name}</div>
+                <div className="stage-num-tag">STAGE 0{idx + 1}</div>
+                <div className="stage-name-text">{name}</div>
               </div>
             ))}
           </div>
@@ -564,9 +647,11 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
           </div>
 
           <div>
-            <span className={`tag-badge ${isOptimal ? "badge-white" : "badge-subtle"}`}>
-              {isOptimal ? "OPTIMAL (PASS)" : "FAIL-SAFE"}
-            </span>
+            {hasResults && (
+              <span className={`tag-badge ${isOptimal ? "badge-white" : "badge-subtle"}`}>
+                {isOptimal ? "OPTIMAL (PASS)" : "FAIL-SAFE"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -630,17 +715,27 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
         </div>
 
         {/* Quantitative Telemetry 8-Grid */}
-        <div className="results-telemetry-grid">
+        {hasResults ? (
+        <div className="results-telemetry-grid" ref={telemetryRef} style={{ scrollMarginTop: 16 }}>
           <div className="result-metric-card">
             <div className="metric-title">KEYPOINTS</div>
-            <div className="metric-number">{metrics.keypointsRef} / {metrics.keypointsMov}</div>
-            <div className="metric-sub">Reference / Moving</div>
+            {cardPath === "dense" ? (
+              <>
+                <div className="metric-number">Dense grid</div>
+                <div className="metric-sub">Template patches, no keypoints</div>
+              </>
+            ) : (
+              <>
+                <div className="metric-number">{metrics.keypointsRef} / {metrics.keypointsMov}</div>
+                <div className="metric-sub">{cardPath === "fallback" ? "Sparse stage (unverified)" : "Reference / Moving"}</div>
+              </>
+            )}
           </div>
 
           <div className="result-metric-card">
             <div className="metric-title">CANDIDATES</div>
             <div className="metric-number">{metrics.candidateMatches}</div>
-            <div className="metric-sub">Sinkhorn OT Pairs</div>
+            <div className="metric-sub">{cardPath === "sparse" ? "Sinkhorn OT Pairs" : "CFOG Template Matches"}</div>
           </div>
 
           <div className="result-metric-card">
@@ -663,8 +758,17 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
 
           <div className="result-metric-card">
             <div className="metric-title">SPATIAL COVERAGE</div>
-            <div className="metric-number">{(metrics.spatialCoverage * 100).toFixed(1)}%</div>
-            <div className="metric-sub">4&times;4 Grid Partition Fill</div>
+            {metrics.spatialCoverageFootprint != null ? (
+              <>
+                <div className="metric-number">{(metrics.spatialCoverageFootprint * 100).toFixed(1)}%</div>
+                <div className="metric-sub">Of Image Overlap &bull; {(metrics.spatialCoverage * 100).toFixed(0)}% of Full Ref</div>
+              </>
+            ) : (
+              <>
+                <div className="metric-number">{(metrics.spatialCoverage * 100).toFixed(1)}%</div>
+                <div className="metric-sub">6&times;6 Grid Partition Fill</div>
+              </>
+            )}
           </div>
 
           <div className="result-metric-card">
@@ -681,6 +785,14 @@ export default function StudioTab({ isBackendOnline, onSessionChange }: StudioTa
             <div className="metric-sub">{isOptimal ? "All Criteria Satisfied" : "Quality Gates Not Met"}</div>
           </div>
         </div>
+        ) : (
+          <div className="result-metric-card" style={{ textAlign: "center" }}>
+            <div className="metric-title">RESULTS</div>
+            <div className="metric-sub">
+              {isProcessing ? "Registration running — metrics appear when it finishes." : "Run the registration engine to see metrics for these images."}
+            </div>
+          </div>
+        )}
 
         {/* Log Stream Terminal */}
         <div className="log-terminal-box" ref={logTerminalRef}>

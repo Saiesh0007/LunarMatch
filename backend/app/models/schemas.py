@@ -18,6 +18,7 @@ class FeatureMethod(str, Enum):
     BOTH = "both"
     HOPC = "hopc"
     HOPC_RIFT2_FUSION = "hopc_rift2_fusion"
+    DENSE = "dense"
     SIFT_UPPER = "SIFT"
     RIFT2_UPPER = "RIFT2"
     SUPERPOINT = "SuperPoint"
@@ -110,6 +111,7 @@ class RegistrationMetrics(BaseModel):
     inlier_ratio: float           # percentage 0.0 - 100.0
     spatial_coverage: float       # percentage 0.0 - 100.0
     spatial_coverage_before: float
+    spatial_coverage_footprint: Optional[float] = None  # percentage of grid cells inside the moving footprint holding an inlier
     rmse_px: Optional[float] = None  # None / N/A if unreliable
     runtime_ms: float
     confidence_level: ConfidenceLevel

@@ -12,6 +12,7 @@ export interface MetricData {
   inlierRatio: number;
   rmsePx: number | null;
   spatialCoverage: number;
+  spatialCoverageFootprint?: number | null; // coverage within the moving image's footprint (live runs)
   mutualInformation: number;
   ssim: number;
   runtimeMs: number;
